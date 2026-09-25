@@ -6,6 +6,8 @@ use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PengaduanTest extends TestCase
@@ -136,7 +138,7 @@ class PengaduanTest extends TestCase
         $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
             ->assertOk()
             ->assertDontSee('Ubah Tahap Pengaduan')
-            ->assertSee('Status pengaduan hanya dapat diubah oleh admin humas.');
+            ->assertSee('Tulis Balasan atau Unggah Lampiran');
 
         $this->post('/lacak-tiket/'.$pengaduan->kode_tiket.'/tahap', ['status' => 'selesai'])
             ->assertNotFound();
@@ -224,13 +226,49 @@ class PengaduanTest extends TestCase
 
         $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
             ->assertOk()
-            ->assertSee('Kolom Chat Pengaduan')
+            ->assertSee('Riwayat Tanggapan Dua Arah')
             ->assertSee('Apakah bisa diproses lebih cepat?')
             ->assertSee('Tim sedang menindaklanjuti.')
-            ->assertSee('Admin Humas');
+            ->assertSee('Tim Humas')
+            ->assertSee('Terkirim');
 
         $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), ['isi' => ''])
             ->assertSessionHasErrors('isi');
+    }
+
+    public function test_pesan_bisa_dilampiri_berkas(): void
+    {
+        Storage::fake('public');
+
+        $pengaduan = Pengaduan::create([
+            'kode_tiket' => 'ADUAN-20260925-BERKAS',
+            'kategori' => 'fasilitas',
+            'nama_lengkap' => 'Sari',
+            'nrm' => '12-34-56-78',
+            'no_wa' => '081200000009',
+            'email' => 'sari@example.com',
+            'alamat' => 'Surabaya',
+            'waktu_kejadian' => '2026-09-20T09:00',
+            'unit' => 'Instalasi Radiologi',
+            'subjek' => 'Mesin USG tidak dapat dipakai',
+            'deskripsi' => 'Pemeriksaan tertunda karena alat rusak.',
+            'lampiran' => [],
+            'status' => 'revisi',
+        ]);
+
+        $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), [
+            'isi' => 'Berikut bukti foto resume medis.',
+            'lampiran' => UploadedFile::fake()->create('bukti.jpg', 120, 'image/jpeg'),
+        ])->assertRedirect(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]));
+
+        $pesan = $pengaduan->pesan()->firstWhere('peran', 'pelapor');
+
+        $this->assertNotNull($pesan->lampiran);
+        Storage::disk('public')->assertExists($pesan->lampiran);
+
+        $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
+            ->assertOk()
+            ->assertSee('Unggah Lampiran');
     }
 
     public function test_lacak_tiket_tidak_menampilkan_aduan_lain(): void

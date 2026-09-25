@@ -97,8 +97,11 @@ class PengaduanController extends Controller
     {
         $validated = $request->validate([
             'isi' => ['required', 'string', 'max:2000'],
+            'lampiran' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ], [
             'isi.required' => 'Tuliskan pesan terlebih dahulu.',
+            'lampiran.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
+            'lampiran.max' => 'Ukuran maksimal lampiran adalah 5 MB.',
         ]);
 
         $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
@@ -107,6 +110,7 @@ class PengaduanController extends Controller
         $pengaduan->pesan()->create([
             'peran' => 'pelapor',
             'isi' => $validated['isi'],
+            'lampiran' => $request->file('lampiran')?->store('lampiran', 'public'),
         ]);
 
         return redirect()->route('pengaduan.lacak', ['kode' => $kode])->with('sukses', 'Pesan Anda sudah terkirim ke admin humas.');

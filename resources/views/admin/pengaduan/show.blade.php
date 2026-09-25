@@ -52,44 +52,86 @@
 
             {{-- Chat dengan pelapor --}}
             <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                <h3 class="text-base font-semibold text-ink">Chat dengan Pelapor</h3>
+                <h3 class="text-xl font-semibold leading-7 text-ink">Riwayat Tanggapan Dua Arah</h3>
 
-                <div class="mt-4 flex max-h-96 flex-col gap-3 overflow-y-auto rounded-xl bg-brand-light p-4">
+                <div class="mt-4 flex max-h-[640px] flex-col gap-4 overflow-y-auto pr-1">
                     @forelse ($pengaduan->pesan as $pesan)
-                        <div class="flex flex-col {{ $pesan->dariAdmin() ? 'items-end' : 'items-start' }}">
-                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-[0.33px] text-ink-muted">
-                                {{ $pesan->dariAdmin() ? 'Admin Humas' : $pengaduan->nama_lengkap }}
-                                &middot; {{ $pesan->created_at->format('d M Y H:i') }}
-                            </p>
-                            <div @class([
-                                'max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-[19px]',
-                                'rounded-br-sm bg-brand-800 text-white' => $pesan->dariAdmin(),
-                                'rounded-bl-sm bg-white text-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]' => ! $pesan->dariAdmin(),
-                            ])>
-                                {{ $pesan->isi }}
+                        @if ($pesan->dariAdmin())
+                            <div class="flex flex-col items-end gap-1 pl-10">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->format('d M Y, H:i') }}</span>
+                                    <span class="text-xs font-bold tracking-[0.24px] text-ink">Tim Humas</span>
+                                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-800 text-[11px] font-bold tracking-[0.33px] text-white">H</span>
+                                </div>
+
+                                <div class="max-w-[672px] rounded-tr-none rounded-2xl bg-brand-800 px-4 py-4 text-sm leading-[23px] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                                    {{ $pesan->isi }}
+
+                                    @if ($pesan->adaLampiran())
+                                        @if ($pesan->lampiranGambar())
+                                            <img src="{{ $pesan->urlLampiran() }}" alt="Lampiran balasan" class="mt-3 w-full max-w-[280px] rounded-lg">
+                                        @else
+                                            <a href="{{ $pesan->urlLampiran() }}" target="_blank" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-[11px] font-semibold text-white">Unduh lampiran</a>
+                                        @endif
+                                    @endif
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <div class="flex flex-col items-start gap-1 pr-10">
+                                <div class="flex items-center gap-1">
+                                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[11px] font-medium tracking-[0.33px] text-white">{{ strtoupper(substr($pengaduan->nama_lengkap, 0, 1)) }}</span>
+                                    <span class="text-xs font-bold tracking-[0.24px] text-brand-800">{{ $pengaduan->nama_lengkap }}</span>
+                                    <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->format('d M Y, H:i') }}</span>
+                                </div>
+
+                                <div class="max-w-[672px] rounded-tl-none rounded-2xl bg-chat-admin px-4 py-4 text-sm leading-[23px] text-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                                    {{ $pesan->isi }}
+
+                                    @if ($pesan->adaLampiran())
+                                        @if ($pesan->lampiranGambar())
+                                            <img src="{{ $pesan->urlLampiran() }}" alt="Lampiran pesan pelapor" class="mt-3 w-full max-w-[280px] rounded-lg">
+                                        @else
+                                            <a href="{{ $pesan->urlLampiran() }}" target="_blank" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-ink">Unduh lampiran</a>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     @empty
                         <p class="text-[13px] leading-[18px] text-ink-muted">Belum ada pesan dari pelapor.</p>
                     @endforelse
                 </div>
 
-                <form method="POST" action="{{ route('admin.pengaduan.balas', $pengaduan->kode_tiket) }}" class="mt-4 flex flex-col gap-3">
+                <form method="POST" action="{{ route('admin.pengaduan.balas', $pengaduan->kode_tiket) }}" enctype="multipart/form-data" class="mt-6 flex flex-col gap-4 rounded-xl bg-brand-section p-4">
                     @csrf
                     <textarea
                         name="isi"
                         rows="3"
                         placeholder="Tuliskan balasan untuk pelapor..."
-                        class="w-full rounded-xl border border-brand-200 bg-brand-light px-4 py-3 text-[13px] text-ink placeholder-placeholder focus:border-brand-600 focus:outline-none"
+                        class="w-full resize-none rounded-lg bg-white px-4 py-4 text-sm leading-[23px] text-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)] placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-brand-600 focus:outline-none"
                     >{{ old('isi') }}</textarea>
 
                     @error('isi')
                         <p class="text-xs font-semibold text-alert">{{ $message }}</p>
                     @enderror
 
-                    <button type="submit" class="self-end rounded-xl bg-brand-800 px-5 py-2.5 text-xs font-semibold text-white">
-                        Kirim Balasan
-                    </button>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-brand-100 px-4 py-2 text-xs font-semibold tracking-[0.24px] text-brand-deep">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.6-9.6a4 4 0 0 1 5.7 5.7l-9.6 9.6a2 2 0 0 1-2.8-2.8l8.9-8.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Lampirkan Berkas
+                            <input type="file" name="lampiran" accept=".jpg,.jpeg,.png,.pdf" class="sr-only">
+                        </label>
+
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-6 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                            Kirim Balasan
+                        </button>
+                    </div>
+
+                    @error('lampiran')
+                        <p class="text-xs font-semibold text-alert">{{ $message }}</p>
+                    @enderror
                 </form>
             </div>
         </div>
