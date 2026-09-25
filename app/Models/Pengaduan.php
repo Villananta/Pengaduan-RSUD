@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\KategoriPengaduan;
+use App\Enums\StatusPengaduan;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pengaduan extends Model
 {
@@ -27,5 +30,13 @@ class Pengaduan extends Model
     protected $casts = [
         'waktu_kejadian' => 'datetime',
         'lampiran' => 'array',
+        'kategori' => KategoriPengaduan::class,
+        'status' => StatusPengaduan::class,
     ];
+
+    // Kolom chat antara pelapor dan admin humas.
+    public function pesan(): HasMany
+    {
+        return $this->hasMany(PesanPengaduan::class)->oldest();
+    }
 }

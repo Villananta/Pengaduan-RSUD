@@ -154,15 +154,12 @@
                         <p class="text-[13px] text-ink-muted">Tentukan ruang lingkup persoalan yang Anda alami untuk alur penanganan tepat sasaran.</p>
 
                         <div class="grid gap-4 pt-1 sm:grid-cols-2">
-                            @foreach ([
-                                ['v' => 'fasilitas', 'judul' => 'Fasilitas Umum & Sarana Prasarana', 'desk' => 'Antrean pendaftaran, kebersihan toilet/ruangan, AC, parkir, fasilitas lift, rambu petunjuk arah, kasir, dll.', 'ikon' => 'bangunan'],
-                                ['v' => 'medis', 'judul' => 'Pelayanan Medis & Tenaga Kesehatan', 'desk' => 'Tindakan dokter/perawat, komunikasi DPJP, keterlambatan visitasi, dispensing obat farmasi, edukasi terapi medis.', 'ikon' => 'medis'],
-                            ] as $kat)
+                            @foreach ($kategori as $kat)
                                 <label class="category-card group cursor-pointer rounded-xl bg-brand-light p-4 ring-1 ring-transparent transition">
-                                    <input type="radio" name="kategori" value="{{ $kat['v'] }}" class="sr-only category-input" @checked(old('kategori') === $kat['v']) required>
+                                    <input type="radio" name="kategori" value="{{ $kat->value }}" class="sr-only category-input" @checked(old('kategori') === $kat->value) required>
                                     <div class="flex items-start justify-between">
                                         <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
-                                            @if ($kat['ikon'] === 'bangunan')
+                                            @if ($kat->ikon() === 'bangunan')
                                                 <svg class="h-4 w-4 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M3 21h18M5 21V5l7-3 7 3v16M9 9h.01M15 9h.01M9 13h.01M15 13h.01M12 5v.01M12 9v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
@@ -177,8 +174,8 @@
                                             <span class="h-2 w-2 rounded-full bg-white transition opacity-0 category-dot"></span>
                                         </span>
                                     </div>
-                                    <p class="mt-2 text-base font-semibold text-ink">{{ $kat['judul'] }}</p>
-                                    <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">{{ $kat['desk'] }}</p>
+                                    <p class="mt-2 text-base font-semibold text-ink">{{ $kat->judul() }}</p>
+                                    <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">{{ $kat->deskripsi() }}</p>
                                 </label>
                             @endforeach
                         </div>

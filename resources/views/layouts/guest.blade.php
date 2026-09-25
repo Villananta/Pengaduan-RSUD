@@ -23,10 +23,24 @@
                 </div>
             </div>
 
+            @php
+                $menu = [
+                    ['label' => 'Buat Aduan', 'url' => route('pengaduan.create'), 'aktif' => request()->routeIs('pengaduan.create', 'pengaduan.sukses')],
+                    ['label' => 'Cek Status Tiket', 'url' => route('pengaduan.lacak'), 'aktif' => request()->routeIs('pengaduan.lacak')],
+                    ['label' => 'Maklumat & Prosedur', 'url' => '#', 'aktif' => false],
+                ];
+            @endphp
             <nav class="flex items-center gap-1">
-                <a href="{{ route('pengaduan.create') }}" class="rounded-lg bg-brand-700 px-2 py-1 text-sm font-normal text-white">Buat Aduan</a>
-                <a href="#" class="rounded-lg px-2 py-1 text-sm font-semibold text-ink-muted">Cek Status Tiket</a>
-                <a href="#" class="rounded-lg px-2 py-1 text-sm font-semibold text-ink-muted">Maklumat &amp; Prosedur</a>
+                @foreach ($menu as $item)
+                    <a
+                        href="{{ $item['url'] }}"
+                        @class([
+                            'rounded-lg px-2 py-1 text-sm font-semibold',
+                            'bg-brand-700 text-white' => $item['aktif'],
+                            'text-ink-muted' => ! $item['aktif'],
+                        ])
+                    >{{ $item['label'] }}</a>
+                @endforeach
             </nav>
 
             <div class="flex items-center gap-2">

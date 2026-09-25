@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\KategoriPengaduan;
+use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PengaduanController extends Controller
 {
@@ -16,13 +19,16 @@ class PengaduanController extends Controller
             ['nilai' => '88.7%', 'label' => 'Kepuasan Pasca', 'sub' => 'Survei pelapor'],
         ];
 
-        return view('pengaduan.create', compact('metrik'));
+        return view('pengaduan.create', [
+            'metrik' => $metrik,
+            'kategori' => KategoriPengaduan::cases(),
+        ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kategori' => ['required', 'in:fasilitas,medis'],
+            'kategori' => ['required', Rule::enum(KategoriPengaduan::class)],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'nrm' => ['required', 'string', 'max:255'],
             'no_wa' => ['required', 'string', 'max:20'],
@@ -49,7 +55,7 @@ class PengaduanController extends Controller
 
         $pengaduan = Pengaduan::create([
             'kode_tiket' => $this->generateKodeTiket(),
-            'kategori' => $validated['kategori'],
+            'kategori' => KategoriPengaduan::from($validated['kategori']),
             'nama_lengkap' => $validated['nama_lengkap'],
             'nrm' => $validated['nrm'],
             'no_wa' => $validated['no_wa'],
@@ -60,7 +66,7 @@ class PengaduanController extends Controller
             'subjek' => $validated['subjek'],
             'deskripsi' => $validated['deskripsi'],
             'lampiran' => $lampiran,
-            'status' => 'diterima',
+            'status' => StatusPengaduan::Diterima,
         ]);
 
         return redirect()->route('pengaduan.sukses', $pengaduan->kode_tiket);
@@ -71,6 +77,39 @@ class PengaduanController extends Controller
         $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
 
         return view('pengaduan.sukses', compact('pengaduan'));
+    }
+
+    public function lacak(Request $request)
+    {
+        $kode = trim((string) $request->query('kode', ''));
+
+        // Hanya tiket dengan kode yang dicari pelapor yang boleh ditampilkan.
+        $tiket = $kode === '' ? null : Pengaduan::where('kode_tiket', $kode)->first();
+
+        return view('pengaduan.lacak', [
+            'kode' => $kode,
+            'tiket' => $tiket,
+            'tahap' => StatusPengaduan::cases(),
+        ]);
+    }
+
+    public function kirimPesan(Request $request, string $kode)
+    {
+        $validated = $request->validate([
+            'isi' => ['required', 'string', 'max:2000'],
+        ], [
+            'isi.required' => 'Tuliskan pesan terlebih dahulu.',
+        ]);
+
+        $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
+
+        // Pesan dari pelapor selalu berperan sebagai "pelapor".
+        $pengaduan->pesan()->create([
+            'peran' => 'pelapor',
+            'isi' => $validated['isi'],
+        ]);
+
+        return redirect()->route('pengaduan.lacak', ['kode' => $kode])->with('sukses', 'Pesan Anda sudah terkirim ke admin humas.');
     }
 
     protected function generateKodeTiket(): string
