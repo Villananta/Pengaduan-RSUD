@@ -15,7 +15,7 @@
 
     {{-- Aside - Pemberitahuan Regulasi Pelayanan --}}
     <div class="w-full bg-brand-100 px-8 py-2.5">
-        <div class="mx-auto flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4">
+        <div class="flex w-full flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-2">
                 <span class="flex h-5 w-5 items-center justify-center rounded-full bg-brand-800">
                     <svg class="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -48,7 +48,7 @@
 
     {{-- Hero Section --}}
     <section class="w-full bg-gradient-to-b from-white via-brand-light to-brand-section px-8 pb-12 pt-8">
-        <div class="mx-auto flex w-full max-w-[1216px] flex-col items-center">
+        <div class="flex w-full flex-col items-center">
 
             <div class="flex flex-col items-center gap-4 pb-4">
                 <span class="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -67,7 +67,7 @@
                 <p class="text-center text-base leading-[26px] text-ink-muted">Setiap masukan yang Anda sampaikan melalui kanal ini menjadi bagian dari evaluasi mutu layanan. Data pribadi Anda dilindungi dan hanya digunakan untuk keperluan investigasi.</p>
             </div>
 
-            <div class="flex max-w-[768px] items-start justify-center gap-3 pb-8">
+            <div class="grid w-full max-w-[768px] grid-cols-3 gap-3 pb-8">
                 @php
                     $badges = [
                         ['label' => 'Terjamin Amanah', 'sub' => 'Data dilindungi kebijakan privasi', 'ikon' => 'shield'],
@@ -76,8 +76,8 @@
                     ];
                 @endphp
                 @foreach ($badges as $b)
-                    <div class="flex flex-1 items-center justify-center gap-2.5 rounded-xl bg-white px-4 py-7 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50">
+                    <div class="flex h-[96px] items-center justify-center gap-2.5 rounded-xl bg-white px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50">
                             @if ($b['ikon'] === 'shield')
                                 <svg class="h-4 w-4 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M12 3 4.5 6v5c0 4.5 3 9 7.5 10.5C16.5 20 19.5 15.5 19.5 11V6L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -95,7 +95,7 @@
                                 </svg>
                             @endif
                         </span>
-                        <span>
+                        <span class="min-w-0">
                             <p class="text-base font-semibold leading-[22px] text-ink">{{ $b['label'] }}</p>
                             <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $b['sub'] }}</p>
                         </span>
@@ -107,7 +107,7 @@
 
     {{-- Main Content: Asymmetric Split Grid --}}
     <section class="w-full flex-1 bg-brand-light px-8 py-8">
-        <div class="mx-auto grid w-full max-w-[1216px] grid-cols-12 items-start gap-6">
+        <div class="grid w-full grid-cols-12 items-start gap-6">
 
             {{-- LEFT: Form 8 Kolom --}}
             <div class="col-span-12 flex flex-col gap-6 lg:col-span-8">

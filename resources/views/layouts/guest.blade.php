@@ -14,7 +14,7 @@
 
     {{-- Header --}}
     <header class="fixed inset-x-0 top-0 z-20 bg-white/90 shadow-[0_1px_8px_rgba(0,0,0,0.04)] backdrop-blur-md">
-        <div class="mx-auto flex h-20 max-w-[1280px] items-center justify-between px-8">
+        <div class="flex h-20 w-full items-center justify-between px-8">
             <div class="flex items-center gap-2">
                 <x-brand-logo class="h-9 w-9" />
                 <div class="leading-tight">
@@ -56,17 +56,17 @@
     </main>
 
     {{-- Help / multi channel section --}}
-    <section class="w-full bg-brand-section px-8 py-10">
-        <div class="mx-auto flex max-w-[1216px] flex-col gap-6">
+    <section class="w-full bg-brand-light px-8 py-10">
+        <div class="flex w-full flex-col gap-6">
             <div class="flex flex-wrap items-end justify-between gap-8">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-[0.6px] text-brand-800">Akses Pengaduan Lainnya</p>
-                    <h2 class="mt-1 max-w-[220px] text-2xl font-semibold leading-8 text-ink">Akses Layanan Pengaduan Alternatif</h2>
+                    <h2 class="mt-1 max-w-[250px] text-2xl font-semibold leading-8 text-ink">Akses Layanan Pengaduan Alternatif</h2>
                 </div>
                 <p class="max-w-[402px] pb-1 text-[13px] leading-[18px] text-ink-muted">Seluruh kanal terhubung langsung ke Komite Mutu & Kinerja Rumah Sakit, Direksi, dan tim investigasi.</p>
             </div>
 
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div class="grid grid-cols-1 items-stretch gap-6 md:grid-cols-3">
                 @php
                     $kanal = [
                         [
@@ -96,7 +96,7 @@
                     ];
                 @endphp
                 @foreach ($kanal as $k)
-                    <div class="flex flex-col justify-between gap-4 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]" style="height: 250px">
+                    <div class="flex flex-col justify-between gap-4 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                         <div class="flex flex-col gap-3">
                             <div class="flex h-12 w-12 items-center justify-center rounded-xl
                                 {{ $k['varian'] === 'alert' ? 'bg-alert-light' : ($k['varian'] === 'wa' ? 'bg-brand-100' : 'bg-brand-50') }}">
@@ -134,7 +134,7 @@
 
     {{-- Footer --}}
     <footer class="relative z-10 w-full bg-white/90 py-10 shadow-[0_1px_8px_rgba(0,0,0,0.02)]">
-        <div class="mx-auto flex max-w-[1280px] flex-col gap-10 px-8">
+        <div class="flex w-full flex-col gap-10 px-8">
             <div class="grid grid-cols-4 gap-6">
                 <div>
                     <div class="flex items-center gap-1">
