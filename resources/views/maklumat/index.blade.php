@@ -167,21 +167,21 @@
             <div class="relative flex flex-col gap-8 lg:flex-row lg:items-stretch">
                 <div class="flex min-w-0 flex-1 flex-col gap-6 lg:justify-between">
                     <div class="flex items-center gap-3">
-                        <svg class="h-[21px] w-[21px] shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="h-[20px] w-[20px] shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                             <path d="m8.5 12 2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <p class="text-base font-bold uppercase tracking-[0.7px] text-brand-800">Piagam Maklumat Resmi</p>
+                        <p class="text-[15px] font-bold uppercase tracking-[0.7px] text-brand-800">Piagam Maklumat Resmi</p>
                     </div>
 
-                    <blockquote class="text-[30px] font-medium italic leading-[50px] text-ink">
+                    <blockquote class="text-[26px] font-medium italic leading-[44px] text-ink">
                         &ldquo;{{ $piagam['kutipan'] }}&rdquo;
                     </blockquote>
 
                     <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-6">
                         @foreach ($piagam['meta'] as $meta)
-                            <li class="flex items-center gap-2 text-sm leading-5 text-ink-muted">
-                                <svg class="h-[18px] w-[18px] shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <li class="flex items-center gap-1.5 text-[13px] leading-[18px] text-ink-muted">
+                                <svg class="h-4 w-4 shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     @if ($meta['ikon'] === 'kalender')
                                         <rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.8"/>
                                         <path d="M4 10h16M9 3v4M15 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -199,7 +199,7 @@
                 </div>
 
                 {{-- Penandatanganan piagam oleh pimpinan rumah sakit --}}
-                <div class="flex w-full shrink-0 flex-col items-center justify-center gap-2 rounded-xl bg-brand-section p-6 text-center lg:w-[330px]">
+                <div class="flex w-full shrink-0 flex-col items-center justify-center gap-2 rounded-xl bg-brand-section p-6 text-center lg:w-[420px]">
                     <img
                         src="{{ asset($piagam['pihak']['foto']) }}"
                         alt="Foto {{ $piagam['pihak']['nama'] }}, {{ $piagam['pihak']['jabatan'] }}"
@@ -207,7 +207,7 @@
                         height="542"
                         loading="lazy"
                         decoding="async"
-                        class="h-28 w-[92px] rounded-lg object-cover object-top shadow-[0_1px_2px_rgba(0,0,0,0.05)] ring-1 ring-brand-200"
+                        class="h-48 w-[160px] rounded-lg object-cover object-top"
                     >
 
                     <p class="mt-2 text-base font-bold leading-[22px] text-ink">{{ $piagam['pihak']['nama'] }}</p>
