@@ -9,9 +9,12 @@
 <body class="font-sans bg-brand-light text-ink antialiased">
     <header class="w-full bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div class="flex w-full flex-wrap items-center justify-between gap-3 px-8 py-5">
-            <div>
-                <p class="text-base font-bold text-brand-800">Dashboard Admin Humas</p>
-                <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Sistem Pengaduan Pelayanan RSUD Dr. Soetomo</p>
+            <div class="flex items-center gap-3">
+                <x-brand-logo class="h-10 w-10" />
+                <div>
+                    <p class="text-base font-bold text-brand-800">Dashboard Admin Humas</p>
+                    <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Sistem Pengaduan Pelayanan RSUD Dr. Soetomo</p>
+                </div>
             </div>
 
             <nav class="flex flex-wrap items-center gap-2">
