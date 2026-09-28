@@ -9,7 +9,7 @@
         { "src": "/(favicon\\.ico|robots\\.txt)", "dest": "/public/$1" },
         { "src": "/(.*)", "dest": "/api/index.php" }
     ],
-    "buildCommand": "php artisan config:cache && php artisan route:cache && vite build",
+    "buildCommand": "npm run build",
     "outputDirectory": "public",
     "env": {
         "APP_ENV": "production",
