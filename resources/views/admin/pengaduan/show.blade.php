@@ -44,6 +44,27 @@
                     @endforeach
                 </div>
 
+                {{-- Lampiran bukti yang diunggah pelapor --}}
+                @if (filled($pengaduan->daftarLampiran()))
+                    <div class="mt-5">
+                        <p class="text-xs font-semibold uppercase tracking-[0.6px] text-ink-muted">
+                            Lampiran Bukti ({{ count($pengaduan->daftarLampiran()) }} berkas)
+                        </p>
+                        <ul class="mt-2 flex flex-col gap-2">
+                            @foreach ($pengaduan->daftarLampiran() as $path)
+                                <li>
+                                    <a href="{{ $pengaduan->urlLampiran($path) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-brand-light px-3 py-2 text-xs font-semibold text-ink hover:bg-brand-50">
+                                        <svg class="h-3.5 w-3.5 shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        {{ $pengaduan->namaLampiran($path) }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <div class="mt-6">
                     <p class="text-xs font-semibold uppercase tracking-[0.6px] text-ink-muted">Isi Pengaduan</p>
                     <p class="mt-2 text-[13px] leading-5 text-ink">{{ $pengaduan->deskripsi }}</p>
@@ -79,7 +100,7 @@
                         @else
                             <div class="flex flex-col items-start gap-1 pr-10">
                                 <div class="flex items-center gap-1">
-                                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[11px] font-medium tracking-[0.33px] text-white">{{ strtoupper(substr($pengaduan->nama_lengkap, 0, 1)) }}</span>
+                                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[11px] font-medium tracking-[0.33px] text-white">{{ Str::upper(Str::substr($pengaduan->nama_lengkap, 0, 1)) }}</span>
                                     <span class="text-xs font-bold tracking-[0.24px] text-brand-800">{{ $pengaduan->nama_lengkap }}</span>
                                     <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->format('d M Y, H:i') }}</span>
                                 </div>
@@ -141,33 +162,76 @@
             <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                 <h3 class="text-base font-semibold text-ink">Ubah Tahap Pengaduan</h3>
                 <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">
-                    Tahap yang dipilih akan langsung terlihat oleh pelapor di halaman lacak tiket.
+                    Tahap yang dipilih akan langsung terlihat oleh pelapor di halaman lacak tiket. Hanya tahap lanjutan yang sesuai alur yang dapat dipilih.
                 </p>
+
+                @error('status')
+                    <p class="mt-3 rounded-lg bg-alert-light px-3 py-2 text-xs font-semibold text-alert">{{ $message }}</p>
+                @enderror
 
                 <form method="POST" action="{{ route('admin.pengaduan.status', $pengaduan->kode_tiket) }}" class="mt-4 flex flex-col gap-2">
                     @csrf
                     @foreach ($tahap as $item)
+                        @php $boleh = $pengaduan->status->bisaBerpindahKe($item); @endphp
                         <button
                             type="submit"
                             name="status"
                             value="{{ $item->value }}"
+                            @disabled(! $boleh)
                             @class([
                                 'rounded-lg px-4 py-2 text-xs font-semibold',
                                 'bg-brand-800 text-white' => $pengaduan->status === $item,
-                                'bg-brand-50 text-ink-muted hover:bg-brand-100' => $pengaduan->status !== $item,
+                                'bg-brand-50 text-ink-muted hover:bg-brand-100' => $pengaduan->status !== $item && $boleh,
+                                'cursor-not-allowed bg-brand-50 text-ink-muted/50' => ! $boleh,
                             ])
                         >
                             {{ $loop->iteration }}. {{ $item->label() }}
                         </button>
                     @endforeach
+
+                    <label for="catatan" class="mt-3 text-xs font-semibold text-ink">Catatan Perubahan (opsional)</label>
+                    <input
+                        id="catatan"
+                        type="text"
+                        name="catatan"
+                        value="{{ old('catatan') }}"
+                        maxlength="500"
+                        placeholder="Contoh: Menunggu dokumen tambahan dari pelapor"
+                        class="rounded-lg bg-brand-light px-3 py-2 text-xs text-ink placeholder-placeholder focus:outline-none focus:ring-2 focus:ring-brand-800"
+                    >
                 </form>
+            </div>
+
+            {{-- Jejak audit perubahan tahap --}}
+            <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                <h3 class="text-base font-semibold text-ink">Riwayat Tahap</h3>
+                <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">Setiap perubahan tahap tercatat permanen pada tiket ini.</p>
+
+                <ol class="mt-4 flex flex-col gap-3">
+                    @forelse ($pengaduan->riwayatStatus as $riwayat)
+                        <li class="flex flex-col gap-0.5 border-l-2 border-brand-200 pl-3">
+                            <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $riwayat->created_at->format('d M Y, H:i') }}</span>
+                            <span class="text-xs font-bold tracking-[0.24px] text-ink">
+                                {{ $riwayat->dari?->label() ?? 'Pengaduan masuk' }} &rarr; {{ $riwayat->ke->label() }}
+                            </span>
+                            @if (filled($riwayat->catatan))
+                                <span class="text-[13px] leading-[18px] text-ink-muted">{{ $riwayat->catatan }}</span>
+                            @endif
+                        </li>
+                    @empty
+                        <li class="text-[13px] leading-[18px] text-ink-muted">Belum ada riwayat perubahan tahap.</li>
+                    @endforelse
+                </ol>
             </div>
 
             {{-- Posisi prosedur --}}
             <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                 <h3 class="text-base font-semibold text-ink">Alur Prosedur 12 Hari Kerja</h3>
                 <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">
-                    Posisi saat ini: {{ $pengaduan->status->label() }} ({{ $pengaduan->status->persen() }}% dari SLA).
+                    Posisi saat ini: {{ $pengaduan->status->label() }} ({{ $pengaduan->progresPersen() }}% dari SLA).
+                </p>
+                <p @class(['mt-2 inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.33px]', $zona->badge()])>
+                    {{ $zona->label() }} &middot; {{ $pengaduan->ringkasSla() }}
                 </p>
                 <ol class="mt-4 flex flex-col gap-3">
                     @foreach ($prosedur as $no => $langkah)

@@ -30,17 +30,6 @@ enum StatusPengaduan: string
         };
     }
 
-    // Persentase progres SLA 12 hari kerja.
-    public function persen(): int
-    {
-        return match ($this) {
-            self::Diterima => 25,
-            self::Diproses => 37,
-            self::Revisi => 64,
-            self::Selesai => 100,
-        };
-    }
-
     // Nomor tahap pada alur prosedur (0 sampai 3).
     public function tahap(): int
     {
@@ -50,6 +39,29 @@ enum StatusPengaduan: string
             self::Revisi => 2,
             self::Selesai => 3,
         };
+    }
+
+    /**
+     * Tahap yang boleh dipilih berikutnya.
+     *
+     * Mencegah lompatan acak dan pengembalian ke tahap yang sudah
+     * dilewati, kecuali reopen dari Selesai ke Diproses.
+     *
+     * @return array<int, self>
+     */
+    public function tujuanBerikutnya(): array
+    {
+        return match ($this) {
+            self::Diterima => [self::Diproses, self::Revisi],
+            self::Diproses => [self::Revisi, self::Selesai],
+            self::Revisi => [self::Diproses, self::Selesai],
+            self::Selesai => [self::Diproses],
+        };
+    }
+
+    public function bisaBerpindahKe(self $tujuan): bool
+    {
+        return $this === $tujuan || in_array($tujuan, $this->tujuanBerikutnya(), true);
     }
 
     public function perluAksi(): bool
@@ -74,6 +86,6 @@ enum StatusPengaduan: string
 
     public static function dariNilai(?string $nilai): ?self
     {
-        return $nilai === null ? null : self::tryFrom($nilai);
+        return $nilai === null || $nilai === '' ? null : self::tryFrom($nilai);
     }
 }

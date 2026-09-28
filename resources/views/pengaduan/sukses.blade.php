@@ -1,5 +1,7 @@
 @extends('layouts.guest')
 
+@use(App\Support\Sla)
+
 @section('title', 'Aduan Terkirim')
 
 @section('content')
@@ -21,16 +23,18 @@
         </span>
 
         <h1 class="mt-3 text-[32px] font-bold leading-10 tracking-[-0.8px] text-ink">Terima kasih, aduan Anda telah kami terima.</h1>
-        <p class="mt-2 max-w-[520px] text-base leading-[26px] text-ink-muted">Tim Komite Mutu &amp; Kinerja Rumah Sakit akan melakukan validasi dan menghubungi Anda melalui WhatsApp paling lambat 1x24 jam kerja. Simpan kode tiket berikut untuk memantau progres.</p>
+        <p class="mt-2 max-w-[520px] text-base leading-[26px] text-ink-muted">Pengaduan Anda sudah tercatat resmi dan akan diverifikasi oleh Tim Pengaduan. Simpan kode tiket dan nomor rekam medis Anda untuk memantau progres, karena keduanya dibutuhkan untuk membuka halaman lacak.</p>
 
         <div class="mt-6 w-full rounded-xl bg-brand-light p-5">
             <p class="text-[11px] font-semibold uppercase tracking-[0.6px] text-brand-600">Nomor Tiket Anda</p>
             <p class="mt-1 text-2xl font-bold tracking-[0.5px] text-brand-800">{{ $pengaduan->kode_tiket }}</p>
-            <p class="mt-2 text-[13px] text-ink-muted">Status saat ini: <span class="font-semibold text-brand-800">Diterima / Dalam Validasi</span> · {{ $pengaduan->created_at->translatedFormat('d F Y H:i') }} WIB</p>
+            <p class="mt-2 text-[13px] text-ink-muted">Status saat ini: <span class="font-semibold text-brand-800">{{ $pengaduan->status->label() }}</span> · {{ $pengaduan->created_at->translatedFormat('d F Y H:i') }} WIB</p>
+            <p class="mt-1 text-[13px] text-ink-muted">Target penyelesaian: <span class="font-semibold text-brand-800">{{ $pengaduan->targetSla()->translatedFormat('d F Y') }}</span> ({{ Sla::hariKerja() }} hari kerja)</p>
         </div>
 
         <div class="mt-6 flex w-full flex-col gap-2">
-            <a href="{{ route('pengaduan.create') }}" class="rounded-lg bg-brand-800 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-brand-700">Sampaikan Aduan Lainnya</a>
+            <a href="{{ route('pengaduan.lacak') }}" class="rounded-lg bg-brand-800 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-brand-700">Lacak Pengaduan Saya</a>
+            <a href="{{ route('pengaduan.create') }}" class="rounded-lg bg-brand-100 px-8 py-3.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-50">Sampaikan Aduan Lainnya</a>
             <a href="{{ url('/') }}" class="rounded-lg px-8 py-3.5 text-sm font-semibold text-ink-muted transition hover:bg-brand-50">Kembali ke Beranda</a>
         </div>
     </div>

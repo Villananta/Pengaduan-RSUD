@@ -5,14 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\StatusPengaduan;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaduan;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class PengaduanController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $status = StatusPengaduan::dariNilai((string) $request->query('status'));
+        $status = StatusPengaduan::dariNilai($request->query('status'));
 
         $daftar = Pengaduan::query()
             ->withCount('pesan')
@@ -28,32 +30,73 @@ class PengaduanController extends Controller
         ]);
     }
 
-    public function show(string $kode)
+    public function show(string $kode): View
     {
-        $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
+        $pengaduan = Pengaduan::where('kode_tiket', $kode)
+            ->with(['pesan', 'riwayatStatus.admin'])
+            ->firstOrFail();
 
         return view('admin.pengaduan.show', [
             'pengaduan' => $pengaduan,
             'tahap' => StatusPengaduan::cases(),
             'prosedur' => config('pengaduan.prosedur'),
+            'zona' => $pengaduan->zonaSla(),
+            'sisaHari' => $pengaduan->sisaHariSla(),
         ]);
     }
 
-    public function ubahStatus(Request $request, string $kode)
+    /**
+     * Pindahkan tahap pengaduan.
+     *
+     * Perpindahan tahap divalidasi terhadap matriks alur, setiap
+     * perubahan dicatat pada riwayat, dan waktu penyelesaian diisi
+     * otomatis ketika tiket ditutup.
+     */
+    public function ubahStatus(Request $request, string $kode): RedirectResponse
     {
         $validated = $request->validate([
             'status' => ['required', Rule::enum(StatusPengaduan::class)],
+            'catatan' => ['nullable', 'string', 'max:500'],
+        ], [
+            'catatan.max' => 'Catatan paling panjang 500 karakter.',
         ]);
 
         $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
-        $pengaduan->update(['status' => StatusPengaduan::from($validated['status'])]);
+        $tujuan = StatusPengaduan::from($validated['status']);
+
+        if (! $pengaduan->status->bisaBerpindahKe($tujuan)) {
+            return back()->withErrors([
+                'status' => 'Pengaduan dengan status "'.$pengaduan->status->label().'" tidak bisa langsung dipindahkan ke "'.$tujuan->label().'".',
+            ]);
+        }
+
+        $dari = $pengaduan->status;
+        $sudahSelesai = $dari->selesai() && $tujuan->selesai();
+
+        if ($sudahSelesai) {
+            return redirect()
+                ->route('admin.pengaduan.show', $kode)
+                ->with('sukses', 'Status pengaduan tidak berubah, tiket sudah berstatus selesai.');
+        }
+
+        $pengaduan->forceFill([
+            'status' => $tujuan,
+            'selesai_at' => $tujuan->selesai() ? now() : null,
+        ])->save();
+
+        $pengaduan->riwayatStatus()->create([
+            'dari' => $dari,
+            'ke' => $tujuan,
+            'catatan' => $validated['catatan'] ?? null,
+            'admin_id' => $request->user()?->id,
+        ]);
 
         return redirect()
             ->route('admin.pengaduan.show', $kode)
-            ->with('sukses', 'Status pengaduan diperbarui menjadi '.StatusPengaduan::from($validated['status'])->label().'.');
+            ->with('sukses', 'Status pengaduan diperbarui menjadi '.$tujuan->label().'.');
     }
 
-    public function balas(Request $request, string $kode)
+    public function balas(Request $request, string $kode): RedirectResponse
     {
         $validated = $request->validate([
             'isi' => ['required', 'string', 'max:2000'],
@@ -68,7 +111,7 @@ class PengaduanController extends Controller
         $pengaduan->pesan()->create([
             'peran' => 'admin',
             'isi' => $validated['isi'],
-            'lampiran' => $request->file('lampiran')?->store('lampiran', 'public'),
+            'lampiran' => $request->file('lampiran')?->store('lampiran', config('pengaduan.disk_lampiran', 'public')),
         ]);
 
         return redirect()->route('admin.pengaduan.show', $kode)->with('sukses', 'Balasan sudah dikirim ke pelapor.');

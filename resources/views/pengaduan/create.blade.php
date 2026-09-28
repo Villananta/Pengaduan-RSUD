@@ -1,5 +1,7 @@
 @extends('layouts.guest')
 
+@use(App\Support\Sla)
+
 @section('title', 'Buat Aduan')
 
 @section('content')
@@ -8,7 +10,6 @@
     $label = 'block text-sm font-semibold text-ink';
     $errorClass = 'mt-1.5 text-[11px] font-medium text-alert';
     $stepBadge = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-800 text-[11px] font-bold text-white';
-    $units = ['Instalasi Rawat Jalan (Poliklinik)', 'Instalasi Rawat Inap', 'Instalasi Gawat Darurat (IGD)', 'Instalasi Farmasi', 'Instalasi Radiologi', 'Instalasi Laboratorium Patologi', 'Instalasi Kamar Operasi (OK)', 'Instalasi Rekam Medis', 'Unit Kasir / Admisi', 'Unit Pelayanan Gizi (Dapur)', 'Unit Ruang Ibu & Anak', 'Layanan Humas & Informasi'];
 @endphp
 
 <div class="flex min-h-[720px] flex-col">
@@ -424,7 +425,11 @@
                     <div class="grid grid-cols-2 gap-3">
                         @foreach ($metrik as $m)
                             <div class="flex flex-col rounded-xl bg-brand-light p-3.5">
-                                <p class="text-xl font-bold text-brand-800">{{ $m['nilai'] }}</p>
+                                <p @class([
+                                    'text-xl font-bold',
+                                    'text-brand-800' => $m['tersedia'],
+                                    'text-[13px] text-ink-muted' => ! $m['tersedia'],
+                                ])>{{ $m['nilai'] }}</p>
                                 <p class="text-xs font-semibold tracking-[0.24px] text-ink">{{ $m['label'] }}</p>
                                 <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $m['sub'] }}</p>
                             </div>
@@ -432,16 +437,13 @@
                     </div>
 
                     <div class="flex items-center gap-4 rounded-xl bg-brand-50 p-4">
-                        <div class="relative flex h-16 w-16 shrink-0 items-center justify-center">
-                            <svg class="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
-                                <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(194,201,185,0.4)" stroke-width="6"/>
-                                <circle cx="32" cy="32" r="26" fill="none" stroke="#26500F" stroke-width="6" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="6.5"/>
-                            </svg>
-                            <span class="absolute text-xs font-bold tracking-[0.24px] text-brand-800">96%</span>
+                        <div class="flex shrink-0 flex-col gap-0.5">
+                            <p class="text-2xl font-bold text-brand-800">{{ Sla::responsAwalJam() }} Jam</p>
+                            <p class="text-[11px] font-medium tracking-[0.24px] text-ink-muted">Batas Respons Awal</p>
                         </div>
                         <div>
                             <p class="text-base font-semibold text-ink">Kecepatan Tindak Lanjut</p>
-                            <p class="mt-1 text-[13px] leading-4 text-ink-muted">Aduan mendapatkan respons penanganan dalam 1x24 jam kerja.</p>
+                            <p class="mt-1 text-[13px] leading-4 text-ink-muted">Setiap aduan yang masuk langsung mendapat kode tiket, dan penyelesaian maksimal {{ Sla::hariKerja() }} hari kerja.</p>
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,7 @@
 @extends('layouts.guest')
 
+@use(Illuminate\Support\Str)
+
 @section('title', 'Lacak Status Tiket')
 
 @section('content')
@@ -21,7 +23,15 @@
         </div>
     @endif
 
-    {{-- Pencarian tiket --}}
+    @if ($errors->any())
+        <div class="w-full bg-white px-8 pt-8">
+            <p class="rounded-xl bg-alert-light px-4 py-3 text-xs font-semibold text-alert">
+                {{ $errors->first() }}
+            </p>
+        </div>
+    @endif
+
+    {{-- Pencarian tiket: kode + NRM wajib agar data pribadi tidak terbuka --}}
     <section class="w-full bg-brand-section px-8 py-10">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <nav class="flex items-center gap-2 text-xs text-ink-muted">
@@ -40,27 +50,47 @@
                 <div>
                     <h1 class="text-2xl font-semibold leading-8 text-ink">Lacak Status Pengaduan</h1>
                     <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">
-                        Masukkan kode tiket untuk melihat kronologi dan jawaban dari tim pengaduan RSUD.
+                        Masukkan kode tiket dan nomor rekam medis Anda untuk melihat kronologi dan jawaban dari tim pengaduan RSUD.
                     </p>
                 </div>
                 <span class="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-800">Data Terverifikasi</span>
             </div>
 
-            <form method="GET" action="{{ route('pengaduan.lacak') }}" class="mt-5 flex flex-col gap-3 sm:flex-row">
-                <input
-                    type="text"
-                    name="kode"
-                    value="{{ $kode }}"
-                    placeholder="Contoh: ADUAN-20260925-ABCDE"
-                    class="flex-1 rounded-xl border border-brand-200 bg-brand-light px-4 py-3 text-sm text-ink placeholder-placeholder focus:border-brand-600 focus:outline-none"
-                >
+            {{-- Verifikasi dikirim lewat POST agar NRM tidak pernah muncul di URL --}}
+            <form method="POST" action="{{ route('pengaduan.verifikasi') }}" class="mt-5 flex flex-col gap-3 sm:flex-row">
+                @csrf
+                <div class="flex-1">
+                    <label for="kode" class="sr-only">Kode Tiket</label>
+                    <input
+                        id="kode"
+                        type="text"
+                        name="kode"
+                        value="{{ old('kode', $kode) }}"
+                        placeholder="ADUAN-20260925-ABCDE"
+                        autocomplete="off"
+                        required
+                        class="w-full rounded-xl border border-brand-200 bg-brand-light px-4 py-3 text-sm text-ink placeholder-placeholder focus:border-brand-600 focus:outline-none"
+                    >
+                </div>
+                <div class="flex-1">
+                    <label for="nrm" class="sr-only">Nomor Rekam Medis</label>
+                    <input
+                        id="nrm"
+                        type="password"
+                        name="nrm"
+                        placeholder="Nomor Rekam Medis"
+                        autocomplete="off"
+                        required
+                        class="w-full rounded-xl border border-brand-200 bg-brand-light px-4 py-3 text-sm text-ink placeholder-placeholder focus:border-brand-600 focus:outline-none"
+                    >
+                </div>
                 <button type="submit" class="rounded-xl bg-brand-800 px-6 py-3 text-sm font-semibold text-white">
                     Cek Status Sekarang
                 </button>
             </form>
 
             <p class="mt-3 text-xs text-ink-muted">
-                Kode tiket tersedia pada halaman konfirmasi pengajuan dan pesan konfirmasi WhatsApp.
+                Kode tiket dan NRM tersedia pada halaman konfirmasi pengajuan. Keduanya dipakai bersama karena data rekam medis tidak boleh dibuka hanya dengan kode tiket. NRM dikirim secara aman dan tidak disimpan di alamat halaman.
             </p>
         </div>
     </section>
@@ -71,7 +101,9 @@
             <div class="flex flex-col gap-2">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <h2 class="text-[11px] font-bold uppercase tracking-[0.55px] text-brand-600">Status Pengaduan</h2>
-                    <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Penyelesaian Rata-rata 6.8 Hari Kerja</p>
+                    @if ($ringkasRataRata)
+                        <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $ringkasRataRata }}</p>
+                    @endif
                 </div>
 
                 <div class="flex flex-wrap gap-1 rounded-xl bg-brand-section p-1.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]">
@@ -241,7 +273,7 @@
                             </div>
 
                             <div class="mt-3 h-2.5 rounded-full bg-brand-200">
-                                <div class="h-2.5 rounded-full bg-brand-800" style="width: {{ $tiket->status->persen() }}%"></div>
+                                <div class="h-2.5 rounded-full bg-brand-800" style="width: {{ $tiket->progresPersen() }}%"></div>
                             </div>
 
                             <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -264,10 +296,22 @@
                             <p class="mt-2 text-[13px] leading-5 text-ink">{{ $tiket->deskripsi }}</p>
                         </div>
 
-                        @if (filled($tiket->lampiran))
-                            <p class="mt-4 text-xs text-ink-muted">
-                                Lampiran: {{ count($tiket->lampiran) }} berkas
-                            </p>
+                        @if (filled($tiket->daftarLampiran()))
+                            <div class="mt-4">
+                                <p class="text-xs font-semibold uppercase tracking-[0.6px] text-ink-muted">Lampiran Bukti ({{ count($tiket->daftarLampiran()) }} berkas)</p>
+                                <ul class="mt-2 flex flex-col gap-2">
+                                    @foreach ($tiket->daftarLampiran() as $path)
+                                        <li>
+                                            <a href="{{ $tiket->urlLampiran($path) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2 text-[11px] font-semibold text-ink hover:bg-brand-100">
+                                                <svg class="h-3.5 w-3.5 shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                                {{ $tiket->namaLampiran($path) }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
                         @endif
                     </div>
 
@@ -337,7 +381,7 @@
                                         <div class="flex items-center gap-1">
                                             <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->format('d M Y, H:i') }}</span>
                                             <span class="text-xs font-bold tracking-[0.24px] text-ink">Anda (Pelapor)</span>
-                                            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[11px] font-medium tracking-[0.33px] text-white">{{ strtoupper(substr($tiket->nama_lengkap, 0, 1)) }}</span>
+                                            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[11px] font-medium tracking-[0.33px] text-white">{{ Str::upper(Str::substr($tiket->nama_lengkap, 0, 1)) }}</span>
                                         </div>
 
                                         <div class="max-w-[672px] rounded-tr-none rounded-2xl bg-brand-800 px-4 py-4 text-sm leading-[23px] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -463,23 +507,37 @@
 
                                 <div class="flex min-w-[248px] flex-1 flex-col gap-0.5 rounded-lg bg-brand-50 p-2">
                                     <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Status SLA</span>
-                                    <span class="pt-0.5 text-xs font-bold tracking-[0.24px] text-brand-800">On Schedule (Zona Hijau)</span>
-                                    <span class="text-[13px] leading-[18px] text-brand-600">Target tanggapan: {{ $tiket->created_at->copy()->addDays(12)->format('d M Y') }}</span>
+                                    <span class="pt-0.5 text-xs font-bold tracking-[0.24px]">
+                                        <span @class(['rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.33px]', $tiket->zonaSla()->badge()])>{{ $tiket->zonaSla()->label() }}</span>
+                                    </span>
+                                    <span class="text-[13px] leading-[18px] text-brand-600">
+                                        @if ($tiket->status->selesai())
+                                            Ditutup pada {{ $tiket->selesai_at?->format('d M Y') }}
+                                        @elseif ($tiket->sisaHariSla() > 0)
+                                            Sisa {{ $tiket->sisaHariSla() }} hari kerja, target {{ $tiket->targetSla()->format('d M Y') }}
+                                        @else
+                                            Lewat target {{ $tiket->targetSla()->format('d M Y') }}
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 @else
-                    {{-- Tiket hanya tampil bila kode-nya diketahui --}}
+                    {{-- Tiket hanya tampil bila kode dan NRM sama-sama cocok --}}
                     <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                         <h3 class="text-lg font-semibold text-ink">
-                            {{ $kode === '' ? 'Masukkan Kode Tiket Anda' : 'Tiket Tidak Ditemukan' }}
+                            @if ($errors->has('kode'))
+                                Tiket Tidak Ditemukan
+                            @else
+                                Lengkapi Kode Tiket dan NRM
+                            @endif
                         </h3>
                         <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">
-                            @if ($kode === '')
-                                Isi kolom kode tiket di atas. Hanya tiket dengan kode yang Anda masukkan yang dapat dilihat, jadi pengaduan orang lain tidak akan muncul di halaman ini.
+                            @if ($errors->has('kode'))
+                                Kode tiket atau nomor rekam medis tidak sesuai dengan data kami. Karena keduanya wajib, data pengaduan orang lain tidak dapat dibuka dari halaman ini.
                             @else
-                                Tidak ada tiket dengan kode <span class="font-semibold text-ink">{{ $kode }}</span>. Pastikan kode disalin dengan benar dari halaman konfirmasi pengajuan atau pesan WhatsApp.
+                                Isi kolom kode tiket dan nomor rekam medis di atas. Data pribadi pengaduan hanya ditampilkan bila keduanya cocok dengan data kami.
                             @endif
                         </p>
                     </div>

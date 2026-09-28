@@ -14,7 +14,9 @@
     --color-brand-600: #53634b;
     --color-brand-500: #596951;
     --color-brand-300: #a8b89c;
+    --color-brand-250: #a2d584;
     --color-brand-200: #c2c9b9;
+    --color-brand-150: #b3e795;
     --color-brand-100: #d6e8ca;
     --color-brand-50: #eaf0df;
     --color-brand-light: #f6fcea;
@@ -31,6 +33,9 @@
     --color-alert: #ba1a1a;
     --color-alert-dark: #93000a;
     --color-alert-light: #ffdad6;
+
+    --color-info: #003ea8;
+    --color-info-light: #dbeafe;
 }
 
 [x-cloak] {

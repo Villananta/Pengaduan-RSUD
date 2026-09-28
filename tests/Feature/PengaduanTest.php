@@ -14,6 +14,33 @@ class PengaduanTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** Data formulir yang valid untuk pengajuan aduan. */
+    private function form(array $ubah = []): array
+    {
+        return array_merge([
+            'kategori' => 'fasilitas',
+            'nama_lengkap' => 'Budi Santoso',
+            'nrm' => '12-34-56-78',
+            'no_wa' => '081234567890',
+            'email' => 'budi@example.com',
+            'alamat' => 'Jl. Dharmawangsa No. 12, Surabaya',
+            'waktu_kejadian' => '2026-09-24T10:30',
+            'unit' => 'Instalasi Farmasi',
+            'subjek' => 'Keterlambatan pengambilan resep obat kronis',
+            'deskripsi' => 'Pasien menunggu lebih dari 4 jam untuk pengambilan obat kronis.',
+            'persetujuan' => '1',
+        ], $ubah);
+    }
+
+    /** Verifikasi kepemilikan tiket lewat POST, sama seperti langkah pelapor. */
+    private function verifikasi(Pengaduan $pengaduan): void
+    {
+        $this->post(route('pengaduan.verifikasi'), [
+            'kode' => $pengaduan->kode_tiket,
+            'nrm' => $pengaduan->nrm,
+        ])->assertRedirect(route('pengaduan.lacak'));
+    }
+
     public function test_halaman_buat_aduan_dapat_diakses(): void
     {
         $this->get(route('pengaduan.create'))
@@ -24,29 +51,42 @@ class PengaduanTest extends TestCase
 
     public function test_pengaduan_dapat_disimpan(): void
     {
-        $this->post(route('pengaduan.store'), [
-            'kategori' => 'fasilitas',
-            'nama_lengkap' => 'Budi Santoso',
-            'nrm' => '12-34-56-78',
-            'no_wa' => '081234567890',
-            'email' => 'budi@example.com',
-            'alamat' => 'Jl. Dharmawangsa No. 12, Surabaya',
-            'waktu_kejadian' => '2026-09-24T10:30',
-            'unit' => 'Instalasi Farmasi',
-            'subjek' => 'Keterlambatan pengambilan resep obat',
-            'deskripsi' => 'Pasien menunggu lebih dari 4 jam untuk pengambilan obat kronis.',
-            'persetujuan' => '1',
-        ])
+        $this->post(route('pengaduan.store'), $this->form())
             ->assertRedirect();
 
         $this->assertDatabaseCount('pengaduan', 1);
         $pengaduan = Pengaduan::first();
         $this->assertSame(KategoriPengaduan::Fasilitas, $pengaduan->kategori);
         $this->assertStringStartsWith('ADUAN-', $pengaduan->kode_tiket);
+        $this->assertSame(StatusPengaduan::Diterima, $pengaduan->status);
+        $this->assertNull($pengaduan->selesai_at);
 
         $this->get(route('pengaduan.sukses', $pengaduan->kode_tiket))
             ->assertOk()
             ->assertSee($pengaduan->kode_tiket);
+    }
+
+    public function test_tahap_awal_tercatat_di_riwayat_status(): void
+    {
+        $this->post(route('pengaduan.store'), $this->form());
+
+        $riwayat = Pengaduan::first()->riwayatStatus;
+
+        $this->assertCount(1, $riwayat);
+        $this->assertTrue($riwayat->first()->dariAwal());
+        $this->assertSame(StatusPengaduan::Diterima, $riwayat->first()->ke);
+    }
+
+    public function test_kode_tiket_tidak_bisa_dimasukkan_melalui_mass_assignment(): void
+    {
+        $pengaduan = Pengaduan::buat(
+            collect($this->form())->except(['persetujuan'])->all(),
+            'ADUAN-20260925-SISSTEM',
+        );
+
+        $pengaduan->fill(['kode_tiket' => 'ADUAN-20260925-PALING']);
+
+        $this->assertSame('ADUAN-20260925-SISSTEM', $pengaduan->kode_tiket);
     }
 
     public function test_validasi_wajib_berfungsi(): void
@@ -60,20 +100,53 @@ class PengaduanTest extends TestCase
 
     public function test_kategori_harus_sesuai_enum(): void
     {
-        $this->post(route('pengaduan.store'), [
-            'kategori' => 'lainnya',
-            'nama_lengkap' => 'Budi Santoso',
-            'nrm' => '12-34-56-78',
-            'no_wa' => '081234567890',
-            'email' => 'budi@example.com',
-            'alamat' => 'Jl. Dharmawangsa No. 12, Surabaya',
-            'waktu_kejadian' => '2026-09-24T10:30',
-            'unit' => 'Instalasi Farmasi',
-            'subjek' => 'Keterlambatan pengambilan resep obat',
-            'deskripsi' => 'Pasien menunggu lebih dari 4 jam untuk pengambilan obat kronis.',
-            'persetujuan' => '1',
-        ])
+        $this->post(route('pengaduan.store'), $this->form(['kategori' => 'lainnya']))
             ->assertSessionHasErrors('kategori');
+
+        $this->assertDatabaseCount('pengaduan', 0);
+    }
+
+    public function test_nomor_whatsapp_harus_format_telepon(): void
+    {
+        $this->post(route('pengaduan.store'), $this->form(['no_wa' => 'bukan-nomor']))
+            ->assertSessionHasErrors('no_wa');
+
+        $this->post(route('pengaduan.store'), $this->form(['no_wa' => '0812 3456 7890']))
+            ->assertSessionHasErrors('no_wa');
+
+        $this->assertDatabaseCount('pengaduan', 0);
+    }
+
+    public function test_waktu_kejadian_tidak_boleh_masa_depan(): void
+    {
+        $this->post(route('pengaduan.store'), $this->form([
+            'waktu_kejadian' => now()->addYear()->format('Y-m-d\TH:i'),
+        ]))->assertSessionHasErrors('waktu_kejadian');
+
+        $this->assertDatabaseCount('pengaduan', 0);
+    }
+
+    public function test_unit_harus_terdaftar(): void
+    {
+        $this->post(route('pengaduan.store'), $this->form(['unit' => 'Unit Asing']))
+            ->assertSessionHasErrors('unit');
+
+        $this->assertDatabaseCount('pengaduan', 0);
+    }
+
+    public function test_lampiran_dibatasi_jumlah_dan_jenis(): void
+    {
+        Storage::fake('public');
+
+        $this->post(route('pengaduan.store'), $this->form([
+            'lampiran' => collect(range(1, 6))
+                ->map(fn () => UploadedFile::fake()->create('bukti.jpg', 10, 'image/jpeg'))
+                ->all(),
+        ]))->assertSessionHasErrors('lampiran');
+
+        $this->post(route('pengaduan.store'), $this->form([
+            'lampiran' => [UploadedFile::fake()->create('bukti.exe', 10, 'application/x-msdownload')],
+        ]))->assertSessionHasErrors('lampiran.0');
 
         $this->assertDatabaseCount('pengaduan', 0);
     }
@@ -83,30 +156,85 @@ class PengaduanTest extends TestCase
         $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertSee('Lacak Status Pengaduan')
-            ->assertSee('Masukkan Kode Tiket Anda')
-            ->assertDontSee('Penyelesaian Rata-rata 6.8 Hari Kerja')
+            ->assertSee('Lengkapi Kode Tiket dan NRM')
             ->assertDontSee('Alur Prosedur 12 Hari Kerja');
+    }
+
+    public function test_rincian_tiket_hanya_terbuka_bila_nrm_cocok(): void
+    {
+        $pengaduan = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-20260925-NRMM1',
+            'nrm' => '99-88-77-66',
+            'nama_lengkap' => 'Siti Aminah',
+            'subjek' => 'Keterlambatan Penyerahan Obat Resep',
+            'status' => StatusPengaduan::Revisi,
+        ]);
+
+        // Kode saja tidak cukup.
+        $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
+            ->assertOk()
+            ->assertDontSee('Siti Aminah')
+            ->assertDontSee('99-88-77-66');
+
+        // NRM salah tetap ditolak.
+        $this->post(route('pengaduan.verifikasi'), [
+            'kode' => $pengaduan->kode_tiket,
+            'nrm' => '11-11-11-11',
+        ])->assertRedirect(route('pengaduan.lacak'));
+
+        $this->get(route('pengaduan.lacak'))
+            ->assertOk()
+            ->assertSee('Tiket Tidak Ditemukan')
+            ->assertSee('tidak sesuai dengan data kami')
+            ->assertDontSee('Siti Aminah');
+
+        // Kode + NRM benar membuka rincian.
+        $this->post(route('pengaduan.verifikasi'), [
+            'kode' => $pengaduan->kode_tiket,
+            'nrm' => '99887766',
+        ])->assertRedirect(route('pengaduan.lacak'))->assertSessionHasNoErrors();
+
+        $this->get(route('pengaduan.lacak'))->assertOk()
+            ->assertSee('Siti Aminah')
+            ->assertSee('Keterlambatan Penyerahan Obat Resep')
+            ->assertSee('Perlu Revisi')
+            ->assertSee('Alur Prosedur 12 Hari Kerja')
+            ->assertSee('Tindakan Diperlukan: Unggah Bukti Tambahan');
+    }
+
+    public function test_nrm_tidak_pernah_muncul_di_url(): void
+    {
+        $pengaduan = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-20260925-URLAMAN',
+            'nrm' => '99-88-77-66',
+        ]);
+
+        $respons = $this->post(route('pengaduan.verifikasi'), [
+            'kode' => $pengaduan->kode_tiket,
+            'nrm' => '99-88-77-66',
+        ]);
+
+        $respons->assertRedirect(route('pengaduan.lacak'));
+        $this->assertStringNotContainsString('nrm', $respons->headers->get('Location'));
+        $this->assertStringNotContainsString('99-88-77-66', $respons->headers->get('Location'));
+
+        $halaman = $this->get(route('pengaduan.lacak'));
+        $this->assertStringNotContainsString('nrm=', $halaman->headers->get('Location') ?? '');
     }
 
     public function test_lacak_tiket_menampilkan_detail(): void
     {
-        $pengaduan = Pengaduan::create([
+        $pengaduan = Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-20260925-TESTX',
-            'kategori' => 'medis',
-            'nama_lengkap' => 'Siti Aminah',
             'nrm' => '99-88-77-66',
-            'no_wa' => '081298765432',
-            'email' => 'siti@example.com',
-            'alamat' => 'Jl. Pahlawan No. 1, Surabaya',
-            'waktu_kejadian' => '2026-09-20T09:00',
-            'unit' => 'Instalasi Farmasi',
+            'nama_lengkap' => 'Siti Aminah',
             'subjek' => 'Keterlambatan Penyerahan Obat Resep',
-            'deskripsi' => 'Obat kronis belum tersedia selama tiga hari.',
-            'lampiran' => [],
-            'status' => 'revisi',
+            'status' => StatusPengaduan::Revisi,
         ]);
 
-        $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
+        $this->verifikasi($pengaduan);
+
+        $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertSee($pengaduan->kode_tiket)
             ->assertSee('Keterlambatan Penyerahan Obat Resep')
@@ -117,25 +245,37 @@ class PengaduanTest extends TestCase
             ->assertSee('Siti Aminah');
     }
 
-    public function test_pelapor_tidak_bisa_mengubah_status_sendiri(): void
+    public function test_lampiran_aduan_bisa_dilihat_pelapor_dan_admin(): void
     {
-        $pengaduan = Pengaduan::create([
-            'kode_tiket' => 'ADUAN-20260925-UBAH1',
-            'kategori' => 'fasilitas',
-            'nama_lengkap' => 'Rina',
-            'nrm' => '55-44-33-44',
-            'no_wa' => '081200000001',
-            'email' => 'rina@example.com',
-            'alamat' => 'Surabaya',
-            'waktu_kejadian' => '2026-09-20T09:00',
-            'unit' => 'Instalasi Radiologi',
-            'subjek' => 'Alat MRI tidak berfungsi',
-            'deskripsi' => 'Pemeriksaan MRI tertunda selama dua hari.',
-            'lampiran' => [],
-            'status' => 'diterima',
+        Storage::fake('public');
+
+        $path = UploadedFile::fake()->create('bukti-resep.jpg', 40, 'image/jpeg')->store('lampiran', 'public');
+        $pengaduan = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-20260925-BUKTI1',
+            'nrm' => '77-66-55-44',
+            'lampiran' => [$path],
         ]);
 
-        $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
+        $this->verifikasi($pengaduan);
+
+        $this->get(route('pengaduan.lacak'))
+            ->assertOk()
+            ->assertSee('Lampiran Bukti (1 berkas)')
+            ->assertSee(basename($path));
+
+        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->assertSee('Lampiran Bukti (1 berkas)')
+            ->assertSee(basename($path));
+    }
+
+    public function test_pelapor_tidak_bisa_mengubah_status_sendiri(): void
+    {
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-UBAH1']);
+
+        $this->verifikasi($pengaduan);
+
+        $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertDontSee('Ubah Tahap Pengaduan')
             ->assertSee('Tulis Balasan atau Unggah Lampiran');
@@ -146,23 +286,46 @@ class PengaduanTest extends TestCase
         $this->assertSame(StatusPengaduan::Diterima, $pengaduan->fresh()->status);
     }
 
+    public function test_pesan_hanya_bisa_dikirim_setelah_nrm_diverifikasi(): void
+    {
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-GATE1']);
+
+        $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), ['isi' => 'Percobaan tanpa verifikasi'])
+            ->assertRedirect(route('pengaduan.lacak'))
+            ->assertSessionHasErrors('kode');
+
+        $this->assertDatabaseCount('pesan_pengaduan', 0);
+
+        $this->verifikasi($pengaduan);
+
+        $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), ['isi' => 'Pesan setelah verifikasi'])
+            ->assertRedirect(route('pengaduan.lacak'))
+            ->with('sukses');
+
+        $this->assertDatabaseHas('pesan_pengaduan', [
+            'pengaduan_id' => $pengaduan->id,
+            'peran' => 'pelapor',
+            'isi' => 'Pesan setelah verifikasi',
+        ]);
+    }
+
+    public function test_sesi_verifikasi_tidak_berpindah_ke_tiket_lain(): void
+    {
+        $pertama = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-SESI01']);
+        $kedua = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-SESI02']);
+
+        $this->verifikasi($pertama);
+
+        $this->post(route('pengaduan.pesan', $kedua->kode_tiket), ['isi' => 'Mencoba ke tiket lain'])
+            ->assertRedirect(route('pengaduan.lacak'))
+            ->assertSessionHasErrors('kode');
+
+        $this->assertDatabaseMissing('pesan_pengaduan', ['pengaduan_id' => $kedua->id]);
+    }
+
     public function test_admin_dapat_mengubah_status_pengaduan(): void
     {
-        $pengaduan = Pengaduan::create([
-            'kode_tiket' => 'ADUAN-20260925-ADMIN',
-            'kategori' => 'medis',
-            'nama_lengkap' => 'Dewi',
-            'nrm' => '66-77-88-99',
-            'no_wa' => '081200000003',
-            'email' => 'dewi@example.com',
-            'alamat' => 'Surabaya',
-            'waktu_kejadian' => '2026-09-20T09:00',
-            'unit' => 'Instalasi Bedah',
-            'subjek' => 'Perawatan lambat di Ruang Melati',
-            'deskripsi' => 'Periksa baru dilakukan lima jam setelah masuk.',
-            'lampiran' => [],
-            'status' => 'diterima',
-        ]);
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-ADMIN']);
 
         $this->get(route('admin.pengaduan.index'))
             ->assertOk()
@@ -177,8 +340,11 @@ class PengaduanTest extends TestCase
             ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
 
         $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
+        $this->assertNull($pengaduan->fresh()->selesai_at);
 
-        $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
+        $this->verifikasi($pengaduan);
+
+        $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertSee('Laporan Sedang Diinvestigasi');
 
@@ -188,26 +354,75 @@ class PengaduanTest extends TestCase
         $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
     }
 
-    public function test_pesan_pelapor_dan_balasan_admin_tersimpan(): void
+    public function test_status_tidak_bisa_dilompati_atau_dibalik(): void
     {
-        $pengaduan = Pengaduan::create([
-            'kode_tiket' => 'ADUAN-20260925-CHAT1',
-            'kategori' => 'fasilitas',
-            'nama_lengkap' => 'Bagus',
-            'nrm' => '12-34-56-78',
-            'no_wa' => '081200000004',
-            'email' => 'bagus@example.com',
-            'alamat' => 'Surabaya',
-            'waktu_kejadian' => '2026-09-20T09:00',
-            'unit' => 'Poli Syaraf',
-            'subjek' => 'Ruang tunggu penuh',
-            'deskripsi' => 'Tidak ada kursi kosong sejak pagi.',
-            'lampiran' => [],
-            'status' => 'diproses',
+        $pengaduan = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-20260925-LOMPAT',
+            'status' => StatusPengaduan::Diterima,
         ]);
 
+        // Diterima tidak boleh langsung selesai.
+        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'selesai'])
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(StatusPengaduan::Diterima, $pengaduan->fresh()->status);
+
+        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'diproses']);
+        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'selesai']);
+
+        $pengaduan->refresh();
+        $this->assertSame(StatusPengaduan::Selesai, $pengaduan->status);
+        $this->assertNotNull($pengaduan->selesai_at);
+
+        // Selesai tidak boleh dikembalikan ke diterima.
+        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'diterima'])
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(StatusPengaduan::Selesai, $pengaduan->fresh()->status);
+
+        // Reopen ke Diproses tetap diperbolehkan.
+        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'diproses'])
+            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
+        $this->assertNull($pengaduan->fresh()->selesai_at);
+    }
+
+    public function test_perubahan_status_tercatat_di_riwayat(): void
+    {
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-AUDIT']);
+
+        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), [
+            'status' => 'revisi',
+            'catatan' => 'Menunggu foto antrean tambahan',
+        ]);
+
+        $riwayat = $pengaduan->riwayatStatus()->get();
+
+        $this->assertCount(2, $riwayat);
+        $this->assertSame(StatusPengaduan::Diterima, $riwayat[1]->dari);
+        $this->assertSame(StatusPengaduan::Revisi, $riwayat[1]->ke);
+        $this->assertSame('Menunggu foto antrean tambahan', $riwayat[1]->catatan);
+
+        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->assertSee('Riwayat Tahap')
+            ->assertSee('Diterima')
+            ->assertSee('Perlu Revisi')
+            ->assertSee('Menunggu foto antrean tambahan');
+    }
+
+    public function test_pesan_pelapor_dan_balasan_admin_tersimpan(): void
+    {
+        $pengaduan = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-20260925-CHAT1',
+            'status' => StatusPengaduan::Diproses,
+        ]);
+
+        $this->verifikasi($pengaduan);
+
         $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), ['isi' => 'Apakah bisa diproses lebih cepat?'])
-            ->assertRedirect(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]));
+            ->assertRedirect(route('pengaduan.lacak'));
 
         $this->assertDatabaseHas('pesan_pengaduan', [
             'pengaduan_id' => $pengaduan->id,
@@ -224,7 +439,7 @@ class PengaduanTest extends TestCase
             'isi' => 'Tim sedang menindaklanjuti.',
         ]);
 
-        $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
+        $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertSee('Riwayat Tanggapan Dua Arah')
             ->assertSee('Apakah bisa diproses lebih cepat?')
@@ -240,65 +455,75 @@ class PengaduanTest extends TestCase
     {
         Storage::fake('public');
 
-        $pengaduan = Pengaduan::create([
+        $pengaduan = Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-20260925-BERKAS',
-            'kategori' => 'fasilitas',
-            'nama_lengkap' => 'Sari',
-            'nrm' => '12-34-56-78',
-            'no_wa' => '081200000009',
-            'email' => 'sari@example.com',
-            'alamat' => 'Surabaya',
-            'waktu_kejadian' => '2026-09-20T09:00',
-            'unit' => 'Instalasi Radiologi',
-            'subjek' => 'Mesin USG tidak dapat dipakai',
-            'deskripsi' => 'Pemeriksaan tertunda karena alat rusak.',
-            'lampiran' => [],
-            'status' => 'revisi',
+            'status' => StatusPengaduan::Revisi,
         ]);
+
+        $this->verifikasi($pengaduan);
 
         $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), [
             'isi' => 'Berikut bukti foto resume medis.',
             'lampiran' => UploadedFile::fake()->create('bukti.jpg', 120, 'image/jpeg'),
-        ])->assertRedirect(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]));
+        ])->assertRedirect(route('pengaduan.lacak'));
 
         $pesan = $pengaduan->pesan()->firstWhere('peran', 'pelapor');
 
         $this->assertNotNull($pesan->lampiran);
         Storage::disk('public')->assertExists($pesan->lampiran);
 
-        $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
+        $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertSee('Unggah Lampiran');
     }
 
     public function test_lacak_tiket_tidak_menampilkan_aduan_lain(): void
     {
-        $pengaduan = Pengaduan::create([
-            'kode_tiket' => 'ADUAN-20260925-LIST01',
-            'kategori' => 'fasilitas',
-            'nama_lengkap' => 'Andi',
-            'nrm' => '11-22-33-44',
-            'no_wa' => '081200000000',
-            'email' => 'andi@example.com',
-            'alamat' => 'Surabaya',
-            'waktu_kejadian' => '2026-09-20T09:00',
-            'unit' => 'Poli Umum',
-            'subjek' => 'Kursi ruang tunggu rusak',
-            'deskripsi' => 'Kursi patah di ruang tunggu poli.',
-            'lampiran' => [],
-            'status' => 'diterima',
-        ]);
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-LIST01']);
 
         $this->get(route('pengaduan.lacak'))
             ->assertOk()
-            ->assertSee('Masukkan Kode Tiket Anda')
+            ->assertSee('Lengkapi Kode Tiket dan NRM')
             ->assertDontSee($pengaduan->kode_tiket)
             ->assertDontSee($pengaduan->subjek)
             ->assertDontSee($pengaduan->nama_lengkap);
 
-        $this->get(route('pengaduan.lacak', ['kode' => 'ADUAN-20260925-SALAH']))
+        $this->post(route('pengaduan.verifikasi'), [
+            'kode' => 'ADUAN-20260925-SALAH',
+            'nrm' => '0000',
+        ])->assertRedirect(route('pengaduan.lacak'));
+
+        $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertSee('Tiket Tidak Ditemukan')
             ->assertDontSee($pengaduan->kode_tiket);
+    }
+
+    public function test_pengajuan_dibatasi_rate_limit(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('pengaduan.store'), $this->form(['email' => "budi{$i}@example.com"]));
+        }
+
+        $response = $this->post(route('pengaduan.store'), $this->form(['email' => 'budi5@example.com']));
+
+        $response->assertStatus(429);
+        $response->assertSee('Terlalu Banyak Permintaan');
+        $this->assertDatabaseCount('pengaduan', 5);
+    }
+
+    public function test_verifikasi_tiket_dibatasi_rate_limit(): void
+    {
+        for ($i = 0; $i < 10; $i++) {
+            $this->post(route('pengaduan.verifikasi'), [
+                'kode' => 'ADUAN-20260925-XXXXX',
+                'nrm' => '0000',
+            ]);
+        }
+
+        $this->post(route('pengaduan.verifikasi'), [
+            'kode' => 'ADUAN-20260925-XXXXX',
+            'nrm' => '0000',
+        ])->assertStatus(429);
     }
 }
