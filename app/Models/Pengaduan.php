@@ -10,6 +10,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,6 +33,7 @@ class Pengaduan extends Model
         'deskripsi',
         'lampiran',
         'status',
+        'master_unit_id',
     ];
 
     protected $casts = [
@@ -81,6 +83,25 @@ class Pengaduan extends Model
         return $this->hasMany(PesanPengaduan::class)->oldest();
     }
 
+    /**
+     * Unit MASTER_UNITS yang ditugaskan menangani pengaduan ini.
+     *
+     * Hubungan ini boleh kosong karena kolomnya nullable, sehingga
+     * pengaduan lama yang hanya menyimpan nama unit bebas tetap bisa
+     * dibaca tanpa harus di-backfill. Nama unit pada kolom teks tetap
+     * dipertahankan sebagai sumber nilai yang diketik pelapor.
+     */
+    public function masterUnit(): BelongsTo
+    {
+        return $this->belongsTo(MasterUnit::class);
+    }
+
+    /** Nama unit siap tampil, memakai kode MASTER_UNITS bila tertaut. */
+    public function namaUnit(): string
+    {
+        return $this->masterUnit?->namaLengkap() ?? $this->unit;
+    }
+
     // Jejak audit perubahan tahap pengaduan.
     public function riwayatStatus(): HasMany
     {
@@ -101,6 +122,18 @@ class Pengaduan extends Model
     public function progresPersen(): int
     {
         return $this->status->selesai() ? 100 : Sla::persen($this->status->tahap());
+    }
+
+    /**
+     * Nama sub-status unit sesuai Iterable atas tahap pengaduan.
+     *
+     * Empat sub-status pada konsol admin dipetakan dari empat tahap
+     * pengaduan yang sudah ada, sehingga tidak ada tahap kelima yang
+     * harus diisi ulang oleh setiap admin.
+     */
+    public function subStatus(): string
+    {
+        return $this->status->subStatus();
     }
 
     /** Tanggal jatuh tempo penyelesaian pengaduan. */

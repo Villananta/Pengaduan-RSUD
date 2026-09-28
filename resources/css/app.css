@@ -36,6 +36,46 @@
 
     --color-info: #003ea8;
     --color-info-light: #dbeafe;
+
+    /*
+     * Palet konsol admin (Material green). Terpisah dari palet publik
+     * supaya tidak mengubah tampilan halaman yang sudah jadi.
+     */
+    --color-admin-bg: #f9f9ff;
+    --color-admin-surface: #ffffff;
+    --color-admin-surface-alt: #f0f3ff;
+
+    --color-admin-ink: #111c2d;
+    --color-admin-ink-muted: #414942;
+    --color-admin-ink-subtle: #717972;
+    --color-admin-border: #c0c9c0;
+
+    --color-admin-brand-900: #003820;
+    --color-admin-brand-800: #002011;
+    --color-admin-brand-700: #016d30;
+    --color-admin-brand-600: #0c7234;
+    --color-admin-brand-500: #0c7234;
+    --color-admin-brand-300: #70a383;
+    --color-admin-brand-200: #b9efcb;
+    --color-admin-brand-100: #98f4a7;
+    --color-admin-brand-50: #d8e3fb;
+
+    --color-admin-success-soft: #98f4a7;
+    --color-admin-success-strong: #0c7234;
+    --color-admin-info-soft: #e7eeff;
+    --color-admin-info-strong: #111c2d;
+    --color-admin-info-mid: #dee8ff;
+    --color-admin-info-softest: #d8e3fb;
+
+    --color-admin-warning-soft: #ffddb8;
+    --color-admin-warning-strong: #d48700;
+    --color-admin-warning-shell: #462a00;
+    --color-admin-warning-veil: #ffb95f;
+
+    --color-admin-danger-soft: #ffdad6;
+    --color-admin-danger-mid: #ffd0cb;
+    --color-admin-danger-strong: #93000a;
+    --color-admin-danger-base: #ba1a1a;
 }
 
 [x-cloak] {

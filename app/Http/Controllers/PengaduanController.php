@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
+use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,11 +39,17 @@ class PengaduanController extends Controller
         }
 
         $pengaduan = Pengaduan::buat(
-            collect($validated)->except(['persetujuan', 'lampiran'])->all(),
+            collect($validated)
+                ->except(['persetujuan', 'lampiran'])
+                ->put('master_unit_id', $this->unitMaster($validated['unit']))
+                ->all(),
             $this->generateKodeTiket(),
         );
 
         $pengaduan->forceFill(['lampiran' => $lampiran])->save();
+
+        StatistikDashboard::lupaCache();
+        StatistikPengaduan::lupaCache();
 
         // Pelapor baru saja membuktikan kepemilikan NRM, jadi tiketnya
         // langsung ditandai terverifikasi tanpa perlu mengetik ulang.
@@ -51,6 +59,24 @@ class PengaduanController extends Controller
         ]);
 
         return redirect()->route('pengaduan.sukses', $pengaduan->kode_tiket);
+    }
+
+    /**
+     * Terjemahkan label unit pilihan pelapor ke MASTER_UNITS.
+     *
+     * Pengaduan lama atau unit yang belum dipetakan tetap boleh kosong,
+     * karena kolomnya nullable dan nama pada kolom unit tetap disimpan.
+     */
+    private function unitMaster(string $label): ?int
+    {
+        $peta = config('pengaduan.peta_unit', []);
+        $kode = $peta[$label] ?? null;
+
+        if ($kode === null) {
+            return null;
+        }
+
+        return MasterUnit::where('kode', $kode)->value('id');
     }
 
     public function sukses(string $kode): View

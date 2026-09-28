@@ -4,10 +4,10 @@
 
 @section('content')
     @if (session('sukses'))
-        <p class="mb-5 rounded-xl bg-brand-100 px-4 py-3 text-xs font-semibold text-brand-800">{{ session('sukses') }}</p>
+        <p class="mb-5 rounded-lg bg-admin-success-soft px-4 py-3 text-xs font-semibold text-admin-success-strong">{{ session('sukses') }}</p>
     @endif
 
-    <a href="{{ route('admin.pengaduan.index') }}" class="text-xs font-semibold text-brand-800 hover:underline">&larr; Kembali ke daftar pengaduan</a>
+    <a href="{{ route('admin.pengaduan.index') }}" class="text-xs font-semibold text-admin-brand-800 hover:underline">&larr; Kembali ke daftar pengaduan</a>
 
     <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="flex flex-col gap-6 lg:col-span-2">
@@ -18,7 +18,7 @@
                         <p class="text-xs font-medium text-ink-muted">Nomor Tiket</p>
                         <p class="font-mono text-base font-bold text-brand-800">{{ $pengaduan->kode_tiket }}</p>
                     </div>
-                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $pengaduan->status->badge() }}">
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $pengaduan->status->badgeAdmin() }}">
                         {{ $pengaduan->status->label() }}
                     </span>
                 </div>
@@ -33,7 +33,7 @@
                         'No. WhatsApp' => $pengaduan->no_wa,
                         'Email' => $pengaduan->email,
                         'Alamat' => $pengaduan->alamat,
-                        'Unit Terdampak' => $pengaduan->unit,
+                        'Unit Terdampak' => $pengaduan->namaUnit(),
                         'Waktu Kejadian' => $pengaduan->waktu_kejadian->format('d M Y, H:i'),
                         'Tanggal Pengajuan' => $pengaduan->created_at->format('d M Y'),
                     ] as $label => $value)
@@ -53,7 +53,7 @@
                         <ul class="mt-2 flex flex-col gap-2">
                             @foreach ($pengaduan->daftarLampiran() as $path)
                                 <li>
-                                    <a href="{{ $pengaduan->urlLampiran($path) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-brand-light px-3 py-2 text-xs font-semibold text-ink hover:bg-brand-50">
+                                    <a href="{{ $pengaduan->urlLampiran($path) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-admin-info-soft px-3 py-2 text-xs font-semibold text-ink hover:bg-admin-info-mid">
                                         <svg class="h-3.5 w-3.5 shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
@@ -180,9 +180,9 @@
                             @disabled(! $boleh)
                             @class([
                                 'rounded-lg px-4 py-2 text-xs font-semibold',
-                                'bg-brand-800 text-white' => $pengaduan->status === $item,
-                                'bg-brand-50 text-ink-muted hover:bg-brand-100' => $pengaduan->status !== $item && $boleh,
-                                'cursor-not-allowed bg-brand-50 text-ink-muted/50' => ! $boleh,
+                                'bg-admin-brand-800 text-white' => $pengaduan->status === $item,
+                                'bg-admin-surface-alt text-ink-muted hover:bg-admin-info-soft' => $pengaduan->status !== $item && $boleh,
+                                'cursor-not-allowed bg-admin-surface-alt text-ink-muted/50' => ! $boleh,
                             ])
                         >
                             {{ $loop->iteration }}. {{ $item->label() }}
@@ -197,7 +197,7 @@
                         value="{{ old('catatan') }}"
                         maxlength="500"
                         placeholder="Contoh: Menunggu dokumen tambahan dari pelapor"
-                        class="rounded-lg bg-brand-light px-3 py-2 text-xs text-ink placeholder-placeholder focus:outline-none focus:ring-2 focus:ring-brand-800"
+                        class="rounded-lg bg-admin-info-soft px-3 py-2 text-xs text-ink placeholder:text-ink-muted/50 focus:outline-none focus:ring-2 focus:ring-admin-brand-800"
                     >
                 </form>
             </div>
@@ -230,7 +230,7 @@
                 <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">
                     Posisi saat ini: {{ $pengaduan->status->label() }} ({{ $pengaduan->progresPersen() }}% dari SLA).
                 </p>
-                <p @class(['mt-2 inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.33px]', $zona->badge()])>
+                <p @class(['mt-2 inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.33px]', $zona->badgeAdmin()])>
                     {{ $zona->label() }} &middot; {{ $pengaduan->ringkasSla() }}
                 </p>
                 <ol class="mt-4 flex flex-col gap-3">
@@ -238,11 +238,11 @@
                         <li class="flex gap-3" @class(['opacity-60' => $no > $pengaduan->status->tahap()])>
                             <span @class([
                                 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                                'bg-brand-800 text-white' => $no === $pengaduan->status->tahap(),
-                                'bg-brand-100 text-brand-800' => $no !== $pengaduan->status->tahap(),
+                                'bg-admin-brand-800 text-white' => $no === $pengaduan->status->tahap(),
+                                'bg-admin-info-soft text-admin-brand-800' => $no !== $pengaduan->status->tahap(),
                             ])>{{ $no + 1 }}</span>
                             <div>
-                                <p class="text-[11px] font-bold uppercase tracking-[0.6px] text-brand-800">{{ $langkah['hari'] }}</p>
+                                <p class="text-[11px] font-bold uppercase tracking-[0.6px] text-admin-brand-800">{{ $langkah['hari'] }}</p>
                                 <p class="text-sm font-semibold text-ink">{{ $langkah['judul'] }}</p>
                             </div>
                         </li>

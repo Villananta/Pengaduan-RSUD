@@ -26,4 +26,28 @@ enum ZonaSla: string
             self::Terlambat => 'bg-alert text-white',
         };
     }
+
+    // Warna badge zona SLA pada konsol admin, mengikuti palet Material green.
+    public function badgeAdmin(): string
+    {
+        return match ($this) {
+            self::TepatWaktu => 'bg-admin-success-soft text-admin-success-strong',
+            self::Mendek => 'bg-admin-warning-soft text-admin-warning-strong',
+            self::Terlambat => 'bg-admin-danger-base text-white',
+        };
+    }
+
+    /**
+     * Nilai prioritas untuk mengurutkan tiket paling mendesak.
+     *
+     * Makin besar makin didahulukan di konsol admin.
+     */
+    public function prioritas(): int
+    {
+        return match ($this) {
+            self::Terlambat => 3,
+            self::Mendek => 2,
+            self::TepatWaktu => 1,
+        };
+    }
 }

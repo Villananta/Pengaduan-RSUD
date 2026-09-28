@@ -25,6 +25,34 @@ final class Sla
         return (int) config('pengaduan.sla.respons_awal_jam', 24);
     }
 
+    /** Batas investigasi internal unit dalam hari kerja. */
+    public static function hariInvestigasi(): int
+    {
+        return (int) config('pengaduan.sla.investigasi_hari_kerja', 5);
+    }
+
+    /**
+     * Jumlah hari kerja yang sudah berjalan sejak sebuah tanggal.
+     *
+     * Nilai selalu positif, dipakai untuk melihat sejauh mana satu
+     * pengaduan sudah melewati batas investigasi unit.
+     */
+    public static function hariKerjaLewat(CarbonInterface $mulai, ?CarbonInterface $sekarang = null): int
+    {
+        return (int) abs($mulai->diffInWeekdays($sekarang ?? now(), true));
+    }
+
+    /**
+     * True bila investigasi unit sudah melewati batas hari kerja.
+     *
+     * Dipakai untuk banner peringatan konsol admin, sehingga ambang yang
+     * dihitung sama dengan angka eskalasi otomatis ke Wadir.
+     */
+    public static function lewatInvestigasi(CarbonInterface $mulai, ?CarbonInterface $sekarang = null): bool
+    {
+        return self::hariKerjaLewat($mulai, $sekarang) >= self::hariInvestigasi();
+    }
+
     /** Tanggal jatuh tempo penyelesaian pengaduan. */
     public static function target(CarbonInterface $mulai): CarbonInterface
     {

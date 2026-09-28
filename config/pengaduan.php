@@ -9,6 +9,11 @@ return [
         'hari_kerja' => 12,
         'respons_awal_jam' => 24,
         'peringatan_hari_kerja' => 2,
+
+        // Batas investigasi internal unit. Tiket yang sudah melewati angka
+        // ini akan disorot di banner konsol admin sekaligus menjadi dasar
+        // eskalasi otomatis ke Wadir Pelayanan Medik dan Komite Medik.
+        'investigasi_hari_kerja' => 5,
     ],
 
     // Data pribadi pengaduan dihapus setelah melewati masa retensi ini.
@@ -33,6 +38,20 @@ return [
         'Unit Pelayanan Gizi (Dapur)',
         'Unit Ruang Ibu & Anak',
         'Layanan Humas & Informasi',
+    ],
+
+    // Pemetaan label unit di form publik ke kode MASTER_UNITS.
+    //
+    // Label yang belum dipetakan sengaja dibiarkan kosong: unitnya masih
+    // perlu dikonfirmasi ECD, jadi lebih aman menyimpan nama bebas daripada
+    // menautkan pengaduan ke unit yang keliru.
+    'peta_unit' => [
+        'Instalasi Rawat Jalan (Poliklinik)' => 'IRJ-05',
+        'Instalasi Rawat Inap' => 'ILP-06',
+        'Instalasi Gawat Darurat (IGD)' => 'IGD-02',
+        'Instalasi Farmasi' => 'IFP-01',
+        'Instalasi Radiologi' => 'IRS-03',
+        'Instalasi Kamar Operasi (OK)' => 'IBT-04',
     ],
 
     // Tahapan prosedur internal, batas dihitung dalam hari kerja.

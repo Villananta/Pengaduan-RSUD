@@ -85,6 +85,12 @@ final class StatistikPengaduan
             : 'Penyelesaian Rata-rata '.number_format($rata, 1, ',', '.').' Hari Kerja';
     }
 
+    /** Buang cache statistik publik, dipanggil setiap kali ada pengaduan yang berubah. */
+    public static function lupaCache(): void
+    {
+        Cache::forget(self::KUNCI);
+    }
+
     private static function hitung(): array
     {
         $total = Pengaduan::query()->count();

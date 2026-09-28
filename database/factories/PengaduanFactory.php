@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
+use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -17,6 +18,11 @@ class PengaduanFactory extends Factory
 
     public function definition(): array
     {
+        // Nama unit pada kolom teks dan master_unit_id harus berasal dari
+        // baris yang sama supaya namaUnit() tidak pernah berbeda dengan
+        // unit yang benar-benar ditugaskan.
+        $unit = MasterUnit::inRandomOrder()->first();
+
         return [
             'kode_tiket' => 'ADUAN-'.now()->format('Ymd').'-'.strtoupper(fake()->bothify('?????')),
             'kategori' => fake()->randomElement(KategoriPengaduan::cases()),
@@ -26,7 +32,8 @@ class PengaduanFactory extends Factory
             'email' => fake()->safeEmail(),
             'alamat' => fake()->address(),
             'waktu_kejadian' => fake()->dateTimeBetween('-3 months', '-1 day'),
-            'unit' => fake()->randomElement(config('pengaduan.units')),
+            'unit' => $unit?->nama ?? fake()->randomElement(config('pengaduan.units')),
+            'master_unit_id' => $unit?->id,
             'subjek' => fake()->sentence(4),
             'deskripsi' => fake()->paragraph(),
             'lampiran' => [],
