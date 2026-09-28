@@ -5,10 +5,10 @@
         "api/index.php": { "runtime": "vercel-php@0.6.0" }
     },
     "routes": [
-        { "src": "/build/(.*)", "dest": "/public/build/" },
+        { "src": "/(build|images)/(.*)", "dest": "/public/$1/$2" },
+        { "src": "/(favicon\\.ico|robots\\.txt)", "dest": "/public/$1" },
         { "src": "/(.*)", "dest": "/api/index.php" }
     ],
-    "public": true,
     "buildCommand": "php artisan config:cache && php artisan route:cache && vite build",
     "outputDirectory": "public",
     "env": {
