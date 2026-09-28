@@ -34,7 +34,7 @@ class PesanPengaduan extends Model
 
     public function urlLampiran(): string
     {
-        return Storage::url($this->lampiran);
+        return Storage::disk(config('pengaduan.disk_lampiran', 'public'))->url($this->lampiran);
     }
 
     // Gambar ditampilkan langsung di dalam gelembung pesan, berkas lain lewat tautan unduh.

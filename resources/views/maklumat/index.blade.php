@@ -133,7 +133,7 @@
 
     <div class="relative flex w-full flex-col gap-6">
         <div class="flex flex-wrap items-end justify-between gap-8">
-            <div class="flex max-w-[768px] flex-col gap-1">
+            <div class="flex max-w-[780px] flex-col gap-1">
                 <span class="inline-flex w-fit items-center gap-2 rounded-full bg-brand-100 px-3 py-1 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     <svg class="h-3 w-3 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -145,16 +145,6 @@
                 <h1 class="text-[32px] font-bold leading-10 tracking-[-0.8px] text-ink">Maklumat Pelayanan &amp; Standar SOP</h1>
                 <p class="text-base leading-[26px] text-ink-muted">Hak, kewajiban, landasan hukum, dan standar waktu penyelesaian pengaduan yang berlaku di rumah sakit ini.</p>
             </div>
-
-            <a href="tel:+62311500995" class="flex h-[50px] w-[198px] shrink-0 items-center gap-2 rounded-xl bg-white px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                <svg class="h-[13px] w-[13px] shrink-0 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>
-                    <span class="block text-[11px] font-medium uppercase tracking-[0.55px] text-ink-muted">Call Center 24 Jam</span>
-                    <span class="block text-sm font-bold text-brand-800">(031) 1500995</span>
-                </span>
-            </a>
         </div>
 
         {{-- Piagam Maklumat Resmi --}}

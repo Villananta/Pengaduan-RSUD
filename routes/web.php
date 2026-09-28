@@ -4,9 +4,7 @@ use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
 use App\Http\Controllers\PengaduanController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::redirect('/', '/buat-aduan');
 
 Route::view('/maklumat-prosedur', 'maklumat.index')->name('maklumat.index');
 

@@ -8,12 +8,12 @@ use Tests\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * Halaman akar langsung mengarahkan pelapor ke formulir pengaduan.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_halaman_akar_mengarah_ke_formulir_pengaduan(): void
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response->assertRedirect('/buat-aduan');
     }
 }

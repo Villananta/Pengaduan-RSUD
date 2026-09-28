@@ -140,11 +140,11 @@ class PengaduanController extends Controller
 
         $validated = $request->validate([
             'isi' => ['required', 'string', 'max:2000'],
-            'lampiran' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'lampiran' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ], [
             'isi.required' => 'Tuliskan pesan terlebih dahulu.',
             'lampiran.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
-            'lampiran.max' => 'Ukuran maksimal lampiran adalah 5 MB.',
+            'lampiran.max' => 'Ukuran maksimal lampiran adalah 4 MB.',
         ]);
 
         // Pesan dari pelapor selalu berperan sebagai "pelapor".
@@ -174,7 +174,7 @@ class PengaduanController extends Controller
             'subjek' => ['required', 'string', 'min:10', 'max:255'],
             'deskripsi' => ['required', 'string', 'min:20', 'max:10000'],
             'lampiran' => ['nullable', 'array', 'max:5'],
-            'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
             'persetujuan' => ['required', 'accepted'],
         ];
     }
@@ -196,7 +196,7 @@ class PengaduanController extends Controller
             'deskripsi.min' => 'Uraian kronologi minimal 20 karakter.',
             'lampiran.max' => 'Maksimal 5 lampiran per pengaduan.',
             'lampiran.*.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
-            'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 5 MB.',
+            'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 4 MB.',
         ];
     }
 

@@ -14,8 +14,10 @@ return [
     // Data pribadi pengaduan dihapus setelah melewati masa retensi ini.
     'retensi_hari' => 730,
 
-    // Tujuan bucket penyimpan berkas unggahan.
-    'disk_lampiran' => 'public',
+    // Tujuan bucket penyimpan berkas unggahan. Disk 'public' hanya bisa
+    // dipakai di hosting dengan symlink storage; di Vercel filesystem fungsi
+    // read-only sehingga lampiran harus lewat S3 / Cloudflare R2.
+    'disk_lampiran' => env('DISK_LAMPIRAN', 's3'),
 
     // Unit / instalasi yang boleh dipilih pelapor.
     'units' => [

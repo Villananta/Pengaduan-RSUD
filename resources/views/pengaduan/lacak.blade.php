@@ -451,7 +451,7 @@
                                     </span>
                                     <div>
                                         <p class="text-xs font-semibold tracking-[0.24px] text-ink">Unggah Lampiran</p>
-                                        <p class="text-[13px] leading-[18px] text-ink-muted">Format JPG, PNG, atau PDF maksimal 5 MB.</p>
+                                        <p class="text-[13px] leading-[18px] text-ink-muted">Format JPG, PNG, atau PDF maksimal 4 MB.</p>
                                     </div>
                                 </div>
 

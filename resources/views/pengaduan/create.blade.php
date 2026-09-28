@@ -302,7 +302,7 @@
                                 </svg>
                             </span>
                             <span class="text-center text-base font-semibold text-ink">Tarik &amp; letakkan berkas, atau klik untuk memilih</span>
-                            <span class="text-center text-[11px] font-medium tracking-[0.33px] text-ink-muted">JPG, PNG, atau PDF — maksimal 5 MB per berkas</span>
+                            <span class="text-center text-[11px] font-medium tracking-[0.33px] text-ink-muted">JPG, PNG, atau PDF — maksimal 4 MB per berkas</span>
                         </label>
                         <input type="file" id="lampiran" name="lampiran[]" accept=".jpg,.jpeg,.png,.pdf" multiple class="hidden">
                         <div id="lampiran-preview" class="grid gap-2 sm:grid-cols-2"></div>

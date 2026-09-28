@@ -136,7 +136,7 @@ class PengaduanTest extends TestCase
 
     public function test_lampiran_dibatasi_jumlah_dan_jenis(): void
     {
-        Storage::fake('public');
+        Storage::fake('s3');
 
         $this->post(route('pengaduan.store'), $this->form([
             'lampiran' => collect(range(1, 6))
@@ -247,7 +247,7 @@ class PengaduanTest extends TestCase
 
     public function test_lampiran_aduan_bisa_dilihat_pelapor_dan_admin(): void
     {
-        Storage::fake('public');
+        Storage::fake('s3');
 
         $path = UploadedFile::fake()->create('bukti-resep.jpg', 40, 'image/jpeg')->store('lampiran', 'public');
         $pengaduan = Pengaduan::factory()->create([
@@ -453,7 +453,7 @@ class PengaduanTest extends TestCase
 
     public function test_pesan_bisa_dilampiri_berkas(): void
     {
-        Storage::fake('public');
+        Storage::fake('s3');
 
         $pengaduan = Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-20260925-BERKAS',
@@ -470,7 +470,7 @@ class PengaduanTest extends TestCase
         $pesan = $pengaduan->pesan()->firstWhere('peran', 'pelapor');
 
         $this->assertNotNull($pesan->lampiran);
-        Storage::disk('public')->assertExists($pesan->lampiran);
+        Storage::disk('s3')->assertExists($pesan->lampiran);
 
         $this->get(route('pengaduan.lacak'))
             ->assertOk()
