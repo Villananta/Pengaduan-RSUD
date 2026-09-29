@@ -3,128 +3,138 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Dashboard Admin') — Sistem Pengaduan RSUD Dr. Soetomo</title>
+    <title>@yield('title', 'Beranda Utama') — Portal Pengaduan Humas | RSUD Dr. Soetomo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-admin-bg font-sans text-admin-ink antialiased">
+<body class="bg-surface font-body-md text-on-surface min-h-screen flex flex-col">
 
 @php
+    /*
+     * Navigasi konsol admin.
+     *
+     * Item aktif ditentukan dari nama route halaman yang sedang dibuka.
+     * Item yang belum punya url sengaja ditampilkan tanpa tautan: fitur
+     * berikutnya masih dalam tahap desain, jadi tidak ada halaman tujuan
+     * yang boleh ditautkan lebih dulu.
+     */
+    $beranda = 'admin.dashboard';
     $navigasi = [
-        [
-            'label' => 'Beranda',
-            'url' => route('admin.dashboard'),
-            'aktif' => request()->routeIs('admin.dashboard'),
-        ],
-        [
-            'label' => 'Pengaduan',
-            'url' => route('admin.pengaduan.index'),
-            'aktif' => request()->routeIs('admin.pengaduan.*'),
-        ],
-        [
-            'label' => 'Form Publik',
-            'url' => route('pengaduan.create'),
-            'aktif' => request()->routeIs('pengaduan.*'),
-        ],
+        ['label' => 'Beranda Utama', 'route' => $beranda],
+        ['label' => 'Daftar Pengaduan', 'route' => 'admin.pengaduan.index'],
+        ['label' => 'Workspace & Detail', 'route' => null],
+        ['label' => 'Monitor Disposisi & SLA', 'route' => null],
+        ['label' => 'Master Data Unit', 'route' => null],
     ];
 @endphp
 
-<header class="sticky top-0 z-20 bg-white shadow-[0_1px_8px_rgba(17,28,45,0.08)]">
-    {{-- Baris utama: identitas RSUD, status sistem, dan kontrol admin. --}}
-    <div class="flex flex-wrap items-center justify-between gap-4 bg-admin-brand-900 px-4 py-3 sm:px-8">
-        <div class="flex items-center gap-2 sm:gap-3">
-            <x-brand-logo class="h-9 w-9 rounded bg-white p-0.5" />
-            <div>
-                <p class="text-base font-bold leading-none tracking-[-0.4px] text-white">RSUD Dr. Soetomo</p>
-                <p class="mt-1 text-[11px] font-bold uppercase leading-3.5 tracking-[0.55px] text-admin-brand-300">
-                    Surabaya &bull; Jawa Timur
-                </p>
+<header class="fixed top-0 left-0 right-0 z-50 shadow-[0_1px_8px_rgba(17,28,45,0.08)]">
+    {{-- Baris identitas: logo, standar SLA, dan petugas humas. --}}
+    <div class="bg-primary-container text-on-primary h-16 w-full px-margin flex items-center justify-between">
+        <div class="flex items-center gap-space-md">
+            <div class="flex items-center gap-space-sm">
+                <x-brand-logo class="h-9 w-9 object-contain rounded-sm bg-surface-container-lowest p-0.5" />
+                <div class="flex flex-col">
+                    <span class="font-title-md text-title-md text-on-primary font-bold tracking-tight leading-none">RSUD Dr. Soetomo</span>
+                    <span class="font-label-sm text-label-sm text-on-primary-container tracking-wider uppercase mt-1">Surabaya &bull; Jawa Timur</span>
+                </div>
             </div>
+
+            <div class="hidden md:block h-6 w-px bg-outline-variant/30 mx-space-xs" aria-hidden="true"></div>
+
+            <span class="hidden lg:inline-flex items-center px-space-sm py-0.5 rounded-xl bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold uppercase tracking-wider">
+                Admin Humas &amp; Kepatuhan Medis
+            </span>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-            <span class="inline-flex items-center gap-2 rounded-full bg-admin-success-soft px-2 py-0.5">
-                <span class="h-1.5 w-1.5 rounded-full bg-admin-success-strong"></span>
-                <span class="text-[11px] font-bold uppercase leading-[14px] tracking-[0.55px] text-admin-success-strong">
-                    Sistem Aktif
-                </span>
-            </span>
-
-            <div class="hidden items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2 py-1 sm:flex">
-                <x-icon nama="dokumen" class="h-3.5 w-3.5 text-admin-warning-veil" />
-                <span class="text-[11px] font-bold uppercase leading-[11px] tracking-[0.44px] text-admin-warning-veil">
-                    Permenkes No. 4/2018
-                </span>
+        <div class="flex items-center gap-space-md">
+            <div class="hidden sm:flex items-center gap-space-sm px-space-sm py-1 rounded-xl bg-tertiary-container/40 border border-tertiary-fixed-dim/40 text-tertiary-fixed">
+                <x-symbol nama="timer" class="text-[18px] text-tertiary-fixed-dim animate-pulse" />
+                <div class="flex flex-col text-left">
+                    <span class="font-label-sm text-label-sm font-bold leading-none">SLA {{ \App\Support\Sla::hariKerja() }} Hari Kerja</span>
+                    <span class="font-body-sm text-body-sm text-on-primary-container leading-none mt-0.5">Permenkes No. 4/2018</span>
+                </div>
             </div>
 
             <button
                 type="button"
-                class="relative flex flex-col items-center justify-center rounded px-1 pb-2.5 pt-1 text-admin-brand-300"
                 aria-label="Notifikasi penting"
+                class="relative p-space-xs text-on-primary-container hover:text-on-primary transition-colors"
             >
-                <x-icon nama="lonceng" class="h-4 w-4" />
-                <span class="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-admin-danger-base ring-2 ring-admin-brand-900"></span>
+                <x-symbol nama="notifications" class="text-[24px]" />
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-primary-container" aria-hidden="true"></span>
             </button>
 
-            <div class="flex items-center gap-2 border-l border-white/20 pl-3">
-                <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-admin-brand-800">
-                    <x-icon nama="orang" class="h-3 w-3 text-white" />
+            <div class="flex items-center gap-space-sm pl-space-xs border-l border-outline-variant/20">
+                <span class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <x-symbol nama="person" class="text-on-primary text-[18px]" />
                 </span>
-                <div class="hidden sm:block">
-                    <p class="text-sm font-semibold leading-[18px] text-white">BGM</p>
-                    <p class="text-[11px] font-bold uppercase leading-[11px] tracking-[0.44px] text-admin-brand-300">
-                        Admin Humas
-                    </p>
+                <div class="hidden xl:flex flex-col text-left">
+                    <span class="font-label-lg text-label-lg text-on-primary font-semibold leading-tight">{{ auth()->user()?->name ?? 'Admin Humas' }}</span>
+                    <span class="font-label-sm text-label-sm text-on-primary-container leading-none">Tim Humas RSUD</span>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Navigasi utama konsol admin. --}}
-    <nav class="flex flex-wrap items-center justify-between gap-3 border-b border-admin-border px-4 sm:px-8">
-        <div class="flex flex-wrap items-center">
+    {{-- Navigasi utama. --}}
+    <div class="bg-surface-container-lowest border-b border-outline-variant h-12 w-full px-margin flex items-center justify-between">
+        <nav class="flex items-center h-full gap-space-md" aria-label="Navigasi konsol admin">
             @foreach ($navigasi as $item)
-                <a
-                    href="{{ $item['url'] }}"
-                    @class([
-                        'inline-flex items-center border-b-[3px] px-3 py-2.5',
-                        'border-admin-brand-700 bg-admin-info-soft/50 text-sm font-semibold text-admin-brand-700' => $item['aktif'],
-                        'border-transparent text-sm font-semibold text-admin-ink-muted hover:bg-admin-info-soft' => ! $item['aktif'],
-                    ])
-                >{{ $item['label'] }}</a>
-            @endforeach
-        </div>
+                @php $aktif = $item['route'] !== null && request()->routeIs($item['route']); @endphp
 
-        <div class="flex items-center gap-1.5 py-1.5 text-xs font-semibold text-admin-ink-muted">
-            <x-icon nama="jam" class="h-3 w-3 text-admin-ink-subtle" />
-            <span>Terakhir diperbarui {{ now()->format('d M Y H:i') }} WIB</span>
+                @if ($item['route'])
+                    <a
+                        href="{{ route($item['route']) }}"
+                        @class([
+                            'h-full flex items-center px-space-sm transition-colors',
+                            'text-secondary border-b-[3px] border-secondary font-semibold bg-surface-container/50' => $aktif,
+                            'text-on-surface-variant hover:text-on-surface font-title-sm text-title-sm' => ! $aktif,
+                        ])
+                        @if ($aktif) aria-current="page" @endif
+                    >{{ $item['label'] }}</a>
+                @else
+                    <span
+                        class="h-full flex items-center px-space-sm text-on-surface-variant/50 font-title-sm text-title-sm cursor-not-allowed select-none"
+                        title="Fitur sedang dirancang"
+                        aria-disabled="true"
+                    >{{ $item['label'] }}</span>
+                @endif
+            @endforeach
+        </nav>
+
+        <div class="hidden md:flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
+            <x-symbol nama="domain" class="text-[16px] text-outline" />
+            <span>Humas</span>
+            <x-symbol nama="chevron_right" class="text-[14px] text-outline-variant" />
+            <span class="text-on-surface font-semibold">Pelayanan Terpadu</span>
         </div>
-    </nav>
+    </div>
 </header>
 
-<main class="px-4 py-6 sm:px-8">
-    <p class="mb-6 rounded-xl border border-dashed border-admin-info-mid bg-white px-4 py-3 text-xs text-admin-ink-muted">
-        Mode demo: autentikasi admin belum tersedia. Akses dashboard ini akan dibatasi setelah akun admin humas dibuat.
-    </p>
-
+<main class="w-full pt-28 bg-surface flex-1">
     @yield('content')
 </main>
 
-<footer class="mt-8 border-t border-admin-border bg-admin-surface-alt">
-    <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-8">
-        <div class="flex items-center gap-2">
-            <x-brand-logo class="h-7 w-7" />
-            <div>
-                <p class="text-sm font-bold leading-5 text-admin-ink">RSUD Dr. Soetomo</p>
-                <p class="text-xs leading-4 text-admin-ink-muted">Sistem Pengaduan Pelayanan</p>
+<footer class="w-full bg-surface-container-low border-t border-outline-variant mt-space-xl py-space-lg">
+    <div class="w-full px-margin flex flex-col md:flex-row items-center justify-between gap-space-md">
+        <div class="flex items-center gap-space-md">
+            <div class="flex items-center gap-space-xs">
+                <x-brand-logo class="h-7 w-7 object-contain rounded-sm shrink-0" />
+                <span class="font-title-sm text-title-sm text-on-surface font-bold">RSUD Dr. Soetomo Surabaya</span>
             </div>
+            <span class="text-outline-variant" aria-hidden="true">&bull;</span>
+            <span class="font-body-sm text-body-sm text-on-surface-variant">Pemerintah Provinsi Jawa Timur</span>
+            <span class="text-outline-variant" aria-hidden="true">&bull;</span>
+            <span class="font-body-sm text-body-sm text-on-surface-variant">Terintegrasi SIMRS &amp; Kemenkes RI</span>
         </div>
 
-        <div class="flex flex-wrap items-center gap-4 text-xs text-admin-ink-muted">
-            <span class="font-bold uppercase tracking-[0.44px] text-admin-ink-muted">SLA {{ \App\Support\Sla::hariKerja() }} Hari Kerja</span>
-            <span class="text-admin-border" aria-hidden="true">&bull;</span>
-            <span>Permenkes No. 4/2018</span>
-            <span class="text-admin-border" aria-hidden="true">&bull;</span>
-            <span>Humas &amp; Promosi</span>
+        <div class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-space-md">
+            <span>SLA Standar: Permenkes No. 4/2018 (Maksimal {{ \App\Support\Sla::hariKerja() }} Hari Kerja)</span>
+            <span>&copy; {{ now()->year }} Instalasi Humas &amp; Pemasaran RSUD Dr. Soetomo. Hak Cipta Dilindungi.</span>
         </div>
     </div>
 </footer>

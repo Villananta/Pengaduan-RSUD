@@ -1,0 +1,435 @@
+<?php
+
+namespace App\Support;
+
+use App\Enums\KategoriPengaduan;
+use App\Enums\StatusInvestigasi;
+use App\Enums\StatusPengaduan;
+use App\Enums\ZonaSla;
+use App\Models\MasterUnit;
+use App\Models\Pengaduan;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+
+/**
+ * Data tampilan untuk halaman Daftar Pengaduan di konsol admin.
+ *
+ * Halaman ini menampilkan seluruh pengaduan dalam bentuk tabel yang bisa
+ * disaring, jadi angka dan keterangan pada tabel harus berasal dari query
+ * nyata. Class ini menahan query, penyusunan kalimat, dan pemilihan warna
+ * supaya template hanya bekerja dengan data yang sudah jadi.
+ *
+ * Jumlah pada tab Lapis 1 dan Lapis 2 dihitung tanpa filter dimensi itu
+ * sendiri: tab Lapis 1 menampilkan sebaran seluruh pengaduan pada tiap
+ * tahap, bukan sebaran dari hasil pencarian yang sedang aktif. Dengan begitu
+ * angka pada tab tidak ikut berubah-ubah saat kata kunci diketik.
+ */
+final class DaftarPengaduan
+{
+    /** Jumlah baris per halaman yang boleh dipilih. */
+    public const UKURAN_HALAMAN = [10, 25, 50, 100];
+
+    /**
+     * @param  array<string, int>  $jumlahTahap  Indeks 'semua' dan nilai enum tahap.
+     * @param  array<string, int>  $jumlahInvestigasi  Indeks nilai enum StatusInvestigasi.
+     * @param  array<string, mixed>  $ringkas  Angka untuk strip konteks, kartu kaki, dan paginasi.
+     */
+    public function __construct(
+        public readonly LengthAwarePaginator $daftar,
+        public readonly array $jumlahTahap,
+        public readonly array $jumlahInvestigasi,
+        public readonly ?StatusPengaduan $status,
+        public readonly ?StatusInvestigasi $investigasi,
+        public readonly ?KategoriPengaduan $kategori,
+        public readonly ?MasterUnit $unit,
+        public readonly string $cari,
+        public readonly int $perHalaman,
+        public readonly Collection $pilihanUnit,
+        public readonly array $ringkas,
+    ) {}
+
+    /**
+     * Susun halaman daftar pengaduan dari parameter query.
+     *
+     * Nilai filter yang tidak dikenal diabaikan, bukan dipakai sebagai
+     * kondisi query, supaya tautan lama atau crafted tidak bisa membuat
+     * hasil yang tidak terduga.
+     */
+    public static function dariRequest(Request $request): self
+    {
+        $status = StatusPengaduan::dariNilai($request->query('status'));
+        $investigasi = StatusInvestigasi::dariNilai($request->query('investigasi'));
+        $kategori = self::kategori($request->query('kategori'));
+        $unit = self::unit($request->query('unit'));
+        $cari = trim((string) $request->query('q', ''));
+        $perHalaman = self::perHalaman($request->query('per_halaman'));
+
+        // Closure ini adalah query dasar tanpa filter dimensinya sendiri,
+        // dipakai ulang untuk menghitung tiap tab dan untuk menarik baris.
+        $dasar = fn (): Builder => Pengaduan::query()
+            ->when($cari !== '', fn (Builder $q): Builder => $q->where(
+                fn (Builder $w): Builder => $w
+                    ->where('kode_tiket', 'like', '%'.$cari.'%')
+                    ->orWhere('subjek', 'like', '%'.$cari.'%')
+                    ->orWhere('nama_lengkap', 'like', '%'.$cari.'%')
+                    ->orWhere('nrm', 'like', '%'.$cari.'%')
+                    ->orWhere('unit', 'like', '%'.$cari.'%')
+            ))
+            ->when($unit !== null, fn (Builder $q): Builder => $q->where('master_unit_id', $unit->id))
+            ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value));
+
+        $jumlahTahap = ['semua' => $dasar()->count()];
+
+        foreach (StatusPengaduan::cases() as $tahap) {
+            $jumlahTahap[$tahap->value] = $dasar()->where('status', $tahap->value)->count();
+        }
+
+        $jumlahInvestigasi = [];
+
+        foreach (StatusInvestigasi::cases() as $pilihan) {
+            $jumlahInvestigasi[$pilihan->value] = $pilihan->terapkan($dasar())->count();
+        }
+
+        $daftar = $dasar()
+            ->when($status !== null, fn (Builder $q): Builder => $q->where('status', $status->value))
+            ->when($investigasi !== null, fn (Builder $q): Builder => $investigasi->terapkan($q))
+            ->with('masterUnit')
+            ->withCount('pesan')
+            ->withExists(['pesan as sudah_dibalas' => fn (Builder $q): Builder => $q->where('peran', 'admin')])
+            // Tiket yang belum ditutup didahulukan, lalu yang terbaru.
+            ->orderByRaw('case when status = ? then 1 else 0 end', [StatusPengaduan::Selesai->value])
+            ->latest('created_at')
+            ->paginate($perHalaman)
+            ->withQueryString();
+
+        return new self(
+            daftar: $daftar,
+            jumlahTahap: $jumlahTahap,
+            jumlahInvestigasi: $jumlahInvestigasi,
+            status: $status,
+            investigasi: $investigasi,
+            kategori: $kategori,
+            unit: $unit,
+            cari: $cari,
+            perHalaman: $perHalaman,
+            pilihanUnit: MasterUnit::query()->orderBy('kode')->get(),
+            ringkas: self::ringkas($jumlahTahap),
+        );
+    }
+
+    /** True bila ada filter selain pencarian teks yang sedang aktif. */
+    public function adaFilterLain(): bool
+    {
+        return $this->status !== null
+            || $this->investigasi !== null
+            || $this->kategori !== null
+            || $this->unit !== null;
+    }
+
+    /**
+     * URL tanpa satu dimensi filter, dipakai untuk tab Lapis 1 dan Lapis 2.
+     *
+     * Halaman dan ukuran halaman dibuang supaya pindah tab selalu kembali
+     * ke baris pertama.
+     */
+    public function urlTanpa(string $kunci, ?string $nilai = null): string
+    {
+        $parameter = request()->except([$kunci, 'page', 'per_halaman']);
+
+        return $nilai === null || $nilai === ''
+            ? route('admin.pengaduan.index', $parameter)
+            : route('admin.pengaduan.index', array_merge($parameter, [$kunci => $nilai]));
+    }
+
+    /**
+     * Satu baris tabel daftar pengaduan.
+     *
+     * @return array<string, mixed>
+     */
+    public function baris(Pengaduan $pengaduan): array
+    {
+        $sudahDibalas = (bool) $pengaduan->sudah_dibalas;
+        $investigasi = StatusInvestigasi::dariPengaduan($pengaduan, $sudahDibalas);
+
+        return [
+            'kode' => $pengaduan->kode_tiket,
+            'prioritas' => $this->prioritas($pengaduan),
+            'pelapor' => $pengaduan->nama_lengkap,
+            'nrm' => $pengaduan->nrm,
+            'unit' => $pengaduan->masterUnit?->namaLengkap() ?? $pengaduan->unit,
+            'tertaut' => $pengaduan->master_unit_id !== null,
+            'kategori' => $pengaduan->kategori,
+            'subjek' => $pengaduan->subjek,
+            'kutipan' => $pengaduan->deskripsi,
+            'status' => $pengaduan->status,
+            'catatanStatus' => $this->catatanStatus($pengaduan),
+            'investigasi' => $investigasi,
+            'catatanInvestigasi' => $this->catatanInvestigasi($pengaduan, $investigasi),
+            'sla' => $this->sla($pengaduan),
+            'aksi' => $this->aksi($pengaduan),
+            'redup' => $pengaduan->status->selesai(),
+        ];
+    }
+
+    /**
+     * Badge prioritas di kolom nomor tiket.
+     *
+     * Prioritas diturunkan dari kondisi tiket yang benar-benar ada:
+     * investigasi unit yang lewat batas, tiket yang menunggu kelengkapan
+     * pelapor, tiket medis yang mendekati hari terakhir, dan tiket yang
+     * sudah ditutup.
+     *
+     * @return array{label: string, ikon: string, nada: string}
+     */
+    private function prioritas(Pengaduan $pengaduan): array
+    {
+        if ($pengaduan->status->selesai()) {
+            return ['label' => 'Selesai', 'ikon' => 'check', 'nada' => 'bg-surface-container text-on-surface'];
+        }
+
+        if ($pengaduan->status->perluAksi()) {
+            return [
+                'label' => 'Menunggu Pelapor',
+                'ikon' => 'hourglass_top',
+                'nada' => 'bg-surface-container text-on-surface',
+            ];
+        }
+
+        if (Sla::lewatInvestigasi($pengaduan->created_at)) {
+            return [
+                'label' => 'Lewat Batas Unit',
+                'ikon' => 'priority_high',
+                'nada' => 'bg-error-container text-on-error-container',
+            ];
+        }
+
+        if ($pengaduan->kategori === KategoriPengaduan::Medis && $pengaduan->sisaHariSla() <= 1) {
+            return [
+                'label' => 'Medis Kritis',
+                'ikon' => 'bolt',
+                'nada' => 'bg-error-container text-on-error-container',
+            ];
+        }
+
+        if ($pengaduan->status->diterima()) {
+            return [
+                'label' => 'Perlu Triase',
+                'ikon' => 'pending_actions',
+                'nada' => 'bg-tertiary-container text-tertiary-fixed',
+            ];
+        }
+
+        return ['label' => 'Normal', 'ikon' => 'flag', 'nada' => 'bg-surface-container text-on-surface'];
+    }
+
+    /**
+     * Uraian tambahan pada sel status utama di sisi humas.
+     */
+    private function catatanStatus(Pengaduan $pengaduan): string
+    {
+        $unit = $pengaduan->masterUnit;
+
+        return match ($pengaduan->status) {
+            StatusPengaduan::Diterima => 'Perlu penelaahan dan triase humas',
+            StatusPengaduan::Diproses => $unit === null
+                ? 'Klarifikasi ditangani humas langsung'
+                : 'Disposisi humas ke '.$unit->kode,
+            StatusPengaduan::Revisi => 'Menunggu kelengkapan dari pelapor',
+            StatusPengaduan::Selesai => 'Jawaban resmi telah diterbitkan',
+        };
+    }
+
+    /**
+     * Uraian tambahan pada sel status investigasi unit.
+     *
+     * Kalimat statis pada enum menjelaskan kondisi, kalimat di sini
+     * menjelaskan pergerakan tiket yang sedang berjalan.
+     */
+    private function catatanInvestigasi(Pengaduan $pengaduan, StatusInvestigasi $investigasi): string
+    {
+        return match ($investigasi) {
+            StatusInvestigasi::MenungguRacikan => $pengaduan->pesan_count
+                .' balasan unit masuk, siap diracik humas',
+            StatusInvestigasi::LangsungHumas => 'Tanpa disposisi unit teknis',
+            StatusInvestigasi::MenungguTriase => 'PIC unit belum ditunjuk, triase masih di humas',
+            StatusInvestigasi::MenungguInfoTambahan => 'Status berkas tertunda di pelapor',
+            StatusInvestigasi::SedangInvestigasi => $this->lamaBerjalan($pengaduan),
+            StatusInvestigasi::JawabanUnit => 'Arsip unit tersimpan sebagai bukti penyelesaian',
+        };
+    }
+
+    /** Lama investigasi berjalan dalam bahasa yang enak dibaca. */
+    private function lamaBerjalan(Pengaduan $pengaduan): string
+    {
+        $jam = max(1, $pengaduan->created_at->diffInHours(now()));
+
+        return $jam >= 24
+            ? 'Berjalan '.intdiv($jam, 24).' hari sejak tiket masuk'
+            : 'Berjalan '.$jam.' jam sejak tiket masuk';
+    }
+
+    /**
+     * Kolom monitoring SLA: posisi hari kerja, progres, dan sisa waktu.
+     *
+     * Tiket yang menunggu pelapor tidak pernah tetapkan ulang, jadi
+     * progresnya ditampilkan dalam keadaan dijeda, bukan seolah-olah
+     * masih berjalan.
+     *
+     * @return array<string, mixed>
+     */
+    private function sla(Pengaduan $pengaduan): array
+    {
+        $selesai = $pengaduan->status->selesai();
+        $jeda = $pengaduan->status->perluAksi();
+        $hariKe = Sla::hariKerjaLewat($pengaduan->created_at) + 1;
+        $lamaSelesai = $this->hariKerjaSelesai($pengaduan);
+        $zona = $pengaduan->zonaSla();
+
+        $posisi = match (true) {
+            $selesai => 'Tuntas '.$lamaSelesai.' hari kerja',
+            $zona === ZonaSla::Terlambat => 'Hari ke-'.$hariKe.' (Lewat SLA)',
+            $zona === ZonaSla::Mendek => 'Hari ke-'.$hariKe.' (Peringatan)',
+            default => 'Hari ke-'.$hariKe.' (Aman)',
+        };
+
+        return [
+            'jeda' => $jeda,
+            'judul' => $jeda
+                ? 'Timer dijeda, menunggu kelengkapan pelapor'
+                : 'SLA '.Sla::hariKerja().' Hari Kerja',
+            'posisi' => $posisi,
+            'nadaPosisi' => match (true) {
+                $selesai => 'text-secondary',
+                $zona === ZonaSla::Terlambat => 'text-error',
+                $zona === ZonaSla::Mendek => 'text-on-tertiary-container',
+                default => 'text-secondary',
+            },
+            'persen' => $pengaduan->progresPersen(),
+            'warnaProgres' => match (true) {
+                $jeda => 'bg-outline',
+                $zona === ZonaSla::Terlambat => 'bg-error',
+                default => 'bg-secondary',
+            },
+            'ringkas' => $selesai
+                ? 'Total selesai: '.$lamaSelesai.' hari kerja'
+                : 'Sisa '.$pengaduan->sisaHariSla().' hari kerja, target '
+                    .$pengaduan->targetSla()->format('d M Y'),
+        ];
+    }
+
+    /** Lama penyelesaian dalam hari kerja, nol bila waktu selesai tidak tercatat. */
+    private function hariKerjaSelesai(Pengaduan $pengaduan): int
+    {
+        if ($pengaduan->selesai_at === null) {
+            return 0;
+        }
+
+        return (int) abs($pengaduan->created_at->diffInWeekdays($pengaduan->selesai_at, true));
+    }
+
+    /**
+     * Tombol aksi pada kolom terakhir.
+     *
+     * Semua aksi masih berupa tombol nonaktif: halaman detail tiket dan
+     * alur triase belum dibangun, jadi tidak ada url yang boleh ditautkan
+     * lebih dulu. Tombol yang paling relevan per kondisi tiket tetap
+     * ditampilkan supaya bentuk antrean triase sudah terlihat.
+     *
+     * @return array<int, array{label: string, ikon: string, nada: string}>
+     */
+    private function aksi(Pengaduan $pengaduan): array
+    {
+        if ($pengaduan->status->perluAksi()) {
+            return [[
+                'label' => 'Menunggu Kelengkapan Pelapor',
+                'ikon' => 'hourglass_top',
+                'nada' => 'bg-surface-container text-outline border border-outline-variant/30',
+            ]];
+        }
+
+        $aksi = [];
+
+        if ($pengaduan->status->diterima()) {
+            $aksi[] = [
+                'label' => 'Tentukan Penanganan',
+                'ikon' => 'forward_to_inbox',
+                'nada' => 'bg-secondary text-on-secondary',
+            ];
+        }
+
+        if (! $pengaduan->status->selesai()) {
+            $aksi[] = [
+                'label' => Sla::lewatInvestigasi($pengaduan->created_at)
+                    ? 'Nudge Unit (Eskalasi)'
+                    : 'Nudge Unit',
+                'ikon' => 'notifications_active',
+                'nada' => 'bg-surface-container text-on-surface-variant',
+            ];
+        }
+
+        $aksi[] = [
+            'label' => 'Buka Detail & Workspace',
+            'ikon' => 'visibility',
+            'nada' => 'bg-primary-container text-on-primary',
+        ];
+
+        $aksi[] = [
+            'label' => 'Log Audit',
+            'ikon' => 'history',
+            'nada' => 'bg-surface-container text-on-surface-variant',
+        ];
+
+        $aksi[] = [
+            'label' => 'Menu Lainnya',
+            'ikon' => 'more_vert',
+            'nada' => 'bg-surface-container-low text-outline',
+        ];
+
+        return $aksi;
+    }
+
+    /**
+     * Angka untuk strip konteks di atas dan strip telemetri di bawah.
+     *
+     * @param  array<string, int>  $jumlahTahap
+     * @return array<string, mixed>
+     */
+    private static function ringkas(array $jumlahTahap): array
+    {
+        $kritis = StatistikDashboard::ringkasanKritis();
+
+        return [
+            'total' => $jumlahTahap['semua'],
+            'aktif' => $jumlahTahap['semua'] - $jumlahTahap[StatusPengaduan::Selesai->value],
+            'unit_terhubung' => StatistikDashboard::unitTerhubung(),
+            'unit_total' => MasterUnit::query()->count(),
+            'kepatuhan' => StatistikDashboard::kepatuhanSlaPersen(),
+            'standar' => (int) config('pengaduan.kepatuhan_standar_persen', 90),
+            'hari_kerja' => Sla::hariKerja(),
+            'hari_investigasi' => Sla::hariInvestigasi(),
+            'lewat' => $kritis['total_lewat'],
+            'telaah' => $kritis['telaah'],
+        ];
+    }
+
+    private static function kategori(mixed $nilai): ?KategoriPengaduan
+    {
+        return is_string($nilai) && $nilai !== '' ? KategoriPengaduan::tryFrom($nilai) : null;
+    }
+
+    private static function unit(mixed $nilai): ?MasterUnit
+    {
+        return is_string($nilai) && $nilai !== ''
+            ? MasterUnit::query()->where('kode', $nilai)->first()
+            : null;
+    }
+
+    private static function perHalaman(mixed $nilai): int
+    {
+        $diminta = filter_var($nilai, FILTER_VALIDATE_INT);
+
+        return in_array($diminta, self::UKURAN_HALAMAN, true) ? $diminta : 10;
+    }
+}

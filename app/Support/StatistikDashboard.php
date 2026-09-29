@@ -52,16 +52,71 @@ final class StatistikDashboard
             : null;
     }
 
-    /** Rata-rata waktu penyelesaian dalam hari kalender. */
-    public static function rataRataHari(): ?float
+    /**
+     * Rata-rata waktu penyelesaian dalam hari kerja.
+     *
+     * Dihitung dengan hari kerja, bukan hari kalender, supaya angkanya
+     * bisa dibandingkan langsung dengan batas SLA 12 hari kerja.
+     */
+    public static function rataRataHariKerja(): ?float
     {
-        return self::data()['rata_rata_hari'];
+        return self::data()['rata_rata_hari_kerja'];
     }
 
-    /** Jumlah pengaduan yang masih berjalan. */
+    /**
+     * Jumlah pengaduan yang masih berjalan.
+     */
     public static function aktif(): int
     {
         return self::data()['aktif'];
+    }
+
+    /**
+     * Pemisahan pengaduan yang sedang diproses menurut jalurnya.
+     *
+     * Pengaduan yang tertaut ke MASTER_UNITS sedang ditelusuri unit,
+     * sedangkan yang belum tertaut masih ditangani humas langsung.
+     *
+     * @return array{unit: int, humas: int}
+     */
+    public static function disposisiDiproses(): array
+    {
+        $data = self::data();
+
+        return [
+            'unit' => $data['diproses_unit'],
+            'humas' => $data['diproses_humas'],
+        ];
+    }
+
+    /**
+     * Pengaduan selesai bulan ini dibanding bulan sebelumnya.
+     *
+     * @return array{bulan_ini: int, selisih: int}
+     */
+    public static function selesaiBulanIni(): array
+    {
+        $data = self::data();
+
+        return [
+            'bulan_ini' => $data['selesai_bulan_ini'],
+            'selisih' => $data['selesai_bulan_ini'] - $data['selesai_bulan_lalu'],
+        ];
+    }
+
+    /**
+     * Kepatuhan SLA tiap unit, untuk kartu beban resolusi.
+     *
+     * Hanya pengaduan yang benar-benar ditugaskan ke unit yang dihitung,
+     * jadi pengaduan yang ditangani humas langsung tidak ikut dihitung
+     * sebagai beban unit. Unit tanpa pengaduan selesai tidak punya entri
+     * sama sekali supaya tampilan bisa membedakan 0% dari belum ada data.
+     *
+     * @return array<int, float> Indeks master_unit_id, nilai persen.
+     */
+    public static function kepatuhanSlaUnit(): array
+    {
+        return self::data()['kepatuhan_unit'];
     }
 
     /**
@@ -105,6 +160,7 @@ final class StatistikDashboard
         return Pengaduan::query()
             ->aktif()
             ->with('masterUnit')
+            ->withExists(['pesan as sudah_dibalas' => fn ($q) => $q->where('peran', 'admin')])
             ->get()
             ->sortByDesc(fn (Pengaduan $p): int => $p->zonaSla()->prioritas())
             ->sortByDesc(fn (Pengaduan $p): bool => $p->status->perluAksi())
@@ -116,7 +172,7 @@ final class StatistikDashboard
     /**
      * Ringkasan kritis untuk banner peringatan.
      *
-     * Mengembalikan daftar tiket yang investigation-nya sudah melewati
+     * Mengembalikan daftar tiket yang investigasinya sudah melewati
      * batas hari kerja unit dan jumlah telaah yang siap diracik humas.
      *
      * @return array{lewat: Collection<int, array<string, mixed>>, telaah: int, total_lewat: int}
@@ -140,7 +196,9 @@ final class StatistikDashboard
     public static function statusKoneksi()
     {
         return MasterUnit::query()
+            ->withCount(['pengaduan as beban_aktif' => fn ($q) => $q->aktif()])
             ->orderByDesc('koneksi_simrs')
+            ->orderByDesc('beban_aktif')
             ->orderBy('kode')
             ->get();
     }
@@ -188,6 +246,11 @@ final class StatistikDashboard
             ->whereHas('pesan', fn ($q) => $q->where('peran', 'admin'))
             ->count();
 
+        $disposisi = Pengaduan::query()
+            ->where('status', StatusPengaduan::Diproses->value)
+            ->selectRaw('count(*) as total, count(master_unit_id) as ke_unit')
+            ->first();
+
         $lewatTiket = collect();
 
         Pengaduan::query()
@@ -203,29 +266,69 @@ final class StatistikDashboard
                 ]);
             });
 
-        $tepatWaktu = 0;
-        $totalHari = 0.0;
-        $terhitung = 0;
-
-        Pengaduan::query()
+        $selesaiTiket = Pengaduan::query()
             ->selesai()
             ->whereNotNull('selesai_at')
-            ->get(['created_at', 'selesai_at'])
-            ->each(function (Pengaduan $pengaduan) use (&$tepatWaktu, &$totalHari, &$terhitung): void {
-                $mulai = $pengaduan->created_at;
-                $selesai = $pengaduan->selesai_at;
+            ->get(['created_at', 'selesai_at', 'master_unit_id']);
 
-                if ($mulai === null || $selesai === null) {
-                    return;
-                }
+        $tepatWaktu = 0;
+        $totalHariKerja = 0.0;
+        $terhitung = 0;
+        $bulanIni = 0;
+        $bulanLalu = 0;
 
-                $terhitung++;
-                $totalHari += $mulai->diffInDays($selesai, true);
+        // Kepatuhan SLA per unit, indeks master_unit_id.
+        $kepatuhanUnit = [];
 
-                if (Sla::zona($mulai, $selesai) === ZonaSla::TepatWaktu) {
-                    $tepatWaktu++;
-                }
-            });
+        $selesaiTiket->each(function (Pengaduan $pengaduan) use (
+            &$tepatWaktu,
+            &$totalHariKerja,
+            &$terhitung,
+            &$bulanIni,
+            &$bulanLalu,
+            &$kepatuhanUnit,
+        ): void {
+            $mulai = $pengaduan->created_at;
+            $selesaiAt = $pengaduan->selesai_at;
+
+            if ($mulai === null || $selesaiAt === null) {
+                return;
+            }
+
+            $terhitung++;
+            $totalHariKerja += (int) abs($mulai->diffInWeekdays($selesaiAt, true));
+
+            $tepat = Sla::zona($mulai, $selesaiAt) === ZonaSla::TepatWaktu;
+
+            if ($tepat) {
+                $tepatWaktu++;
+            }
+
+            if ($selesaiAt->isCurrentMonth()) {
+                $bulanIni++;
+            } elseif ($selesaiAt->isSameMonth(now()->subMonth())) {
+                $bulanLalu++;
+            }
+
+            $unit = $pengaduan->master_unit_id;
+
+            if ($unit === null) {
+                return;
+            }
+
+            $kepatuhanUnit[$unit] ??= ['terhitung' => 0, 'tepat' => 0];
+            $kepatuhanUnit[$unit]['terhitung']++;
+
+            if ($tepat) {
+                $kepatuhanUnit[$unit]['tepat']++;
+            }
+        });
+
+        $kepatuhanUnit = collect($kepatuhanUnit)
+            ->map(fn (array $baris): ?float => $baris['terhitung'] > 0
+                ? round($baris['tepat'] / $baris['terhitung'] * 100, 1)
+                : null)
+            ->all();
 
         $unitTerhubung = MasterUnit::query()
             ->where('koneksi_simrs', true)
@@ -238,11 +341,16 @@ final class StatistikDashboard
             'selesai' => $selesai,
             'tepat_waktu' => $tepatWaktu,
             'terhitung' => $terhitung,
-            'rata_rata_hari' => $terhitung > 0 ? round($totalHari / $terhitung, 1) : null,
+            'rata_rata_hari_kerja' => $terhitung > 0 ? round($totalHariKerja / $terhitung, 1) : null,
             'telaah' => $telaah,
             'lewat_tiket' => $lewatTiket->sortByDesc('lewat')->values()->all(),
             'total_lewat' => $lewatTiket->count(),
             'unit_terhubung' => $unitTerhubung,
+            'diproses_unit' => (int) ($disposisi?->ke_unit ?? 0),
+            'diproses_humas' => (int) ($disposisi?->total ?? 0) - (int) ($disposisi?->ke_unit ?? 0),
+            'selesai_bulan_ini' => $bulanIni,
+            'selesai_bulan_lalu' => $bulanLalu,
+            'kepatuhan_unit' => $kepatuhanUnit,
         ];
     }
 }

@@ -18,16 +18,20 @@ class DashboardController extends Controller
         $dashboard = new Dashboard(
             perTahap: StatistikDashboard::jumlahPerTahap(),
             kepatuhan: StatistikDashboard::kepatuhanSlaPersen(),
-            rataRata: StatistikDashboard::rataRataHari(),
+            rataRata: StatistikDashboard::rataRataHariKerja(),
+            disposisi: StatistikDashboard::disposisiDiproses(),
+            selesaiBulan: StatistikDashboard::selesaiBulanIni(),
             aktif: StatistikDashboard::aktif(),
             perluTindakan: StatistikDashboard::perluTindakan(),
             unitTerbebani: $unitTerbebani,
             puncakBeban: $unitTerbebani->max('beban_aktif') ?? 0,
             kritis: StatistikDashboard::ringkasanKritis(),
             statusKoneksi: StatistikDashboard::statusKoneksi(),
+            kepatuhanSlaUnit: StatistikDashboard::kepatuhanSlaUnit(),
             unitTerhubung: StatistikDashboard::unitTerhubung(),
             hariKerja: Sla::hariKerja(),
             hariInvestigasi: Sla::hariInvestigasi(),
+            standarKepatuhan: (int) config('pengaduan.kepatuhan_standar_persen', 90),
         );
 
         return view('admin.dashboard', [

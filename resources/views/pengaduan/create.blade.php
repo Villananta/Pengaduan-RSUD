@@ -15,7 +15,7 @@
 <div class="flex min-h-[720px] flex-col">
 
     {{-- Aside - Pemberitahuan Regulasi Pelayanan --}}
-    <div class="w-full bg-brand-100 px-8 py-2.5">
+    {{-- <div class="w-full bg-brand-100 px-8 py-2.5">
         <div class="flex w-full flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-2">
                 <span class="flex h-5 w-5 items-center justify-center rounded-full bg-brand-800">
@@ -45,7 +45,7 @@
                 </a>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     {{-- Hero Section --}}
     <section class="w-full bg-gradient-to-b from-white via-brand-light to-brand-section px-8 pb-12 pt-8">
@@ -68,7 +68,7 @@
                 <p class="text-center text-base leading-[26px] text-ink-muted">Setiap masukan yang Anda sampaikan melalui kanal ini menjadi bagian dari evaluasi mutu layanan. Data pribadi Anda dilindungi dan hanya digunakan untuk keperluan investigasi.</p>
             </div>
 
-            <div class="grid w-full max-w-[768px] grid-cols-3 gap-3 pb-8">
+            {{-- <div class="grid w-full max-w-[768px] grid-cols-3 gap-3 pb-8">
                 @php
                     $badges = [
                         ['label' => 'Terjamin Amanah', 'sub' => 'Data dilindungi kebijakan privasi', 'ikon' => 'shield'],
@@ -102,7 +102,7 @@
                         </span>
                     </div>
                 @endforeach
-            </div>
+            </div> --}}
         </div>
     </section>
 
@@ -111,10 +111,10 @@
         <div class="grid w-full grid-cols-12 items-start gap-6">
 
             {{-- LEFT: Form 8 Kolom --}}
-            <div class="col-span-12 flex flex-col gap-6 lg:col-span-8">
+            <div class="col-span-12 flex flex-full gap-6 lg:full-span-8">
 
                 {{-- Mandatory Legal Disclaimer Card --}}
-                <div class="flex items-start gap-4 rounded-xl bg-brand-section p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                {{-- <div class="flex items-start gap-4 rounded-xl bg-brand-section p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100">
                         <svg class="h-[18px] w-[18px] text-brand-900" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -125,7 +125,7 @@
                         <h2 class="text-base font-semibold text-ink">Implikasi Hukum &amp; Etika Pelaporan</h2>
                         <p class="mt-1 text-[13px] leading-[21px] text-ink-muted">Seluruh aduan yang Anda sampaikan terikat pada ketentuan perlindungan data dan UU Pelayanan Publik. Penyampaian informasi yang tidak benar dapat menghambat proses verifikasi; setiap pelapor bertanggung jawab atas kebenaran keterangan yang diberikan. Tim verifikator akan menghubungi Anda maksimal 1x24 jam kerja untuk konfirmasi data.</p>
                     </div>
-                </div>
+                </div> --}}
 
                 {{-- Form Canvas Card --}}
                 <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" id="form-aduan" class="flex flex-col gap-8 rounded-2xl bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -154,32 +154,22 @@
                         </div>
                         <p class="text-[13px] text-ink-muted">Tentukan ruang lingkup persoalan yang Anda alami untuk alur penanganan tepat sasaran.</p>
 
-                        <div class="grid gap-4 pt-1 sm:grid-cols-2">
-                            @foreach ($kategori as $kat)
-                                <label class="category-card group cursor-pointer rounded-xl bg-brand-light p-4 ring-1 ring-transparent transition">
-                                    <input type="radio" name="kategori" value="{{ $kat->value }}" class="sr-only category-input" @checked(old('kategori') === $kat->value) required>
-                                    <div class="flex items-start justify-between">
-                                        <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50">
-                                            @if ($kat->ikon() === 'bangunan')
-                                                <svg class="h-4 w-4 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M3 21h18M5 21V5l7-3 7 3v16M9 9h.01M15 9h.01M9 13h.01M15 13h.01M12 5v.01M12 9v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                </svg>
-                                            @else
-                                                <svg class="h-4 w-4 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    <path d="M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-4 8c0-2.5 1.8-4 4-4s4 1.5 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                                </svg>
-                                            @endif
-                                        </span>
-                                        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-brand-50 ring-1 ring-brand-200 transition category-radio">
-                                            <span class="h-2 w-2 rounded-full bg-white transition opacity-0 category-dot"></span>
-                                        </span>
-                                    </div>
-                                    <p class="mt-2 text-base font-semibold text-ink">{{ $kat->judul() }}</p>
-                                    <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">{{ $kat->deskripsi() }}</p>
-                                </label>
-                            @endforeach
+                        <div class="relative pt-1">
+                            <select id="kategori" name="kategori" class="{{ $input }} appearance-none pr-10" required>
+                                <option value="" disabled @selected(! old('kategori'))>Pilih Kategori Masalah...</option>
+                                @foreach ($kategori as $kat)
+                                    <option value="{{ $kat->value }}" @selected(old('kategori') === $kat->value)>{{ $kat->label() }}</option>
+                                @endforeach
+                            </select>
+                            <svg class="pointer-events-none absolute right-3 top-1/2 h-2 w-3 -translate-y-1/2 text-placeholder" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="m1 1 5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
                         </div>
+                        <p id="kategori-deskripsi" class="text-[13px] leading-[18px] text-ink-muted">
+                            @foreach ($kategori as $kat)
+                                <span class="hidden" data-kategori-deskripsi="{{ $kat->value }}">{{ $kat->deskripsi() }}</span>
+                            @endforeach
+                        </p>
                         @error('kategori')
                             <p class="{{ $errorClass }}">{{ $message }}</p>
                         @enderror
@@ -332,146 +322,6 @@
                     </div>
                 </form>
             </div>
-
-            {{-- RIGHT: Aside Informasi SOP & Metrik --}}
-            <div class="col-span-12 flex flex-col gap-6 lg:col-span-4">
-
-                {{-- Live SOP Workflow Stepper --}}
-                <div class="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                    <div class="flex items-center justify-between pb-2">
-                        <h3 class="text-base font-bold text-ink">Alur Penanganan Terverifikasi</h3>
-                        <span class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold tracking-[0.33px] text-white" style="color:#26500F">SOP Baku</span>
-                    </div>
-
-                    <div class="flex flex-col">
-                        @php
-                            $steps = [
-                                [
-                                    'judul' => 'Registrasi & Validasi',
-                                    'badge' => 'Saat ini',
-                                    'desk' => 'Penerimaan tiket, validasi kelengkapan berkas, dan registrasi sistem komplain pusat.',
-                                    'aktif' => true,
-                                ],
-                                [
-                                    'judul' => 'Verifikasi Internal',
-                                    'badge' => 'H+1',
-                                    'desk' => 'Pelimpahan langsung ke Kepala Instalasi / Departemen Terkait untuk konfirmasi data.',
-                                    'tautan' => 'Involving: Direksi & Komite Etik',
-                                ],
-                                [
-                                    'judul' => 'Investigasi Mendalam',
-                                    'badge' => 'H+3',
-                                    'desk' => 'Pengecekan CCTV, catatan log rekam medis, audit internal Komite Etik & Keperawatan.',
-                                ],
-                                [
-                                    'judul' => 'Mediasi & Penyelesaian',
-                                    'badge' => 'Selesai',
-                                    'desk' => 'Penerbitan surat tanggapan direksi, mediasi tatap muka, dan penutupan tiket perkara.',
-                                ],
-                            ];
-                        @endphp
-                        @foreach ($steps as $i => $s)
-                            <div class="flex items-start gap-3 @if (!$loop->last) pb-6 @endif">
-                                <div class="flex flex-col items-center">
-                                    <span class="flex h-8 w-8 items-center justify-center rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.05)]
-                                        {{ $s['aktif'] ?? false ? 'bg-brand-800' : ($i === 3 ? 'bg-brand-700' : 'bg-brand-100') }}">
-                                        @if ($s['aktif'] ?? false)
-                                            <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                        @elseif ($i === 3)
-                                            <svg class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                        @else
-                                            <svg class="h-3 w-3 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
-                                                <circle cx="12" cy="12" r="3" fill="currentColor"/>
-                                            </svg>
-                                        @endif
-                                    </span>
-                                    @if (!$loop->last)
-                                        <span class="my-1 w-0.5 flex-1 bg-brand-200" style="height: 56px"></span>
-                                    @endif
-                                </div>
-
-                                <div class="min-w-0">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <p class="text-base font-semibold text-ink">{{ $s['judul'] }}</p>
-                                        <span class="rounded bg-brand-50 px-2 py-0.5 text-[11px] font-semibold tracking-[0.33px] text-brand-800">{{ $s['badge'] }}</span>
-                                    </div>
-                                    <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">{{ $s['desk'] }}</p>
-                                    @if (!empty($s['tautan']))
-                                        <p class="mt-2 inline-flex items-center gap-1.5 rounded bg-brand-100 px-2.5 py-1 text-[11px] font-medium tracking-[0.33px] text-brand-600">
-                                            <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
-                                            {{ $s['tautan'] }}
-                                        </p>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                {{-- Performance Transparency Metrics Bento --}}
-                <div class="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-base font-bold text-ink">Transparansi Kinerja</h3>
-                        <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Periode Q3 2026</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        @foreach ($metrik as $m)
-                            <div class="flex flex-col rounded-xl bg-brand-light p-3.5">
-                                <p @class([
-                                    'text-xl font-bold',
-                                    'text-brand-800' => $m['tersedia'],
-                                    'text-[13px] text-ink-muted' => ! $m['tersedia'],
-                                ])>{{ $m['nilai'] }}</p>
-                                <p class="text-xs font-semibold tracking-[0.24px] text-ink">{{ $m['label'] }}</p>
-                                <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $m['sub'] }}</p>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="flex items-center gap-4 rounded-xl bg-brand-50 p-4">
-                        <div class="flex shrink-0 flex-col gap-0.5">
-                            <p class="text-2xl font-bold text-brand-800">{{ Sla::responsAwalJam() }} Jam</p>
-                            <p class="text-[11px] font-medium tracking-[0.24px] text-ink-muted">Batas Respons Awal</p>
-                        </div>
-                        <div>
-                            <p class="text-base font-semibold text-ink">Kecepatan Tindak Lanjut</p>
-                            <p class="mt-1 text-[13px] leading-4 text-ink-muted">Setiap aduan yang masuk langsung mendapat kode tiket, dan penyelesaian maksimal {{ Sla::hariKerja() }} hari kerja.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Mediation Desk Card --}}
-                <div class="flex flex-col rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                    <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-                            <svg class="h-[11px] w-[22px] text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21 12a8.5 8.5 0 0 0-15.5-5M3 12a8.5 8.5 0 0 0 15.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                                <path d="M3 6v3h3M21 18v-3h-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <div>
-                            <p class="text-base font-semibold text-ink">Mediation Desk</p>
-                            <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Fasilitas mediasi langsung</p>
-                        </div>
-                    </div>
-                    <p class="mt-5 text-[13px] leading-[21px] text-ink-muted">Apabila aduan Anda tidak kunjung mendapat tanggapan dalam 5 hari kerja, Mediation Desk Direksi siap menjembatani komunikasi antara Anda dan unit terkait secara tatap muka di RSUD Dr. Soetomo.</p>
-                    <p class="mt-4 flex items-center gap-2 text-sm font-semibold text-brand-800">
-                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 3l7 3v5c0 4.5-3 8.5-7 9.5-4-1-7-5-7-9.5V6l7-3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                            <path d="m9 11 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        Hubungi Mediation Desk
-                    </p>
-                </div>
-            </div>
         </div>
     </section>
 </div>
@@ -479,28 +329,21 @@
 
 @push('scripts')
 <script>
-    document.querySelectorAll('.category-card').forEach(function (card) {
-        const input = card.querySelector('.category-input');
-        function refresh() {
-            const checked = input.checked;
-            card.classList.toggle('ring-2', checked);
-            card.classList.toggle('ring-brand-800', checked);
-            card.querySelector('.category-radio').classList.toggle('bg-brand-800', checked);
-            card.querySelector('.category-radio').classList.toggle('ring-brand-800', checked);
-            card.querySelector('.category-dot').classList.toggle('opacity-0', !checked);
-            card.querySelector('.category-dot').classList.toggle('opacity-100', checked);
-        }
-        input.addEventListener('change', function () {
-            document.querySelectorAll('.category-card').forEach(function (c) {
-                c.classList.remove('ring-2', 'ring-brand-800');
-                c.querySelector('.category-radio').classList.remove('bg-brand-800', 'ring-brand-800');
-                c.querySelector('.category-dot').classList.add('opacity-0');
-                c.querySelector('.category-dot').classList.remove('opacity-100');
+    const selectKategori = document.getElementById('kategori');
+    const wrapDeskripsi = document.getElementById('kategori-deskripsi');
+
+    if (selectKategori && wrapDeskripsi) {
+        const deskripsi = wrapDeskripsi.querySelectorAll('[data-kategori-deskripsi]');
+
+        function refreshDeskripsi() {
+            deskripsi.forEach(function (item) {
+                item.classList.toggle('hidden', item.dataset.kategoriDeskripsi !== selectKategori.value);
             });
-            refresh();
-        });
-        refresh();
-    });
+        }
+
+        selectKategori.addEventListener('change', refreshDeskripsi);
+        refreshDeskripsi();
+    }
 
     const inputFile = document.getElementById('lampiran');
     const preview = document.getElementById('lampiran-preview');

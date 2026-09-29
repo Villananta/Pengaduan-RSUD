@@ -31,9 +31,9 @@ enum ZonaSla: string
     public function badgeAdmin(): string
     {
         return match ($this) {
-            self::TepatWaktu => 'bg-admin-success-soft text-admin-success-strong',
-            self::Mendek => 'bg-admin-warning-soft text-admin-warning-strong',
-            self::Terlambat => 'bg-admin-danger-base text-white',
+            self::TepatWaktu => 'bg-secondary-container text-on-secondary-container',
+            self::Mendek => 'bg-tertiary-container text-tertiary-fixed-dim',
+            self::Terlambat => 'bg-error text-on-error',
         };
     }
 

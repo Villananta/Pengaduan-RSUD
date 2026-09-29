@@ -40,10 +40,10 @@ enum StatusPengaduan: string
     public function warnaAngka(): string
     {
         return match ($this) {
-            self::Diterima => 'text-admin-ink',
-            self::Diproses => 'text-admin-brand-600',
-            self::Revisi => 'text-admin-danger-base',
-            self::Selesai => 'text-admin-brand-900',
+            self::Diterima => 'text-on-surface',
+            self::Diproses => 'text-secondary',
+            self::Revisi => 'text-error',
+            self::Selesai => 'text-primary-container',
         };
     }
 
@@ -51,10 +51,10 @@ enum StatusPengaduan: string
     public function warnaIkon(): string
     {
         return match ($this) {
-            self::Diterima => 'bg-admin-info-soft text-admin-brand-900',
-            self::Diproses => 'bg-admin-success-soft text-admin-brand-600',
-            self::Revisi => 'bg-admin-danger-soft text-admin-danger-strong',
-            self::Selesai => 'bg-admin-brand-200 text-admin-brand-900',
+            self::Diterima => 'bg-surface-container text-primary-container',
+            self::Diproses => 'bg-secondary-container text-on-secondary-container',
+            self::Revisi => 'bg-error-container text-on-error-container',
+            self::Selesai => 'bg-primary-fixed text-primary-container',
         };
     }
 
@@ -73,10 +73,31 @@ enum StatusPengaduan: string
     public function badgeAdmin(): string
     {
         return match ($this) {
-            self::Diterima => 'bg-admin-success-soft text-admin-success-strong',
-            self::Diproses => 'bg-admin-success-soft text-admin-success-strong',
-            self::Revisi => 'bg-admin-danger-base text-white',
-            self::Selesai => 'bg-admin-success-soft text-admin-success-strong',
+            self::Diterima => 'bg-secondary-container text-on-secondary-container',
+            self::Diproses => 'bg-secondary-container text-on-secondary-container',
+            self::Revisi => 'bg-error text-on-error',
+            self::Selesai => 'bg-secondary-container text-on-secondary-container',
+        };
+    }
+
+    /** Ikon Material Symbols untuk lencana tahap pada konsol admin. */
+    public function ikon(): string
+    {
+        return match ($this) {
+            self::Diterima => 'inbox',
+            self::Diproses => 'autorenew',
+            self::Revisi => 'rate_review',
+            self::Selesai => 'task_alt',
+        };
+    }
+
+    /** Warna lencana jumlah pada tab Lapis 1 yang sedang tidak aktif. */
+    public function chip(): string
+    {
+        return match ($this) {
+            self::Diproses => 'bg-secondary-container text-on-secondary-container',
+            self::Revisi => 'bg-error-container text-on-error-container',
+            self::Diterima, self::Selesai => 'bg-surface-container-highest text-on-surface',
         };
     }
 

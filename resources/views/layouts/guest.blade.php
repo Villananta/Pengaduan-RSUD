@@ -43,7 +43,7 @@
                 @endforeach
             </nav>
 
-            <div class="flex items-center gap-2">
+            {{-- <div class="flex items-center gap-2">
                 <div class="pr-1 text-right text-[11px] leading-snug">
                     <p class="font-medium text-ink-muted">Call Center 24 Jam</p>
                     <p class="flex items-center justify-end gap-1 font-bold text-alert">
@@ -61,7 +61,7 @@
                 </a>
 
                 <a href="#" class="rounded-lg bg-brand-100 px-4 py-1 text-sm font-semibold text-[#3C4B35]">Telepon Humas</a>
-            </div>
+            </div> --}}
         </div>
     </header>
 
@@ -70,7 +70,7 @@
     </main>
 
     {{-- Help / multi channel section --}}
-    <section class="w-full bg-brand-light px-8 py-10">
+    {{-- <section class="w-full bg-brand-light px-8 py-10">
         <div class="flex w-full flex-col gap-6">
             <div class="flex flex-wrap items-end justify-between gap-8">
                 <div>
@@ -144,7 +144,7 @@
                 @endforeach
             </div>
         </div>
-    </section>
+    </section> --}}
 
     {{-- Footer --}}
     <footer class="relative z-10 w-full bg-white/90 py-10 shadow-[0_1px_8px_rgba(0,0,0,0.02)]">

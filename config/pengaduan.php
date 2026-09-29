@@ -19,6 +19,10 @@ return [
     // Data pribadi pengaduan dihapus setelah melewati masa retensi ini.
     'retensi_hari' => 730,
 
+    // Ambang minimum kepatuhan SLA yang ditampilkan pada kartu KPI
+    // konsol admin. Angka ini standar Kemenkes, bukan angka sistem.
+    'kepatuhan_standar_persen' => 90,
+
     // Tujuan bucket penyimpan berkas unggahan. Disk 'public' hanya bisa
     // dipakai di hosting dengan symlink storage; di Vercel filesystem fungsi
     // read-only sehingga lampiran harus lewat S3 / Cloudflare R2.
@@ -79,6 +83,49 @@ return [
             'batas' => 12,
             'judul' => 'Jawaban Resmi',
             'ket' => 'Penerbitan surat tanggapan resmi Direktur / Komite Etik dan pengisian survei kepuasan.',
+        ],
+    ],
+
+    // Matriks waktu investigasi unit yang ditampilkan sebagai stepper
+    // vertikal di sidebar konsol admin.
+    //
+    // Berbeda dengan 'prosedur' di atas yang membaca alur dari sisi
+    // pelapor, daftar ini melihat satu tiket dari sisi unit: sejak
+    // tiket ditugaskan sampai eskalasi ke Wadir. Kata 'nada' hanya
+    // penanda posisi nada, kelas warnanya dipetakan di
+    // App\Support\Dashboard.
+    'siklus_investigasi' => [
+        [
+            'hari' => 'Hari 1 - 2',
+            'judul' => 'Verifikasi & Skrining',
+            'badge' => 'Selesai',
+            'ket' => 'Pemeriksaan bukti identitas pasien, validasi rekam medik, dan penentuan penanganan triase Humas.',
+            'ikon' => 'check',
+            'nada' => 'selesai',
+        ],
+        [
+            'hari' => 'Hari 3',
+            'judul' => 'Peringatan Dini PIC Unit',
+            'badge' => 'Otomatis',
+            'ket' => 'Notifikasi SIMRS otomatis jika belum ada pembacaan atau progres respon oleh PIC unit.',
+            'ikon' => 'notifications',
+            'nada' => 'peringatan',
+        ],
+        [
+            'hari' => 'Hari 5',
+            'judul' => 'Pengingat Batas Terakhir',
+            'badge' => 'Limit Unit',
+            'ket' => 'Batas maksimal 5 hari kerja investigasi internal telaah medis unit layanan.',
+            'ikon' => 'timer',
+            'nada' => 'batas',
+        ],
+        [
+            'hari' => 'Hari 6+',
+            'judul' => 'Lewat Batas & Eskalasi',
+            'badge' => 'Eskalasi',
+            'ket' => 'Eskalasi otomatis Wadir Pelayanan Medik & Komite Medis, diulang berkala tiap 5 hari kerja.',
+            'ikon' => 'crisis_alert',
+            'nada' => 'eskalasi',
         ],
     ],
 

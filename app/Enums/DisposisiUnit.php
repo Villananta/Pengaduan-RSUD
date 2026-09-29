@@ -40,10 +40,10 @@ enum DisposisiUnit: string
     public function badge(): string
     {
         return match ($this) {
-            self::Terhubung, self::JawabanMasuk => 'bg-admin-success-soft text-admin-success-strong',
-            self::SedangInvestigasi => 'bg-admin-info-soft text-admin-success-strong',
-            self::MenungguInvestigasi, self::MenungguInfoTambahan => 'bg-admin-warning-soft text-admin-warning-strong',
-            self::Terputus => 'bg-admin-danger-soft text-admin-danger-strong',
+            self::Terhubung, self::JawabanMasuk => 'bg-secondary-container text-on-secondary-container',
+            self::SedangInvestigasi => 'bg-surface-container text-secondary',
+            self::MenungguInvestigasi, self::MenungguInfoTambahan => 'bg-tertiary-container text-tertiary-fixed-dim',
+            self::Terputus => 'bg-error-container text-on-error-container',
         };
     }
 

@@ -1,561 +1,478 @@
 @extends('admin.layout')
 
-@section('title', 'Beranda Admin')
+@section('title', 'Beranda Utama')
 
 @section('content')
-    @php
-        use App\Enums\StatusPengaduan;
-        use App\Support\Sla;
-    @endphp
+    <div class="w-full px-margin py-space-lg flex flex-col gap-space-lg">
 
-    {{-- Banner peringatan kritis: rindu SLA dan sinkronisasi unit. --}}
-    <section
-        @class([
-            'relative isolate overflow-hidden rounded-lg p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]',
-            'bg-admin-danger-soft' => $dashboard->adaPelanggaran(),
-            'bg-admin-success-soft' => ! $dashboard->adaPelanggaran(),
-        ])
-        aria-live="polite"
-    >
-        <div
+        {{-- Peringatan kritis: tiket yang lewat SLA unit dan telaah yang siap diracik. --}}
+        <section
             @class([
-                'absolute -bottom-6 -right-6 h-36 w-36 rounded-xl blur-[20px]',
-                'bg-admin-danger-base/10' => $dashboard->adaPelanggaran(),
-                'bg-admin-success-strong/10' => ! $dashboard->adaPelanggaran(),
+                'relative w-full overflow-hidden rounded-lg p-space-md shadow-sm',
+                'bg-error-container text-on-error-container' => $dashboard->adaPelanggaran(),
+                'bg-secondary-container text-on-secondary-container' => ! $dashboard->adaPelanggaran(),
             ])
-            aria-hidden="true"
-        ></div>
+            aria-live="polite"
+        >
+            <div
+                @class([
+                    'absolute -right-6 -bottom-6 w-36 h-36 rounded-xl blur-2xl pointer-events-none',
+                    'bg-error/10' => $dashboard->adaPelanggaran(),
+                    'bg-secondary/20' => ! $dashboard->adaPelanggaran(),
+                ])
+                aria-hidden="true"
+            ></div>
 
-        <div class="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex items-start gap-2">
-                <span
-                    @class([
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                        'bg-admin-danger-base' => $dashboard->adaPelanggaran(),
-                        'bg-admin-success-strong' => ! $dashboard->adaPelanggaran(),
-                    ])
-                >
-                    <x-icon
-                        nama="{{ $dashboard->adaPelanggaran() ? 'peringatan' : 'centang' }}"
-                        class="h-5 w-5 text-white"
-                    />
-                </span>
-
-                <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-1">
-                        <h2
-                            @class([
-                                'text-base font-bold leading-[22px]',
-                                'text-admin-danger-strong' => $dashboard->adaPelanggaran(),
-                                'text-admin-success-strong' => ! $dashboard->adaPelanggaran(),
-                            ])
-                        >
-                            {{ $dashboard->adaPelanggaran() ? 'Peringatan Kritis SLA & Sinkronisasi' : 'SLA & Sinkronisasi Dalam Batas' }}
-                        </h2>
-                        <span
-                            @class([
-                                'rounded-full px-1 py-0.5 text-[11px] font-bold uppercase leading-[14px] tracking-[0.55px]',
-                                'bg-admin-danger-base text-white' => $dashboard->adaPelanggaran(),
-                                'bg-admin-success-strong text-white' => ! $dashboard->adaPelanggaran(),
-                            ])
-                        >{{ $dashboard->adaPelanggaran() ? 'Perlu Tindakan' : 'Aman' }}</span>
-                    </div>
-
-                    <p
+            <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
+                <div class="flex items-start gap-space-sm">
+                    <span
                         @class([
-                            'mt-1 max-w-3xl text-sm leading-5',
-                            'text-admin-danger-strong/90' => $dashboard->adaPelanggaran(),
-                            'text-admin-success-strong/90' => ! $dashboard->adaPelanggaran(),
+                            'w-10 h-10 rounded-full flex items-center justify-center shrink-0',
+                            'bg-error text-on-error' => $dashboard->adaPelanggaran(),
+                            'bg-secondary text-on-secondary' => ! $dashboard->adaPelanggaran(),
                         ])
-                    >{{ $dashboard->kalimatKritis() }}</p>
+                    >
+                        <x-symbol :nama="$dashboard->adaPelanggaran() ? 'crisis_alert' : 'verified'" class="text-[22px] animate-pulse" />
+                    </span>
+
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-space-xs flex-wrap">
+                            <span class="font-title-md text-title-md font-bold">Peringatan Kritis Kepatuhan SLA Unit &amp; Humas</span>
+                            <span
+                                @class([
+                                    'px-space-xs py-0.5 rounded-xs font-label-sm text-label-sm uppercase font-bold tracking-wider',
+                                    'bg-error text-on-error' => $dashboard->adaPelanggaran(),
+                                    'bg-secondary text-on-secondary' => ! $dashboard->adaPelanggaran(),
+                                ])
+                            >{{ $dashboard->adaPelanggaran() ? 'Tindakan Diperlukan' : 'Semua Dalam Batas' }}</span>
+                        </div>
+
+                        <p class="font-body-md text-body-md mt-0.5 max-w-4xl opacity-90">{{ $dashboard->kalimatKritis() }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-space-sm w-full lg:w-auto shrink-0 justify-end">
+                    <button
+                        type="button"
+                        class="px-space-md py-2 rounded-sm bg-surface-container-lowest text-error font-label-lg text-label-lg shadow-sm transition-colors flex items-center gap-space-xs"
+                    >
+                        <x-symbol nama="emergency_home" class="text-[18px]" />
+                        Eskalasi ke Wadir Pelayanan
+                    </button>
+                    <button
+                        type="button"
+                        class="px-space-md py-2 rounded-sm bg-error text-on-error font-label-lg text-label-lg shadow-sm transition-opacity flex items-center gap-space-xs"
+                    >
+                        <x-symbol nama="bolt" class="text-[18px]" />
+                        Tinjau {{ $dashboard->telaah() }} Draft Jawaban
+                    </button>
                 </div>
             </div>
+        </section>
 
-            <div class="flex shrink-0 flex-wrap items-center gap-2">
-                <a
-                    href="{{ route('admin.pengaduan.index', ['telaah' => 1]) }}"
-                    class="inline-flex items-center gap-1 rounded bg-white px-4 py-2 text-sm font-semibold text-admin-danger-base shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                >
-                    <x-icon nama="jam" class="h-4 w-4" />
-                    Telaah jawaban unit
-                </a>
-                <a
-                    href="{{ route('admin.pengaduan.index', ['status' => StatusPengaduan::Diproses->value]) }}"
-                    class="inline-flex items-center gap-1 rounded bg-admin-danger-base px-4 py-2 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                >
-                    <x-icon nama="dokumen" class="h-3.5 w-3.5" />
-                    Pengaduan diproses
-                </a>
-            </div>
-        </div>
-    </section>
+        {{-- Baris statistik: empat tahap pengaduan, kepatuhan SLA, dan rata-rata penyelesaian. --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-space-md">
+            @foreach ($tahap as $item)
+                <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md">
+                    <div class="flex items-center justify-between gap-space-sm">
+                        <div class="flex flex-col">
+                            <span class="font-label-md text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">{{ $item->label() }}</span>
 
-    <div class="mt-6 grid gap-4 xl:grid-cols-3">
-        {{-- Kolom kiri: bento statistik, sub-status, tiket, beban unit. --}}
-        <div class="space-y-4 xl:col-span-2">
-            <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($tahap as $item)
-                    <a
-                        href="{{ route('admin.pengaduan.index', ['status' => $item->value]) }}"
-                        class="flex flex-col justify-between gap-4 rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:shadow-[0_0_0_1px_rgba(0,32,17,0.10)]"
-                    >
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold uppercase leading-4 tracking-[0.6px] text-admin-ink-muted">
-                                    {{ $item->label() }}
-                                </p>
-                                <p class="mt-1 inline-flex items-center gap-1 rounded-sm bg-admin-success-soft px-1 py-0.5 text-[11px] font-bold leading-[14px] tracking-[0.44px] text-admin-success-strong">
-                                    <span class="h-2 w-0.5 rounded-full bg-admin-success-strong"></span>
-                                    {{ $dashboard->jumlah($item) }} tiket
-                                </p>
-                            </div>
-
-                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl {{ $item->warnaIkon() }}">
-                                <x-icon :nama="$item === $tahap[0] ? 'kotak' : ($item === $tahap[1] ? 'jam' : ($item === $tahap[2] ? 'dokumen' : 'centang'))" class="h-3.5 w-3.5" />
-                            </span>
-                        </div>
-
-                        <div>
-                            <p class="text-5xl font-bold leading-none tracking-[-0.96px] {{ $item->warnaAngka() }}">
-                                {{ number_format($dashboard->jumlah($item), 0, ',', '.') }}
-                            </p>
-                            <p class="mt-1 flex items-center gap-1 text-xs leading-4 text-admin-ink-muted">
-                                <x-icon nama="jam" class="h-3 w-3 shrink-0 text-admin-success-strong" />
-                                {{ $item->selesai() ? 'Selesai ditindaklanjuti' : 'Menunggu penyelesaian' }}
-                            </p>
-                        </div>
-                    </a>
-                @endforeach
-
-                {{-- Kartu SLA 12 hari: satu-satunya kartu gelap pada bento. --}}
-                <a
-                    href="{{ route('admin.pengaduan.index', ['status' => StatusPengaduan::Selesai->value]) }}"
-                    class="relative isolate flex flex-col justify-between gap-4 overflow-hidden rounded-lg bg-admin-brand-900 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                >
-                    <div class="absolute -right-4 -top-4 h-24 w-24 rounded-xl bg-admin-success-strong/30 blur-xl" aria-hidden="true"></div>
-
-                    <div class="relative flex items-center justify-between gap-2">
-                        <p class="text-xs font-semibold uppercase leading-4 tracking-[0.6px] text-admin-brand-300">
-                            Kepatuhan SLA {{ $dashboard->hariKerja }} Hari
-                        </p>
-                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-admin-success-soft">
-                            <x-icon nama="centang" class="h-4 w-4 text-admin-brand-200" />
-                        </span>
-                    </div>
-
-                    <div class="relative">
-                        <p class="flex items-baseline gap-1">
-                            <span class="text-5xl font-bold leading-none tracking-[-0.96px] text-white">
-                                {{ $dashboard->kepatuhan === null ? '—' : number_format($dashboard->kepatuhan, 1, ',', '.') }}
-                            </span>
-                            @if ($dashboard->kepatuhan !== null)
-                                <span class="text-lg font-semibold leading-6 text-admin-brand-200">%</span>
+                            @if ($item === $tahap[0])
+                                <span class="px-space-xs py-0.5 mt-1 rounded-xs bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1 w-fit">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" aria-hidden="true"></span>
+                                    Perlu triase penanganan
+                                </span>
                             @endif
-                        </p>
-
-                        <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-                            <div
-                                class="h-full rounded-full bg-admin-success-soft"
-                                style="width: {{ min(100, $dashboard->kepatuhan ?? 0) }}%"
-                            ></div>
                         </div>
 
-                        <p class="mt-1.5 text-xs leading-4 text-admin-brand-300">Standar Kemenkes &ge; 90%</p>
-                    </div>
-                </a>
-
-                <a
-                    href="{{ route('admin.pengaduan.index', ['status' => StatusPengaduan::Selesai->value]) }}"
-                    class="flex flex-col justify-between gap-4 rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                >
-                    <div class="flex items-center justify-between gap-2">
-                        <p class="text-xs font-semibold uppercase leading-4 tracking-[0.6px] text-admin-ink-muted">
-                            Rata-rata Penyelesaian
-                        </p>
-                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-admin-info-mid">
-                            <x-icon nama="grafik" class="h-3 w-3 text-admin-brand-900" />
+                        <span class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $item->warnaIkon() }}">
+                            <x-symbol :nama="['inbox', 'autorenew', 'history_edu', 'task_alt'][$loop->index]" class="text-[18px]" />
                         </span>
                     </div>
 
                     <div>
-                        <p class="flex items-baseline gap-1">
-                            <span class="text-5xl font-bold leading-none tracking-[-0.96px] text-admin-ink">
-                                {{ $dashboard->rataRata === null ? '—' : number_format($dashboard->rataRata, 1, ',', '.') }}
-                            </span>
-                            <span class="text-base font-semibold leading-[22px] text-admin-ink-muted">hari</span>
-                        </p>
-                        <p class="mt-2 flex items-center gap-1 text-xs leading-4 text-admin-ink-muted">
-                            <x-icon nama="jam" class="h-3.5 w-3.5 shrink-0 text-admin-success-strong" />
-                            {{ $dashboard->rataRata === null ? 'Belum ada pengaduan selesai' : 'Dari '.$dashboard->jumlah($tahap[3]).' pengaduan selesai' }}
-                        </p>
-                    </div>
-                </a>
-            </section>
+                        <div class="font-display-lg text-display-lg font-bold leading-none {{ $item->warnaAngka() }}">
+                            {{ number_format($dashboard->jumlah($item), 0, ',', '.') }}
+                        </div>
 
-            {{-- Baris sub-status sinkronisasi unit. --}}
-            <section class="rounded-lg bg-admin-surface-alt p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                <div class="flex flex-wrap items-center justify-between gap-2 pb-1">
-                    <h2 class="flex items-center gap-1 text-lg font-bold leading-6 text-admin-ink">
-                        <x-icon nama="unit" class="h-5 w-5 text-admin-success-strong" />
-                        Sinkronisasi Sub-status Unit
-                    </h2>
-                    <span class="flex items-center gap-1 text-xs text-admin-ink-muted">
-                        <span class="h-2 w-2 rounded-full bg-admin-success-strong"></span>
-                        Terhubung langsung ke SIMRS
+                        @if ($item === $tahap[1])
+                            <div class="flex items-center gap-space-xs mt-space-xs text-on-surface-variant font-body-sm text-body-sm">
+                                <span class="font-semibold text-secondary">{{ $dashboard->disposisi['unit'] }} disposisi unit</span>
+                                <span>+ {{ $dashboard->disposisi['humas'] }} humas langsung</span>
+                            </div>
+                        @elseif ($item === $tahap[2])
+                            <div class="flex items-center gap-space-xs mt-space-xs text-on-surface-variant font-body-sm text-body-sm">
+                                <span class="font-semibold text-error">Menunggu</span>
+                                <span>kelengkapan pelapor</span>
+                            </div>
+                        @elseif ($item === $tahap[3])
+                            <div class="flex items-center gap-space-xs mt-space-xs text-on-surface-variant font-body-sm text-body-sm">
+                                <x-symbol
+                                    :nama="$dashboard->selesaiBulan['selisih'] >= 0 ? 'trending_up' : 'trending_down'"
+                                    class="text-[14px] {{ $dashboard->selesaiBulan['selisih'] >= 0 ? 'text-secondary' : 'text-error' }}"
+                                />
+                                <span class="font-semibold {{ $dashboard->selesaiBulan['selisih'] >= 0 ? 'text-secondary' : 'text-error' }}">
+                                    {{ $dashboard->selesaiBulan['selisih'] >= 0 ? '+' : '' }}{{ $dashboard->selesaiBulan['selisih'] }}
+                                </span>
+                                <span>bulan berjalan</span>
+                            </div>
+                        @else
+                            <div class="flex items-center gap-space-xs mt-space-xs text-on-surface-variant font-body-sm text-body-sm">
+                                <span class="font-semibold text-secondary">Belum ada keputusan</span>
+                                <span>triage oleh humas</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+
+            <div class="rounded-lg bg-primary-container text-on-primary p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 w-24 h-24 rounded-xl bg-secondary/30 blur-xl pointer-events-none" aria-hidden="true"></div>
+
+                <div class="relative z-10 flex items-center justify-between">
+                    <span class="font-label-md text-label-md text-on-primary-container font-semibold uppercase tracking-wider">Kepatuhan SLA {{ $dashboard->hariKerja }} Hari</span>
+                    <x-symbol nama="verified" class="text-[20px] text-primary-fixed" />
+                </div>
+
+                <div class="mt-space-md relative z-10">
+                    <div class="flex items-baseline gap-space-xs">
+                        <div class="font-display-lg text-display-lg font-bold leading-none">
+                            {{ $dashboard->kepatuhan === null ? '—' : number_format($dashboard->kepatuhan, 1, ',', '.') }}
+                        </div>
+                        @if ($dashboard->kepatuhan !== null)
+                            <span class="font-title-lg text-title-lg text-primary-fixed">%</span>
+                        @endif
+                    </div>
+
+                    <div class="w-full bg-surface-container-lowest/20 rounded-full h-1.5 mt-space-xs overflow-hidden">
+                        <div class="bg-secondary-container h-full rounded-full" style="width: {{ min(100, $dashboard->kepatuhan ?? 0) }}%"></div>
+                    </div>
+
+                    <span class="font-body-sm text-body-sm text-on-primary-container mt-1 block">
+                        Standar Kemenkes &ge; {{ $dashboard->standarKepatuhan }}%
+                    </span>
+                </div>
+            </div>
+
+            <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md">
+                <div class="flex items-center justify-between gap-space-sm">
+                    <span class="font-label-md text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">Rata-rata Waktu</span>
+                    <span class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-primary-container">
+                        <x-symbol nama="speed" class="text-[18px]" />
                     </span>
                 </div>
 
-                <div class="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    @foreach ($dashboard->subStatus() as $baris)
-                        <a
-                            href="{{ $baris['url'] }}"
-                            class="flex flex-col justify-between gap-2 rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                        >
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0">
-                                    <p class="truncate text-[11px] font-bold uppercase leading-[14px] tracking-[0.55px] {{ $baris['status']->warnaAngka() }}">
-                                        {{ $baris['status']->subStatus() }}
-                                    </p>
-                                    <p class="mt-0.5 text-sm font-semibold leading-5 text-admin-ink">{{ $baris['keterangan'] }}</p>
-                                </div>
+                <div>
+                    <div class="flex items-baseline gap-space-xs">
+                        <div class="font-display-lg text-display-lg font-bold leading-none">
+                            {{ $dashboard->rataRata === null ? '—' : number_format($dashboard->rataRata, 1, ',', '.') }}
+                        </div>
+                        <span class="font-title-md text-title-md text-on-surface-variant font-semibold">Hari Kerja</span>
+                    </div>
 
-                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl {{ $baris['status']->warnaIkon() }}">
-                                    <x-icon :nama="$baris['status']->perluAksi() ? 'dokumen' : 'centang'" class="h-3.5 w-3.5" />
-                                </span>
-                            </div>
-
-                            <div class="flex items-end justify-between gap-2">
-                                <p class="flex items-end gap-1">
-                                    <span class="text-3xl font-bold leading-8 tracking-[-0.32px] {{ $baris['status']->warnaAngka() }}">
-                                        {{ number_format($baris['jumlah'], 0, ',', '.') }}
-                                    </span>
-                                    <span class="pb-0.5 text-xs leading-4 text-admin-ink-muted">tiket</span>
-                                </p>
-                                <span
-                                    @class([
-                                        'rounded-sm px-1 py-0.5 text-[11px] font-bold leading-[14px] tracking-[0.44px]',
-                                        'bg-admin-success-soft text-admin-success-strong' => $baris['bolehDitutup'],
-                                        'bg-admin-danger-soft text-admin-danger-strong' => ! $baris['bolehDitutup'],
-                                    ])
-                                >{{ $baris['bolehDitutup'] ? 'Aktif' : 'Perlu racik' }}</span>
-                            </div>
-                        </a>
-                    @endforeach
+                    @if ($dashboard->persenLebihCepat() === null)
+                        <p class="text-on-surface-variant font-body-sm text-body-sm mt-space-xs">Belum ada pengaduan selesai</p>
+                    @else
+                        <div class="flex items-center gap-space-xs mt-space-xs text-secondary font-body-sm text-body-sm">
+                            <x-symbol nama="check_circle" class="text-[16px]" />
+                            <span class="font-semibold">{{ $dashboard->persenLebihCepat() }}% lebih cepat</span>
+                            <span>dari limit {{ $dashboard->hariKerja }} hari</span>
+                        </div>
+                    @endif
                 </div>
-            </section>
+            </div>
+        </div>
 
-            {{-- Tabel pengaduan yang butuh tindakan segera. --}}
-            <section class="space-y-4">
-                <div class="overflow-hidden rounded-lg bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-admin-border/30 px-4 py-4">
-                        <div class="flex items-start gap-2">
-                            <span class="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-admin-danger-soft">
-                                <x-icon nama="peringatan" class="h-4 w-4 text-admin-danger-strong" />
+        {{-- Sinkronisasi sub-status unit layanan terkait. --}}
+        <div class="w-full rounded-lg bg-surface-container-low p-space-md shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-xs mb-space-sm pb-space-xs">
+                <div class="flex items-center gap-space-xs">
+                    <x-symbol nama="hub" class="text-secondary text-[20px]" />
+                    <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Sinkronisasi Real-Time: Status Agregat di Unit Layanan Terkait</h2>
+                </div>
+                <span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs">
+                    <span class="w-2 h-2 rounded-full bg-secondary animate-ping" aria-hidden="true"></span>
+                    Sinkron SIMRS terpadu, pembaruan tiap 30 detik
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+                @foreach ($dashboard->sinkronisasiUnit() as $kartu)
+                    <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-sm">
+                        <div class="flex items-start justify-between gap-space-sm">
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-label-sm font-bold uppercase tracking-wider {{ $kartu['nada'] }}">{{ $kartu['eyebrow'] }}</span>
+                                <span class="font-title-sm text-title-sm text-on-surface font-semibold mt-0.5">{{ $kartu['judul'] }}</span>
+                            </div>
+                            <span class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $kartu['warnaIkon'] }}">
+                                <x-symbol :nama="$kartu['ikon']" class="text-[18px]" />
                             </span>
-                            <div>
-                                <h2 class="text-lg font-bold leading-6 text-admin-ink">Pengaduan Butuh Tindakan Segera</h2>
-                                <p class="text-xs leading-4 text-admin-ink-muted">
-                                    Diurutkan dari yang paling melewati ambang SLA
-                                </p>
+                        </div>
+
+                        @if ($kartu['catatan'])
+                            <p @class([
+                                'text-[11px] text-on-surface-variant leading-tight flex items-center gap-1',
+                                'mt-space-xs' => $kartu['ikonCatatan'] === null,
+                            ])>
+                                @if ($kartu['ikonCatatan'])
+                                    <x-symbol :nama="$kartu['ikonCatatan']" class="text-[14px] text-secondary" />
+                                @endif
+                                {{ $kartu['catatan'] }}
+                            </p>
+                        @endif
+
+                        <div class="flex items-end justify-between gap-space-sm">
+                            <div class="font-headline-lg text-headline-lg font-bold leading-none {{ $kartu['warnaAngka'] }}">
+                                {{ number_format($kartu['jumlah'], 0, ',', '.') }} <span class="font-body-sm text-body-sm text-on-surface-variant font-normal">Tiket</span>
+                            </div>
+
+                            @if ($kartu['aksinya'])
+                                <button
+                                    type="button"
+                                    class="px-space-xs py-1 rounded-xs font-label-sm text-label-sm font-semibold transition-colors flex items-center gap-1 {{ $kartu['nadaCatatan'] ?? 'bg-error-container text-on-error-container' }}"
+                                >
+                                    <x-symbol :nama="$kartu['aksinya']['ikon']" class="text-[13px]" />
+                                    {{ $kartu['aksinya']['label'] }}
+                                </button>
+                            @elseif ($kartu['nadaCatatan'])
+                                <span class="px-space-xs py-0.5 rounded-xl font-label-sm text-label-sm font-semibold {{ $kartu['nadaCatatan'] }}">{{ $kartu['catatan'] }}</span>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Isi utama: daftar pengaduan butuh tindakan dan ringkasan beban unit. --}}
+        <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+            <div class="lg:col-span-8 flex flex-col gap-space-md">
+                <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-sm border-b border-outline-variant/30">
+                        <div class="flex items-start gap-space-sm">
+                            <span class="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0 mt-0.5">
+                                <x-symbol nama="notification_important" class="text-[22px]" />
+                            </span>
+                            <div class="flex flex-col">
+                                <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Daftar Pengaduan Butuh Tindakan Segera</h2>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant">Antrean pengaduan prioritas tinggi, mendekati atau lewat SLA, dan memerlukan keputusan Humas.</p>
                             </div>
                         </div>
 
-                        <form method="GET" action="{{ route('admin.pengaduan.index') }}" class="flex items-center gap-2">
-                            <label class="sr-only" for="cari-tiket">Cari pengaduan</label>
+                        <div class="flex items-center gap-space-sm shrink-0">
                             <div class="relative">
-                                <x-icon nama="cari" class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-admin-ink-subtle" />
+                                <x-symbol nama="search" class="absolute left-3 top-2.5 text-[18px] text-outline" />
                                 <input
-                                    id="cari-tiket"
-                                    name="q"
-                                    type="search"
-                                    value="{{ request('q') }}"
-                                    placeholder="Cari nomor tiket, NRM, kata kunci..."
-                                    class="h-[30px] w-64 rounded border border-admin-border bg-white py-1 pl-9 pr-3 text-xs text-admin-ink placeholder:text-admin-ink-subtle focus:border-admin-brand-700 focus:outline-none focus:ring-1 focus:ring-admin-brand-700"
+                                    type="text"
+                                    placeholder="Cari nomor tiket, RM, kata kunci..."
+                                    class="pl-9 pr-3 py-1.5 rounded-sm border border-outline-variant text-body-sm text-on-surface bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-secondary w-56 sm:w-64"
+                                    disabled
                                 >
                             </div>
                             <button
-                                type="submit"
-                                class="inline-flex h-7 items-center gap-1 rounded border border-admin-border bg-admin-surface-alt px-3 text-[11px] font-semibold leading-[14px] tracking-[0.44px] text-admin-ink"
+                                type="button"
+                                class="px-3 py-1.5 rounded-sm border border-outline-variant bg-surface-container-low text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1"
                             >
-                                <x-icon nama="filter" class="h-3 w-3 text-admin-ink-subtle" />
-                                Cari
+                                <x-symbol nama="filter_list" class="text-[16px] text-outline" />
+                                Filter
                             </button>
-                        </form>
+                        </div>
                     </div>
 
-                    <div class="space-y-2 p-4">
+                    <div class="flex flex-col gap-space-sm">
                         @forelse ($dashboard->perluTindakan as $pengaduan)
-                            <article
-                                @class([
-                                    'rounded-lg border p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]',
-                                    'border-admin-border/60 bg-white' => ! $pengaduan->status->perluAksi(),
-                                    'border-admin-danger-base/20 bg-admin-danger-soft/30' => $pengaduan->status->perluAksi(),
-                                ])
-                            >
-                                <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="text-base font-bold leading-[22px] text-admin-ink">{{ $pengaduan->subjek }}</h3>
-                                        <span class="rounded-full px-1 py-0.5 text-[11px] font-bold leading-[14px] tracking-[0.44px] {{ $pengaduan->status->badgeAdmin() }}">
-                                            {{ $pengaduan->status->label() }}
+                            @php $tiket = $dashboard->kartuTiket($pengaduan); @endphp
+
+                            <article class="p-space-md rounded-lg {{ $tiket['kartu'] }} flex flex-col gap-space-sm shadow-sm">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs">
+                                    <div class="flex items-center gap-space-sm flex-wrap">
+                                        <span class="font-title-md text-title-md font-bold text-on-surface">#{{ $tiket['kode'] }}</span>
+                                        <span class="px-space-xs py-0.5 rounded-xl {{ $tiket['nadaStatus'] }} font-label-sm text-label-sm font-bold">{{ $tiket['status'] }}</span>
+                                        <span class="px-space-xs py-0.5 rounded-xl {{ $tiket['tahap']['nada'] }} font-label-sm text-label-sm font-bold flex items-center gap-1">
+                                            <x-symbol :nama="$tiket['tahap']['ikon']" class="text-[13px]" />
+                                            {{ $tiket['tahap']['label'] }}
                                         </span>
-                                        <span
-                                            @class([
-                                                'inline-flex items-center gap-1 rounded-full px-1 py-0.5 text-[11px] font-bold leading-[14px] tracking-[0.44px] text-white',
-                                                'bg-admin-danger-base' => $pengaduan->sisaHariSla() === 0,
-                                                'bg-admin-brand-700' => $pengaduan->sisaHariSla() > 0,
-                                            ])
-                                        >
-                                            <x-icon nama="jam" class="h-3 w-3" />
-                                            {{ $pengaduan->sisaHariSla() > 0
-                                                ? 'Sisa '.$pengaduan->sisaHariSla().' hari kerja'
-                                                : 'Lewat '.Sla::hariKerjaLewat($pengaduan->created_at).' hari kerja' }}
-                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center gap-space-xs font-label-sm text-label-sm font-bold {{ $tiket['sla']['nada'] }}">
+                                        <x-symbol :nama="$tiket['sla']['ikon']" class="text-[16px]" />
+                                        {{ $tiket['sla']['label'] }}
                                     </div>
                                 </div>
 
-                                <div class="mt-2 flex flex-wrap items-center justify-between gap-4">
-                                    <div class="min-w-0 space-y-1">
-                                        <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs leading-4 text-admin-ink-muted">
-                                            <span class="inline-flex items-center gap-1">
-                                                <x-icon nama="kartu" class="h-3 w-3" />
-                                                {{ $pengaduan->kode_tiket }}
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
+                                    <div class="flex flex-col max-w-xl">
+                                        <h3 class="font-title-sm text-title-sm font-bold text-on-surface">{{ $tiket['subjek'] }}</h3>
+                                        <div class="flex items-center gap-space-md text-on-surface-variant font-body-sm text-body-sm mt-1 flex-wrap">
+                                            <span class="flex items-center gap-1">
+                                                <x-symbol nama="domain" class="text-[15px]" />
+                                                {{ $tiket['unit'] }}
                                             </span>
-                                            <span class="inline-flex items-center gap-1">
-                                                <x-icon nama="unit" class="h-3 w-3" />
-                                                {{ $pengaduan->namaUnit() }}
+                                            <span aria-hidden="true">&bull;</span>
+                                            <span class="flex items-center gap-1">
+                                                <x-symbol nama="badge" class="text-[15px]" />
+                                                {{ $tiket['pelapor'] }} (NRM: {{ $tiket['nrm'] }})
                                             </span>
-                                            <span class="inline-flex items-center gap-1">
-                                                <x-icon nama="jam" class="h-3 w-3" />
-                                                Masuk {{ $pengaduan->created_at->format('d M Y') }}
-                                            </span>
-                                        </p>
-                                        <p class="text-xs font-medium text-admin-ink-muted">{{ $pengaduan->ringkasSla() }}</p>
+                                            <span aria-hidden="true">&bull;</span>
+                                            <span class="{{ $tiket['catatan']['nada'] }}">{{ $tiket['catatan']['label'] }}</span>
+                                        </div>
                                     </div>
 
-                                    <div class="flex shrink-0 items-center gap-2">
-                                        <a
-                                            href="{{ route('admin.pengaduan.index', ['q' => $pengaduan->kode_tiket]) }}"
-                                            class="inline-flex items-center gap-1 rounded bg-admin-info-mid px-4 py-2 text-[11px] font-semibold leading-[14px] tracking-[0.44px] text-admin-ink"
-                                        >
-                                            <x-icon nama="cari" class="h-3.5 w-3.5" />
-                                            Lihat detail
-                                        </a>
-                                        <a
-                                            href="{{ route('admin.pengaduan.show', $pengaduan->kode_tiket) }}"
-                                            class="inline-flex items-center gap-1 rounded bg-admin-danger-base px-4 py-2 text-[11px] font-bold leading-[14px] tracking-[0.44px] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                                        >
-                                            <x-icon nama="dokumen" class="h-3.5 w-3.5" />
-                                            Tangani
-                                        </a>
+                                    <div class="flex items-center gap-space-xs shrink-0 w-full sm:w-auto justify-end">
+                                        @foreach ($tiket['tombol'] as $tombol)
+                                            <button type="button" class="{{ $tombol['nada'] }} text-label-sm text-label-sm flex items-center gap-space-xs">
+                                                <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                                {{ $tombol['label'] }}
+                                            </button>
+                                        @endforeach
                                     </div>
                                 </div>
                             </article>
                         @empty
-                            <p class="rounded-lg bg-admin-surface-alt px-4 py-6 text-center text-xs text-admin-ink-muted">
+                            <p class="rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-body-sm text-on-surface-variant">
                                 Tidak ada pengaduan yang membutuhkan tindakan segera. Semua tiket berada dalam batas SLA.
                             </p>
                         @endforelse
                     </div>
 
-                    <div class="flex flex-wrap items-center justify-between gap-3 px-4 pb-4">
-                        <p class="text-xs text-admin-ink-muted">
-                            Menampilkan {{ $dashboard->perluTindakan->count() }} tiket paling mendesak
-                        </p>
-                        <a
-                            href="{{ route('admin.pengaduan.index') }}"
-                            class="inline-flex items-center gap-1 text-sm font-semibold text-admin-success-strong hover:underline"
-                        >
-                            Lihat semua pengaduan
-                            <x-icon nama="panah" class="h-3 w-3" />
-                        </a>
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-space-sm pt-space-xs text-on-surface-variant font-body-sm text-body-sm">
+                        <span>{{ $dashboard->ringkasTindakan() }}</span>
+                        <span class="text-secondary font-title-sm text-title-sm font-semibold flex items-center gap-space-xs">
+                            Buka Seluruh Antrean Tiket Terpadu
+                            <x-symbol nama="arrow_forward" class="text-[16px]" />
+                        </span>
                     </div>
                 </div>
 
-                {{-- Visualisasi beban unit dari MASTER_UNITS. --}}
-                <div class="rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                            <h2 class="text-base font-bold leading-[22px] text-admin-ink">Beban Resolusi Unit Terbanyak</h2>
-                            <p class="text-xs leading-4 text-admin-ink-muted">Dihitung dari pengaduan aktif per MASTER_UNITS</p>
+                <div class="w-full rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-sm">
+                    <div class="flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="font-title-md text-title-md font-bold text-on-surface">Beban Resolusi Unit Terbanyak (Minggu Ini)</span>
+                            <span class="font-body-sm text-body-sm text-on-surface-variant">Keseimbangan penyelesaian investigasi unit internal terhadap limit SLA</span>
                         </div>
-                        <span class="rounded-sm bg-admin-info-soft px-1 py-0.5 text-[11px] font-semibold leading-[14px] tracking-[0.44px] text-admin-ink">
-                            {{ $dashboard->unitTerbebani->count() }} unit
-                        </span>
+                        <span class="px-space-xs py-0.5 rounded-xs bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold">Audit Terpadu</span>
                     </div>
 
-                    <div class="mt-2 flex flex-wrap gap-2">
+                    <div class="w-full pt-space-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-sm">
                         @forelse ($dashboard->unitTerbebani as $unit)
-                            @php $porsi = $dashboard->porsi($unit); @endphp
-                            <a
-                                href="{{ route('admin.pengaduan.index', ['q' => $unit->kode]) }}"
-                                class="flex min-w-[180px] flex-1 flex-col justify-between gap-1.5 rounded bg-admin-surface-alt p-2"
-                            >
-                                <p class="line-clamp-2 text-sm font-semibold leading-[19px] text-admin-ink">{{ $unit->namaLengkap() }}</p>
+                            @php $persen = $dashboard->kepatuhanUnit($unit); @endphp
 
-                                <p class="flex items-baseline justify-between gap-1">
-                                    <span class="text-xl font-bold leading-7 tracking-[-0.32px] text-admin-ink">
-                                        {{ number_format($unit->beban_aktif, 0, ',', '.') }}
+                            <div class="p-space-sm rounded-sm bg-surface-container-low flex flex-col justify-between">
+                                <span class="font-title-sm text-title-sm font-semibold text-on-surface leading-snug">{{ $unit->namaLengkap() }}</span>
+
+                                <div class="mt-space-sm flex items-baseline justify-between gap-space-sm">
+                                    <span class="font-headline-sm text-headline-sm font-bold text-on-surface">{{ $unit->beban_aktif }} Aduan</span>
+                                    <span class="text-body-sm text-body-sm font-semibold {{ $persen !== null && $persen < $dashboard->standarKepatuhan ? 'text-error' : 'text-secondary' }}">
+                                        {{ $persen === null ? 'SLA —' : 'SLA '.number_format($persen, 1, ',', '.').'%' }}
                                     </span>
-                                    <span class="text-xs font-semibold leading-4 text-admin-brand-700">aktif</span>
-                                </p>
+                                </div>
 
-                                <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-admin-info-mid">
+                                <div class="w-full bg-surface-container-high h-1.5 rounded-full mt-1.5 overflow-hidden">
                                     <div
-                                        class="h-full rounded-full {{ $porsi >= 90 ? 'bg-admin-danger-base' : 'bg-admin-success-strong' }}"
-                                        style="width: {{ max(6, $porsi) }}%"
+                                        class="h-full rounded-full {{ $persen !== null && $persen < $dashboard->standarKepatuhan ? 'bg-error' : 'bg-secondary' }}"
+                                        style="width: {{ $persen ?? 0 }}%"
                                     ></div>
                                 </div>
-                            </a>
+                            </div>
                         @empty
-                            <p class="w-full rounded-lg bg-admin-surface-alt px-4 py-6 text-center text-xs text-admin-ink-muted">
+                            <p class="sm:col-span-2 lg:col-span-4 rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-body-sm text-on-surface-variant">
                                 Belum ada pengaduan aktif yang ditugaskan ke unit MASTER_UNITS.
                             </p>
                         @endforelse
                     </div>
                 </div>
-            </section>
-        </div>
+            </div>
 
-        {{-- Sidebar: prosedur, status koneksi SIMRS, dan catatan kepatuhan. --}}
-        <div class="space-y-4">
-            <section class="rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                <div class="flex items-start justify-between gap-2">
-                    <div>
-                        <p class="text-[11px] font-bold uppercase leading-[14px] tracking-[0.55px] text-admin-success-strong">
-                            Permenkes No. 4/2018
-                        </p>
-                        <h2 class="mt-0.5 text-base font-bold leading-[22px] text-admin-ink">
-                            Siklus {{ $dashboard->hariKerja }} Hari Kerja
-                        </h2>
-                    </div>
-                    <span class="rounded-full bg-admin-success-soft px-2 py-1.5 text-[11px] font-bold leading-[14px] tracking-[0.44px] text-center text-admin-success-strong">
-                        {{ $dashboard->hariKerja }} HK
-                    </span>
-                </div>
-
-                <p class="text-xs leading-4 text-admin-ink-muted">
-                    Setiap aduan wajib dituntaskan secara defensibel dalam matriks fase waktu:
-                </p>
-
-                <ol class="relative mt-4 space-y-4 border-l-2 border-admin-info-mid pl-6">
-                    @foreach ($dashboard->prosedur() as $index => $pillar)
-                        <li class="relative">
-                            <span
-                                @class([
-                                    'absolute -left-[30px] top-0 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold leading-[14px] text-white',
-                                    'bg-admin-success-strong' => $index === 0,
-                                    'bg-admin-info-mid' => $index === 1,
-                                    'bg-admin-brand-900 ring-4 ring-admin-success-soft' => $index === 2,
-                                    'bg-admin-danger-base ring-4 ring-admin-danger-soft' => $index === 3,
-                                ])
-                            >{{ $index + 1 }}</span>
-
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <h3
-                                    @class([
-                                        'text-sm leading-5',
-                                        'font-bold text-admin-success-strong' => $index === 0,
-                                        'font-semibold text-admin-ink' => $index === 1,
-                                        'font-bold text-admin-brand-900' => $index === 2,
-                                        'font-bold text-admin-danger-base' => $index === 3,
-                                    ])
-                                >{{ $pillar['judul'] }}</h3>
-
-                                <span
-                                    @class([
-                                        'rounded-sm px-1 py-0.5 text-[11px] font-bold leading-[14px] tracking-[0.44px]',
-                                        'bg-admin-success-soft text-admin-success-strong' => $index === 0,
-                                        'bg-admin-danger-soft text-admin-danger-strong' => $index === 3,
-                                        'bg-admin-brand-200 text-admin-brand-900' => $index === 2,
-                                        'bg-admin-brand-200 text-admin-ink-muted' => $index === 1,
-                                    ])
-                                >{{ $pillar['batas'] }} HK</span>
-                            </div>
-
-                            <p class="text-[11px] font-semibold uppercase leading-[14px] tracking-[0.44px] text-admin-ink-subtle">
-                                {{ $pillar['hari'] }}
-                            </p>
-
-                            <p
-                                @class([
-                                    'mt-0.5 text-xs leading-4',
-                                    'font-medium text-admin-ink' => $index === 2,
-                                    'text-admin-ink-muted' => $index !== 2,
-                                ])
-                            >{{ $pillar['ket'] }}</p>
-                        </li>
-                    @endforeach
-                </ol>
-
-                <p class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-admin-danger-base/20 bg-admin-danger-soft/30 px-2 py-1.5 text-[11px] font-bold leading-[14px] tracking-[0.44px] text-admin-danger-base">
-                    <span>Auto-eskalasi Wadir &amp; Komite Medik</span>
-                    <span class="underline">tiap {{ $dashboard->hariInvestigasi }} hari kerja</span>
-                </p>
-            </section>
-
-            <section class="rounded-lg bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                    <h2 class="flex items-center gap-1 text-base font-bold leading-[22px] text-admin-ink">
-                        <x-icon nama="tautan" class="h-4 w-4 text-admin-success-strong" />
-                        Status Koneksi SIMRS
-                    </h2>
-                    <span class="inline-flex items-center gap-1 rounded-full bg-admin-success-soft px-1 py-0.5 text-[11px] font-bold leading-[14px] tracking-[0.44px] text-admin-success-strong">
-                        <span class="h-1.5 w-1.5 rounded-full bg-admin-success-strong"></span>
-                        {{ $dashboard->unitTerhubung }} unit terhubung
-                    </span>
-                </div>
-
-                <div class="mt-3 space-y-1">
-                    @foreach ($dashboard->statusKoneksi as $unit)
-                        <div class="flex items-center justify-between gap-2 rounded px-1 py-1 hover:bg-admin-surface-alt">
-                            <div class="flex min-w-0 items-center gap-2">
-                                <span
-                                    @class([
-                                        'h-2.5 w-2.5 shrink-0 rounded-full',
-                                        'bg-admin-success-strong' => $unit->koneksiAktif(),
-                                        'bg-admin-danger-base' => ! $unit->koneksiAktif(),
-                                    ])
-                                    aria-hidden="true"
-                                ></span>
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-semibold leading-[18px] text-admin-ink">{{ $unit->namaLengkap() }}</p>
-                                    <p class="truncate text-xs leading-4 text-admin-ink-muted">{{ $unit->disposisi->ringkas() }}</p>
-                                </div>
-                            </div>
-
-                            <x-icon
-                                :nama="$unit->koneksiAktif() ? 'centang' : 'peringatan'"
-                                class="h-3.5 w-3.5 shrink-0 {{ $unit->koneksiAktif() ? 'text-admin-success-strong' : 'text-admin-danger-base' }}"
-                            />
+            {{-- Sidebar: siklus SLA, status koneksi SIMRS, dan instruksi direksi. --}}
+            <div class="lg:col-span-4 flex flex-col gap-space-md">
+                <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
+                    <div class="flex items-start justify-between gap-space-sm">
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Standar Kepatuhan Medis</span>
+                            <h3 class="font-title-md text-title-md font-bold text-on-surface mt-0.5">Siklus {{ $dashboard->hariKerja }} Hari Kerja RSUD</h3>
                         </div>
-                    @endforeach
+                        <span class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-label-sm">SOP</span>
+                    </div>
+
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Setiap aduan wajib dituntaskan secara defensibel dalam matriks fase waktu:</p>
+
+                    <div class="flex flex-col gap-space-md relative pl-6 before:content-[''] before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-container-high">
+                        @foreach ($dashboard->siklus() as $pillar)
+                            <div class="relative flex flex-col">
+                                <span class="absolute -left-6 top-0 w-5 h-5 rounded-full flex items-center justify-center {{ $pillar['kelas']['titik'] }}">
+                                    <x-symbol :nama="$pillar['ikon']" class="text-[13px]" />
+                                </span>
+
+                                <div class="flex items-center justify-between gap-space-sm">
+                                    <span class="font-title-sm text-title-sm {{ $pillar['kelas']['judul'] }}">{{ $pillar['judul'] }}</span>
+                                    <span class="font-label-sm text-label-sm {{ $pillar['kelas']['badge'] }}">{{ $pillar['badge'] }}</span>
+                                </div>
+
+                                <p class="font-body-sm text-body-sm mt-0.5 {{ $pillar['kelas']['ket'] }}">{{ $pillar['ket'] }}</p>
+
+                                @if ($loop->last && $dashboard->totalLewat() > 0)
+                                    <div class="mt-space-xs px-space-sm py-1 rounded-sm bg-error-container/30 border border-error/20 font-label-sm text-label-sm text-error font-bold flex items-center justify-between gap-space-sm">
+                                        <span>{{ $dashboard->totalLewat() }} Tiket Melebihi Batas {{ $dashboard->hariInvestigasi }} Hari</span>
+                                        <span class="underline truncate">{{ $dashboard->kodeTerlambat() }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
-                <p class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-sm bg-admin-info-soft px-2 py-1.5 text-[11px] leading-[14px]">
-                    <span class="font-bold tracking-[0.44px] text-admin-ink-muted">Ringkasan disposisi</span>
-                    <span class="font-semibold tracking-[0.44px] text-admin-ink">
-                        {{ $dashboard->statusKoneksi->filter(fn ($u) => $u->koneksiAktif())->count() }}/{{ $dashboard->statusKoneksi->count() }} aktif
-                    </span>
-                </p>
-            </section>
+                <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
+                    <div class="flex items-center justify-between gap-space-sm">
+                        <div class="flex items-center gap-space-xs">
+                            <x-symbol nama="lan" class="text-secondary text-[20px]" />
+                            <h3 class="font-title-md text-title-md font-bold text-on-surface">Koneksi SIMRS &amp; Disposisi</h3>
+                        </div>
+                        <span class="px-space-xs py-0.5 rounded-xl bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true"></span>
+                            {{ $dashboard->unitTerhubung }}/{{ count($dashboard->statusKoneksi) }} Online
+                        </span>
+                    </div>
 
-            <section class="rounded-lg bg-admin-brand-900 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                <h2 class="flex items-center gap-1 text-sm font-bold leading-5 text-admin-brand-200">
-                    <x-icon nama="dokumen" class="h-3.5 w-3.5" />
-                    Catatan Kepatuhan Medis
-                </h2>
+                    <div class="flex flex-col gap-space-xs">
+                        @forelse ($dashboard->unitKoneksi() as $unit)
+                            <div class="flex items-center justify-between gap-space-sm p-space-xs rounded-sm">
+                                <div class="flex items-center gap-space-sm">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0 {{ $unit['aktif'] ? 'bg-secondary' : 'bg-error' }}" aria-hidden="true"></span>
+                                    <div class="flex flex-col">
+                                        <span class="font-title-sm text-title-sm font-semibold text-on-surface leading-tight">{{ $unit['nama'] }}</span>
+                                        <span class="font-body-sm text-body-sm text-on-surface-variant">{{ $unit['ringkas'] }} &bull; {{ $unit['berkas'] }} Berkas Aktif</span>
+                                    </div>
+                                </div>
+                                <x-symbol :nama="$unit['aktif'] ? 'cloud_done' : 'cloud_off'" class="text-[18px] {{ $unit['aktif'] ? 'text-secondary' : 'text-error' }}" />
+                            </div>
+                        @empty
+                            <p class="text-body-sm text-body-sm text-on-surface-variant">Belum ada unit yang terdaftar di MASTER_UNITS.</p>
+                        @endforelse
+                    </div>
 
-                <p class="mt-2 text-xs leading-5 text-admin-brand-300">
-                    &ldquo;Seluruh jawaban tertulis yang mencakup rekam medis, dosis kemoterapi, dan
-                    keputusan tindakan operatif wajib diverifikasi oleh Ketua Komite Medik sebelum
-                    diterbitkan kepada pihak keluarga pasien.&rdquo;
-                </p>
+                    <div class="p-space-xs rounded-sm bg-surface-container flex items-center justify-between gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
+                        <span>Protokol Enkripsi Rekam Medis:</span>
+                        <span class="font-semibold text-on-surface flex items-center gap-1">
+                            <x-symbol nama="lock" class="text-[14px] text-secondary" />
+                            HL7 / FHIR Terenkripsi
+                        </span>
+                    </div>
+                </div>
 
-                <p class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/20 pt-2 text-[11px] font-bold uppercase leading-[14px] tracking-[0.44px]">
-                    <span class="text-admin-brand-200">Wadir Pelayanan Medik</span>
-                    <span class="text-admin-brand-300">Komite Medik RSUD</span>
-                </p>
-            </section>
+                <div class="rounded-lg bg-primary-container text-on-primary p-space-md shadow-sm relative overflow-hidden flex flex-col gap-space-xs">
+                    <div class="flex items-center gap-space-xs text-primary-fixed font-title-sm text-title-sm font-bold">
+                        <x-symbol nama="shield" class="text-[18px]" />
+                        Instruksi Direksi Humas
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-primary-container leading-relaxed">
+                        &ldquo;Seluruh jawaban tertulis yang mencakup rekam medis, dosis kemoterapi, dan keputusan tindakan operatif wajib diverifikasi oleh Ketua Komite Medik sebelum diterbitkan kepada pihak keluarga pasien.&rdquo;
+                    </p>
+                    <div class="flex items-center justify-between gap-space-sm pt-space-xs border-t border-outline-variant/20 mt-space-xs">
+                        <span class="font-label-sm text-label-sm text-primary-fixed">SK Direktur No. 188/442/2024</span>
+                        <span class="font-label-sm text-label-sm text-on-primary-container">Surabaya, Jawa Timur</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 @endsection

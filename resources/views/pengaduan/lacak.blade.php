@@ -151,9 +151,9 @@
         </section>
     @endif
 
-    <section class="w-full px-8 pb-10">
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div class="flex flex-col gap-6 lg:col-span-2">
+    <section class="w-full px-8 pb-10 pt-6">
+        <div class="grid grid-cols-1 gap-6 lg:grid-full">
+            <div class="flex flex-col gap-6 lg:full-span">
                 @if ($tiket)
                     {{-- Pemberitahuan sesuai tahap pengaduan --}}
                     @php
@@ -545,74 +545,7 @@
             </div>
 
             {{-- Panel pendukung --}}
-            <div class="flex flex-col gap-6">
-                @if ($tiket)
-                    {{-- Daftar tahap prosedur, hanya tampil bila kode tiket sudah dimasukkan --}}
-                    <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                        <h3 class="text-base font-semibold text-ink">Alur Prosedur 12 Hari Kerja</h3>
-                        <ol class="mt-4 flex flex-col gap-4">
-                            @foreach ($prosedur as $no => $langkah)
-                                <li class="flex gap-3" @class(['opacity-60' => $no > $tahapSekarang])>
-                                    <div class="flex flex-col items-center">
-                                        <span @class([
-                                            'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold',
-                                            'bg-brand-800 text-white shadow-[0_0_0_4px_rgba(38,80,15,0.15)]' => $tahapSekarang === $no,
-                                            'bg-brand-100 text-brand-800' => $tahapSekarang !== $no,
-                                        ])>{{ $no + 1 }}</span>
-                                        @if (! $loop->last)
-                                            <span class="mt-1 h-full w-px bg-brand-200"></span>
-                                        @endif
-                                    </div>
-                                    <div>
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <p class="text-[11px] font-bold uppercase tracking-[0.6px] text-brand-800">{{ $langkah['hari'] }}</p>
-                                            @if ($tahapSekarang === $no && $tiket->status->perluAksi())
-                                                <span class="rounded-full bg-alert px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.33px] text-white">Perlu Aksi</span>
-                                            @endif
-                                        </div>
-                                        <p @class([
-                                            'text-sm font-semibold',
-                                            'text-brand-800' => $tahapSekarang === $no,
-                                            'text-ink' => $tahapSekarang !== $no,
-                                        ])>{{ $langkah['judul'] }}</p>
-                                        <p class="text-xs leading-[18px] text-ink-muted">{{ $langkah['ket'] }}</p>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ol>
-                    </div>
-                @endif
-
-                <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                    <h3 class="text-base font-semibold text-ink">Hak Pelapor &amp; Jaminan Pelayanan</h3>
-                    <ul class="mt-4 flex flex-col gap-3">
-                        @foreach ([
-                            'Menyertakan bukti dan kronologi yang lengkap.',
-                            'Mendapatkan jawaban tanpa dipungut biaya.',
-                            'Menyampaikan keberatan atas hasil pemeriksaan.',
-                        ] as $hak)
-                            <li class="flex gap-2 text-[13px] leading-[18px] text-ink-muted">
-                                <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-700"></span>
-                                {{ $hak }}
-                            </li>
-                        @endforeach
-                    </ul>
-                    <a href="#" class="mt-5 block rounded-lg bg-brand-800 py-2.5 text-center text-xs font-semibold text-white">
-                        Ajukan Mediasi
-                    </a>
-                </div>
-
-                <div class="rounded-2xl bg-brand-700 p-6 text-white">
-                    <h3 class="text-base font-semibold">Hotline Bantuan Pengaduan</h3>
-                    <p class="mt-2 text-[13px] leading-[18px] text-white/80">
-                        Belum menemukan tiket? Petugas tersedia 24 jam.
-                    </p>
-                    <p class="mt-4 text-xl font-bold tracking-[-0.5px]">(031) 1500995</p>
-                    <a href="tel:+62311500995" class="mt-4 block rounded-lg bg-white py-2.5 text-center text-xs font-semibold text-brand-800">
-                        Telepon Sekarang
-                    </a>
-                </div>
-            </div>
+            
         </div>
     </section>
 @endsection

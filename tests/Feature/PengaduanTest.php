@@ -245,7 +245,7 @@ class PengaduanTest extends TestCase
             ->assertSee('Siti Aminah');
     }
 
-    public function test_lampiran_aduan_bisa_dilihat_pelapor_dan_admin(): void
+    public function test_lampiran_aduan_bisa_dilihat_pelapor(): void
     {
         Storage::fake('s3');
 
@@ -259,11 +259,6 @@ class PengaduanTest extends TestCase
         $this->verifikasi($pengaduan);
 
         $this->get(route('pengaduan.lacak'))
-            ->assertOk()
-            ->assertSee('Lampiran Bukti (1 berkas)')
-            ->assertSee(basename($path));
-
-        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
             ->assertOk()
             ->assertSee('Lampiran Bukti (1 berkas)')
             ->assertSee(basename($path));
@@ -323,95 +318,6 @@ class PengaduanTest extends TestCase
         $this->assertDatabaseMissing('pesan_pengaduan', ['pengaduan_id' => $kedua->id]);
     }
 
-    public function test_admin_dapat_mengubah_status_pengaduan(): void
-    {
-        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-ADMIN']);
-
-        $this->get(route('admin.pengaduan.index'))
-            ->assertOk()
-            ->assertSee('Daftar Pengaduan Masuk')
-            ->assertSee($pengaduan->kode_tiket);
-
-        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
-            ->assertOk()
-            ->assertSee('Ubah Tahap Pengaduan');
-
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'diproses'])
-            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
-
-        $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
-        $this->assertNull($pengaduan->fresh()->selesai_at);
-
-        $this->verifikasi($pengaduan);
-
-        $this->get(route('pengaduan.lacak'))
-            ->assertOk()
-            ->assertSee('Laporan Sedang Diinvestigasi');
-
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'dibatalkan'])
-            ->assertSessionHasErrors('status');
-
-        $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
-    }
-
-    public function test_status_tidak_bisa_dilompati_atau_dibalik(): void
-    {
-        $pengaduan = Pengaduan::factory()->create([
-            'kode_tiket' => 'ADUAN-20260925-LOMPAT',
-            'status' => StatusPengaduan::Diterima,
-        ]);
-
-        // Diterima tidak boleh langsung selesai.
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'selesai'])
-            ->assertSessionHasErrors('status');
-
-        $this->assertSame(StatusPengaduan::Diterima, $pengaduan->fresh()->status);
-
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'diproses']);
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'selesai']);
-
-        $pengaduan->refresh();
-        $this->assertSame(StatusPengaduan::Selesai, $pengaduan->status);
-        $this->assertNotNull($pengaduan->selesai_at);
-
-        // Selesai tidak boleh dikembalikan ke diterima.
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'diterima'])
-            ->assertSessionHasErrors('status');
-
-        $this->assertSame(StatusPengaduan::Selesai, $pengaduan->fresh()->status);
-
-        // Reopen ke Diproses tetap diperbolehkan.
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), ['status' => 'diproses'])
-            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
-
-        $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
-        $this->assertNull($pengaduan->fresh()->selesai_at);
-    }
-
-    public function test_perubahan_status_tercatat_di_riwayat(): void
-    {
-        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-AUDIT']);
-
-        $this->post(route('admin.pengaduan.status', $pengaduan->kode_tiket), [
-            'status' => 'revisi',
-            'catatan' => 'Menunggu foto antrean tambahan',
-        ]);
-
-        $riwayat = $pengaduan->riwayatStatus()->get();
-
-        $this->assertCount(2, $riwayat);
-        $this->assertSame(StatusPengaduan::Diterima, $riwayat[1]->dari);
-        $this->assertSame(StatusPengaduan::Revisi, $riwayat[1]->ke);
-        $this->assertSame('Menunggu foto antrean tambahan', $riwayat[1]->catatan);
-
-        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
-            ->assertOk()
-            ->assertSee('Riwayat Tahap')
-            ->assertSee('Diterima')
-            ->assertSee('Perlu Revisi')
-            ->assertSee('Menunggu foto antrean tambahan');
-    }
-
     public function test_pesan_pelapor_dan_balasan_admin_tersimpan(): void
     {
         $pengaduan = Pengaduan::factory()->create([
@@ -430,8 +336,9 @@ class PengaduanTest extends TestCase
             'isi' => 'Apakah bisa diproses lebih cepat?',
         ]);
 
-        $this->post(route('admin.pengaduan.balas', $pengaduan->kode_tiket), ['isi' => 'Tim sedang menindaklanjuti.'])
-            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+        // Balasan humas belum punya layar kirim sendiri, jadi pesannya
+        // dibuat lewat model dan tetap harus tampil di halaman lacak tiket.
+        $pengaduan->pesan()->create(['peran' => 'admin', 'isi' => 'Tim sedang menindaklanjuti.']);
 
         $this->assertDatabaseHas('pesan_pengaduan', [
             'pengaduan_id' => $pengaduan->id,

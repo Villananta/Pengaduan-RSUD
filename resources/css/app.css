@@ -7,6 +7,10 @@
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
+    /*
+     * Palet halaman publik. Tetap dipakai apa adanya supaya tidak
+     * berubah bentuk halaman yang sudah Jadi.
+     */
     --color-brand-950: #0f1f08;
     --color-brand-900: #111f0c;
     --color-brand-800: #26500f;
@@ -38,44 +42,170 @@
     --color-info-light: #dbeafe;
 
     /*
-     * Palet konsol admin (Material green). Terpisah dari palet publik
-     * supaya tidak mengubah tampilan halaman yang sudah jadi.
+     * Palet konsol admin, mengikuti Material 3 (scheme green) supaya
+     * nama kelas pada template sama persis dengan design.
+     *
+     * Catatan radius: design memakai rounded (0.125rem), rounded-lg
+     * (0.25rem), rounded-xl (0.5rem), dan rounded-full (0.75rem).
+     * Skala radius bawaan Tailwind bergeser satu tingkat dan lebih
+     * besar, jadi padanannya ditulis rounded-xs, rounded-sm,
+     * rounded-lg, dan rounded-xl. Nilai bawaan tidak diubah supaya
+     * halaman publik tidak ikut bergeser.
      */
-    --color-admin-bg: #f9f9ff;
-    --color-admin-surface: #ffffff;
-    --color-admin-surface-alt: #f0f3ff;
 
-    --color-admin-ink: #111c2d;
-    --color-admin-ink-muted: #414942;
-    --color-admin-ink-subtle: #717972;
-    --color-admin-border: #c0c9c0;
+    /* Surface */
+    --color-background: #f9f9ff;
+    --color-on-background: #111c2d;
+    --color-surface: #f9f9ff;
+    --color-on-surface: #111c2d;
+    --color-surface-variant: #d8e3fb;
+    --color-on-surface-variant: #414942;
+    --color-surface-dim: #cfdaf2;
+    --color-surface-bright: #f9f9ff;
+    --color-surface-container-lowest: #ffffff;
+    --color-surface-container-low: #f0f3ff;
+    --color-surface-container: #e7eeff;
+    --color-surface-container-high: #dee8ff;
+    --color-surface-container-highest: #d8e3fb;
+    --color-surface-tint: #37684c;
+    --color-inverse-surface: #263143;
+    --color-inverse-on-surface: #ecf1ff;
+    --color-outline: #717972;
+    --color-outline-variant: #c0c9c0;
+    --color-scrim: #000000;
 
-    --color-admin-brand-900: #003820;
-    --color-admin-brand-800: #002011;
-    --color-admin-brand-700: #016d30;
-    --color-admin-brand-600: #0c7234;
-    --color-admin-brand-500: #0c7234;
-    --color-admin-brand-300: #70a383;
-    --color-admin-brand-200: #b9efcb;
-    --color-admin-brand-100: #98f4a7;
-    --color-admin-brand-50: #d8e3fb;
+    /* Primary */
+    --color-primary: #002011;
+    --color-on-primary: #ffffff;
+    --color-primary-container: #003820;
+    --color-on-primary-container: #70a383;
+    --color-inverse-primary: #9ed2b0;
+    --color-primary-fixed: #b9efcb;
+    --color-primary-fixed-dim: #9ed2b0;
+    --color-on-primary-fixed: #002111;
+    --color-on-primary-fixed-variant: #1e5036;
 
-    --color-admin-success-soft: #98f4a7;
-    --color-admin-success-strong: #0c7234;
-    --color-admin-info-soft: #e7eeff;
-    --color-admin-info-strong: #111c2d;
-    --color-admin-info-mid: #dee8ff;
-    --color-admin-info-softest: #d8e3fb;
+    /* Secondary */
+    --color-secondary: #016d30;
+    --color-on-secondary: #ffffff;
+    --color-secondary-container: #98f4a7;
+    --color-on-secondary-container: #0c7234;
+    --color-secondary-fixed: #9bf7aa;
+    --color-secondary-fixed-dim: #7fda90;
+    --color-on-secondary-fixed: #00210a;
+    --color-on-secondary-fixed-variant: #005323;
 
-    --color-admin-warning-soft: #ffddb8;
-    --color-admin-warning-strong: #d48700;
-    --color-admin-warning-shell: #462a00;
-    --color-admin-warning-veil: #ffb95f;
+    /* Tertiary */
+    --color-tertiary: #2a1700;
+    --color-on-tertiary: #ffffff;
+    --color-tertiary-container: #462a00;
+    --color-on-tertiary-container: #d48700;
+    --color-tertiary-fixed: #ffddb8;
+    --color-tertiary-fixed-dim: #ffb95f;
+    --color-on-tertiary-fixed: #2a1700;
+    --color-on-tertiary-fixed-variant: #653e00;
 
-    --color-admin-danger-soft: #ffdad6;
-    --color-admin-danger-mid: #ffd0cb;
-    --color-admin-danger-strong: #93000a;
-    --color-admin-danger-base: #ba1a1a;
+    /* Error */
+    --color-error: #ba1a1a;
+    --color-on-error: #ffffff;
+    --color-error-container: #ffdad6;
+    --color-on-error-container: #93000a;
+
+    /* Jarak halaman, mengikuti design konsol admin. */
+    --spacing-space-xs: 0.25rem;
+    --spacing-space-sm: 0.5rem;
+    --spacing-space-md: 1rem;
+    --spacing-space-lg: 1.5rem;
+    --spacing-space-xl: 2rem;
+    --spacing-margin-mobile: 1rem;
+    --spacing-margin: 2rem;
+    --spacing-gutter-mobile: 1rem;
+    --spacing-gutter: 1.5rem;
+
+    /*
+     * Tipografi semantik. Nama familinya sengaja memakai peran teks
+     * (display, headline, title, body, label) supaya kelas pada design
+     * langsung berlaku tanpa utility tambahan.
+     */
+    --font-display-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-headline-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-headline-md: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-headline-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-title-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-title-md: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-title-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body-md: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-label-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-label-md: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-label-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+    --text-display-lg: 3rem;
+    --text-display-lg--line-height: 3.5rem;
+    --text-display-lg--letter-spacing: -0.02em;
+
+    --text-headline-lg: 2rem;
+    --text-headline-lg--line-height: 2.5rem;
+    --text-headline-lg--letter-spacing: -0.01em;
+
+    --text-headline-md: 1.5rem;
+    --text-headline-md--line-height: 2rem;
+    --text-headline-md--letter-spacing: -0.005em;
+
+    --text-headline-sm: 1.25rem;
+    --text-headline-sm--line-height: 1.75rem;
+
+    --text-title-lg: 1.125rem;
+    --text-title-lg--line-height: 1.5rem;
+
+    --text-title-md: 1rem;
+    --text-title-md--line-height: 1.375rem;
+
+    --text-title-sm: 0.875rem;
+    --text-title-sm--line-height: 1.25rem;
+
+    --text-body-lg: 1rem;
+    --text-body-lg--line-height: 1.5rem;
+
+    --text-body-md: 0.875rem;
+    --text-body-md--line-height: 1.25rem;
+
+    --text-body-sm: 0.75rem;
+    --text-body-sm--line-height: 1rem;
+
+    --text-label-lg: 0.875rem;
+    --text-label-lg--line-height: 1.25rem;
+
+    --text-label-md: 0.75rem;
+    --text-label-md--line-height: 1rem;
+    --text-label-md--letter-spacing: 0.02em;
+
+    --text-label-sm: 0.6875rem;
+    --text-label-sm--line-height: 0.875rem;
+    --text-label-sm--letter-spacing: 0.04em;
+}
+
+/*
+ * Ikon Material Symbols (font ligature) dimuat dari Google Fonts pada
+ * <head> admin. Font ligaturanya harus diaktifkan supaya nama ikon
+ * seperti "crisis_alert" dirender sebagai glif, bukan sebagai teks.
+ */
+@layer base {
+    .material-symbols-outlined {
+        display: inline-block;
+        font-family: 'Material Symbols Outlined';
+        font-style: normal;
+        font-weight: normal;
+        font-feature-settings: 'liga';
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+    }
 }
 
 [x-cloak] {
