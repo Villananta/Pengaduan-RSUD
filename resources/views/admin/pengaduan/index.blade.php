@@ -110,7 +110,7 @@
                         @if ($daftar->status === null) aria-current="true" @endif
                     >
                         Semua
-                        <span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/20 text-on-primary text-[11px]">
+                        <span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/20 text-on-primary font-label-sm text-label-sm">
                             {{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }}
                         </span>
                     </a>
@@ -127,7 +127,7 @@
                         >
                             {{ $tahap->label() }}
                             <span @class([
-                                'px-1.5 py-0.2 rounded-full text-[11px] font-bold',
+                                'px-1.5 py-0.2 rounded-full font-label-sm text-label-sm font-bold',
                                 'bg-surface-container-lowest/20 text-on-primary' => $daftar->status === $tahap,
                                 $tahap->chip() => $daftar->status !== $tahap,
                             ])>
@@ -208,7 +208,7 @@
                 </div>
 
                 <div class="md:col-span-2 relative flex items-center">
-                    <x-symbol nama="medical_services" class="absolute left-3 text-outline text-[18px]" />
+                    <x-symbol nama="medical_services" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
                     <select
                         name="kategori"
                         class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
@@ -235,7 +235,7 @@
                     @if ($daftar->adaFilterLain() || $daftar->cari !== '')
                         <a
                             href="{{ route('admin.pengaduan.index') }}"
-                            class="p-2.5 rounded-sm bg-surface-container hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors"
+                            class="p-2.5 rounded-sm bg-surface-container hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors shrink-0"
                             title="Hapus semua filter"
                             aria-label="Hapus semua filter"
                         >
@@ -248,7 +248,7 @@
 
         {{-- Tabel utama daftar pengaduan. --}}
         <div class="w-full bg-surface-container-lowest rounded-lg shadow-sm overflow-hidden flex flex-col">
-            <div class="bg-surface-container px-space-md py-2.5 flex flex-wrap items-center justify-between gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
+            <div class="bg-surface-container px-space-md py-space-sm flex flex-wrap items-center justify-between gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
                 <div class="flex items-center gap-space-md">
                     <span class="flex items-center gap-1.5 text-on-surface font-bold">
                         <x-symbol nama="verified_user" class="text-[16px] text-secondary" />
@@ -266,9 +266,9 @@
                 </div>
 
                 <div class="flex items-center gap-space-sm">
-                    <span class="hidden lg:flex items-center gap-1.5 text-[11px] text-on-surface-variant bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant/20">
+                    <span class="hidden xl:flex items-center gap-1.5 text-on-surface-variant bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant/20">
                         <x-symbol nama="notifications_active" class="text-[14px] text-secondary" />
-                        Ikon lonceng = eskalasi manual di luar pengingat otomatis hari ke-{{ $ringkas['hari_investigasi'] }}
+                        Lonceng = eskalasi manual di luar pengingat hari ke-{{ $ringkas['hari_investigasi'] }}
                     </span>
                     <span>
                         Menampilkan <strong class="text-on-surface">{{ $tabel->count() }} dari {{ $ringkas['aktif'] }}</strong> tiket aktif
@@ -277,97 +277,110 @@
             </div>
 
             <div class="overflow-x-auto w-full">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full min-w-[1180px] text-left border-collapse">
                     <caption class="sr-only">
                         Daftar pengaduan pasien yang masuk ke portal pengaduan RSUD Dr. Soetomo
                     </caption>
 
+                    {{-- Lebar kolom dikunci di sini supaya isi tiap kolom tidak
+                         saling-desak, sedangkan tinggi baris tetap mengikuti isi. --}}
+                    <colgroup>
+                        <col class="w-[13%]">
+                        <col class="w-[16%]">
+                        <col class="w-[19%]">
+                        <col class="w-[12%]">
+                        <col class="w-[17%]">
+                        <col class="w-[14%]">
+                        <col class="w-[9%]">
+                    </colgroup>
+
                     <thead>
-                        <tr class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider text-[11px]">
-                            <th scope="col" class="py-3 px-space-md w-[14%]">No. Tiket &amp; Prioritas</th>
-                            <th scope="col" class="py-3 px-space-md w-[18%]">Identitas Pelapor &amp; NRM</th>
-                            <th scope="col" class="py-3 px-space-md w-[20%]">Pokok Keluhan &amp; Unit</th>
-                            <th scope="col" class="py-3 px-space-md w-[12%]">Lapis 1: Status Utama</th>
-                            <th scope="col" class="py-3 px-space-md w-[15%]">Lapis 2: Status di Unit</th>
-                            <th scope="col" class="py-3 px-space-md w-[13%]">Monitoring SLA</th>
-                            <th scope="col" class="py-3 px-space-md w-[8%] text-right">Aksi Tindak</th>
+                        <tr class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider border-b border-outline-variant/20">
+                            <th scope="col" class="py-space-sm px-space-md">No. Tiket &amp; Prioritas</th>
+                            <th scope="col" class="py-space-sm px-space-md">Identitas Pelapor &amp; NRM</th>
+                            <th scope="col" class="py-space-sm px-space-md">Pokok Keluhan &amp; Unit</th>
+                            <th scope="col" class="py-space-sm px-space-md">Lapis 1: Status Utama</th>
+                            <th scope="col" class="py-space-sm px-space-md">Lapis 2: Status di Unit</th>
+                            <th scope="col" class="py-space-sm px-space-md">Monitoring SLA</th>
+                            <th scope="col" class="py-space-sm px-space-md">Aksi Tindak</th>
                         </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-surface-container text-body-sm text-body-sm text-on-surface">
+                    <tbody class="divide-y divide-outline-variant/20 text-body-sm text-on-surface">
                         @forelse ($tabel as $pengaduan)
                             @php $baris = $daftar->baris($pengaduan); @endphp
 
                             <tr @class([
-                                'hover:bg-surface-container-low/60 transition-colors',
-                                'opacity-85' => $baris['redup'],
+                                'align-top transition-colors',
+                                'bg-surface-container-low/50' => $baris['redup'],
+                                'hover:bg-surface-container-low' => ! $baris['redup'],
                             ])>
-                                <td class="py-space-md px-space-md align-top">
+                                <td class="py-space-sm px-space-md align-top">
                                     <div class="flex flex-col gap-1">
                                         <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $baris['kode'] }}</span>
                                         <span class="text-outline font-label-sm text-label-sm">
                                             {{ $pengaduan->created_at->format('d M Y, H:i') }} WIB
                                         </span>
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-xl {{ $baris['prioritas']['nada'] }} font-label-sm text-label-sm text-[10px] font-bold w-fit mt-0.5">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-xl {{ $baris['prioritas']['nada'] }} font-label-sm text-label-sm font-bold w-fit">
                                             <x-symbol :nama="$baris['prioritas']['ikon']" class="text-[12px]" />
                                             {{ $baris['prioritas']['label'] }}
                                         </span>
                                     </div>
                                 </td>
 
-                                <td class="py-space-md px-space-md align-top">
-                                    <div class="flex flex-col">
+                                <td class="py-space-sm px-space-md align-top">
+                                    <div class="flex flex-col gap-1">
                                         <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $baris['pelapor'] }}</span>
-                                        <div class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md mt-0.5">
+                                        <div class="flex items-center gap-1 text-on-surface-variant font-label-md text-label-md">
                                             <x-symbol nama="badge" class="text-[14px] text-outline" />
-                                            <span>NRM: <strong>{{ $baris['nrm'] }}</strong></span>
+                                            <span class="truncate">NRM: <strong class="text-on-surface">{{ $baris['nrm'] }}</strong></span>
                                         </div>
-                                        <span class="text-outline text-[11px]">{{ $baris['kategori']->label() }}</span>
+                                        <span class="text-outline font-label-sm text-label-sm">{{ $baris['kategori']->label() }}</span>
                                     </div>
                                 </td>
 
-                                <td class="py-space-md px-space-md align-top">
+                                <td class="py-space-sm px-space-md align-top">
                                     <div class="flex flex-col gap-1">
-                                        <p class="font-title-sm text-title-sm font-semibold text-on-surface line-clamp-2">
+                                        <p class="font-title-sm text-title-sm font-semibold text-on-surface line-clamp-2 leading-snug">
                                             {{ $baris['subjek'] }}
                                         </p>
                                         <div class="flex items-center gap-1 font-label-sm text-label-sm font-semibold {{ $baris['tertaut'] ? 'text-secondary' : 'text-outline' }}">
-                                            <x-symbol :nama="$baris['tertaut'] ? 'domain' : 'support_agent'" class="text-[15px]" />
+                                            <x-symbol :nama="$baris['tertaut'] ? 'domain' : 'support_agent'" class="text-[14px] shrink-0" />
                                             <span class="truncate">{{ $baris['unit'] }}</span>
                                         </div>
-                                        <span class="text-on-surface-variant text-[11px] italic line-clamp-1">
+                                        <span class="text-on-surface-variant font-label-sm text-label-sm italic line-clamp-1 leading-snug">
                                             &ldquo;{{ Str::limit($baris['kutipan'], 96) }}&rdquo;
                                         </span>
                                     </div>
                                 </td>
 
-                                <td class="py-space-md px-space-md align-top">
+                                <td class="py-space-sm px-space-md align-top">
                                     <div class="flex flex-col gap-1.5">
                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl {{ $baris['status']->badgeAdmin() }} font-label-md text-label-md font-bold w-fit shadow-xs">
                                             <x-symbol :nama="$baris['status']->ikon()" class="text-[14px]" />
                                             {{ $baris['status']->label() }}
                                         </span>
-                                        <span class="text-outline text-[11px] leading-tight">{{ $baris['catatanStatus'] }}</span>
+                                        <span class="text-outline font-label-sm text-label-sm leading-snug">{{ $baris['catatanStatus'] }}</span>
                                     </div>
                                 </td>
 
-                                <td class="py-space-md px-space-md align-top">
+                                <td class="py-space-sm px-space-md align-top">
                                     <div @class([
-                                        'p-2 rounded-sm flex flex-col gap-1',
-                                        'bg-surface-container border border-outline-variant/30' => $baris['investigasi']->nilaiButuhKiram() === false,
-                                        'bg-surface-container-low border border-outline-variant/30' => $baris['investigasi']->nilaiButuhKiram(),
-                                    ])>
+                                        'p-2 rounded-sm flex flex-col gap-1 border border-outline-variant/30',
+                                        'bg-surface-container' => in_array($baris['investigasi'], StatusInvestigasi::racikanDanArsip(), true),
+                                        'bg-surface-container-low' => ! in_array($baris['investigasi'], StatusInvestigasi::racikanDanArsip(), true),
+                                    ]) title="{{ $baris['investigasi']->ringkas() }}">
                                         <div class="flex items-center gap-1.5">
-                                            <span class="w-2 h-2 rounded-full {{ $baris['investigasi']->titik() }}" aria-hidden="true"></span>
+                                            <span class="w-2 h-2 rounded-full {{ $baris['investigasi']->titik() }} shrink-0" aria-hidden="true"></span>
                                             <span class="font-label-md text-label-md font-bold text-on-surface leading-none">
                                                 {{ $baris['investigasi']->label() }}
                                             </span>
                                         </div>
-                                        <span class="text-[11px] text-on-surface-variant leading-tight">
-                                            {{ $baris['investigasi']->ringkas() }}
+                                        <span class="text-on-surface-variant font-label-sm text-label-sm leading-snug">
+                                            {{ $baris['investigasi']->ringkasPendek() }}
                                         </span>
                                         <span @class([
-                                            'text-[10px] font-semibold',
+                                            'font-label-sm text-label-sm leading-snug',
                                             'text-secondary' => in_array($baris['investigasi'], StatusInvestigasi::racikanDanArsip(), true),
                                             'text-on-tertiary-container' => $baris['investigasi'] === StatusInvestigasi::MenungguInfoTambahan,
                                             'text-outline' => ! in_array($baris['investigasi'], StatusInvestigasi::racikanDanArsip(), true)
@@ -378,41 +391,40 @@
                                     </div>
                                 </td>
 
-                                <td class="py-space-md px-space-md align-top">
+                                <td class="py-space-sm px-space-md align-top">
                                     <div class="flex flex-col gap-1.5">
                                         @if ($baris['sla']['jeda'])
-                                            <div class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-surface-container text-on-surface-variant font-label-sm text-label-sm text-[11px] font-semibold w-fit">
-                                                <x-symbol nama="pause_circle" class="text-[13px] text-outline" />
+                                            <div class="inline-flex items-center gap-1 px-2 py-1 rounded-sm bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-semibold w-fit">
+                                                <x-symbol nama="pause_circle" class="text-[13px] text-outline shrink-0" />
                                                 {{ $baris['sla']['judul'] }}
                                             </div>
-                                            <div class="w-full bg-outline-variant/30 h-1.5 rounded-full overflow-hidden">
-                                                <div class="bg-outline h-full rounded-full" style="width: {{ $baris['sla']['persen'] }}%"></div>
-                                            </div>
                                         @else
-                                            <div class="flex items-center justify-between font-label-sm text-label-sm">
-                                                <span class="text-on-surface-variant">{{ $baris['sla']['judul'] }}</span>
-                                                <span class="font-bold {{ $baris['sla']['nadaPosisi'] }}">{{ $baris['sla']['posisi'] }}</span>
-                                            </div>
-                                            <div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
-                                                <div class="{{ $baris['sla']['warnaProgres'] }} h-full rounded-full" style="width: {{ $baris['sla']['persen'] }}%"></div>
-                                            </div>
-                                            <div class="flex items-center justify-between text-[11px] text-outline">
-                                                <span class="truncate">{{ $baris['sla']['ringkas'] }}</span>
+                                            <div class="flex items-center justify-between gap-space-xs font-label-sm text-label-sm">
+                                                <span class="text-on-surface-variant truncate">{{ $baris['sla']['judul'] }}</span>
+                                                <span class="font-bold {{ $baris['sla']['nadaPosisi'] }} whitespace-nowrap">{{ $baris['sla']['posisi'] }}</span>
                                             </div>
                                         @endif
+
+                                        <div class="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+                                            <div class="{{ $baris['sla']['warnaProgres'] }} h-full rounded-full" style="width: {{ $baris['sla']['persen'] }}%"></div>
+                                        </div>
+
+                                        <span class="text-outline font-label-sm text-label-sm leading-snug">
+                                            {{ $baris['sla']['ringkas'] }}
+                                        </span>
                                     </div>
                                 </td>
 
-                                <td class="py-space-md px-space-md align-top text-right">
-                                    <div class="flex flex-col items-end gap-1.5">
+                                <td class="py-space-sm px-space-md align-top">
+                                    <div class="flex flex-col items-stretch gap-1">
                                         @foreach ($baris['aksi'] as $tombol)
                                             <button
                                                 type="button"
                                                 disabled
                                                 title="{{ $tombol['label'] }} &mdash; fitur sedang dirancang"
-                                                class="px-2.5 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-md text-label-md font-semibold flex items-center gap-1 cursor-not-allowed opacity-70"
+                                                class="px-2 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1 cursor-not-allowed opacity-70 whitespace-nowrap"
                                             >
-                                                <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                                <x-symbol :nama="$tombol['ikon']" class="text-[14px] shrink-0" />
                                                 {{ $tombol['label'] }}
                                             </button>
                                         @endforeach
@@ -439,7 +451,7 @@
 
             {{-- Footer tabel: ukuran halaman, ringkasan hasil, dan paginasi. --}}
             <div class="bg-surface-container-lowest px-space-md py-space-sm flex flex-col md:flex-row items-center justify-between gap-space-md">
-                <div class="flex items-center gap-space-md text-body-sm text-body-sm text-on-surface-variant flex-wrap">
+                <div class="flex items-center gap-space-md text-body-sm text-on-surface-variant flex-wrap">
                     <form method="GET" action="{{ route('admin.pengaduan.index') }}" class="flex items-center gap-2">
                         @foreach ($filterAktif as $nama => $nilai)
                             <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
@@ -470,7 +482,7 @@
                 </div>
 
                 @if ($halamanTerakhir > 1)
-                    <nav class="flex items-center gap-1" aria-label="Paginasi daftar pengaduan">
+                    <nav class="flex items-center gap-1" aria-label="Navigasi halaman daftar pengaduan">
                         @if ($tabel->onFirstPage())
                             <span class="p-1.5 rounded-sm bg-surface-container text-outline opacity-40" aria-hidden="true">
                                 <x-symbol nama="first_page" class="text-[20px]" />
@@ -490,13 +502,13 @@
                         @for ($halaman = $halamanMulai; $halaman <= $halamanAkhir; $halaman++)
                             @if ($halaman === $halamanSekarang)
                                 <span
-                                    class="w-8 h-8 rounded-sm bg-primary-container text-on-primary font-bold text-label-md text-label-md flex items-center justify-center"
+                                    class="w-8 h-8 rounded-sm bg-primary-container text-on-primary font-label-md text-label-md font-bold flex items-center justify-center"
                                     aria-current="page"
                                 >{{ $halaman }}</span>
                             @else
                                 <a
                                     href="{{ $tabel->url($halaman) }}"
-                                    class="w-8 h-8 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-medium text-label-md text-label-md flex items-center justify-center transition-colors"
+                                    class="w-8 h-8 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-medium flex items-center justify-center transition-colors"
                                 >{{ $halaman }}</a>
                             @endif
                         @endfor
@@ -541,7 +553,7 @@
                     <div class="flex items-center gap-2">
                         <span class="font-title-sm text-title-sm font-bold text-on-surface">Kepatuhan SLA</span>
                         <span class="font-title-sm text-title-sm font-bold text-secondary">
-                            {{ $ringkas['kepatuhan'] === null ? 'â€”' : number_format($ringkas['kepatuhan'], 1, ',', '.') }}%
+                            {{ $ringkas['kepatuhan'] === null ? '—' : number_format($ringkas['kepatuhan'], 1, ',', '.') }}%
                         </span>
                     </div>
                     <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
@@ -558,7 +570,7 @@
                 <div class="flex flex-col">
                     <div class="flex items-center gap-2">
                         <span class="font-title-sm text-title-sm font-bold text-on-surface">Eskalasi Mediko-Legal</span>
-                        <span class="px-1.5 py-0.2 rounded-xs bg-tertiary-container text-tertiary-fixed font-label-sm text-label-sm text-[10px] font-bold">24/7</span>
+                        <span class="px-1.5 py-0.5 rounded-xs bg-tertiary-container text-tertiary-fixed font-label-sm text-label-sm font-bold">24/7</span>
                     </div>
                     <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
                         {{ $ringkas['lewat'] }} tiket lewat batas {{ $ringkas['hari_investigasi'] }} hari investigasi unit,

@@ -6,7 +6,7 @@
     <div class="w-full px-margin py-space-lg flex flex-col gap-space-lg">
 
         {{-- Peringatan kritis: tiket yang lewat SLA unit dan telaah yang siap diracik. --}}
-        <section
+        {{-- <section
             @class([
                 'relative w-full overflow-hidden rounded-lg p-space-md shadow-sm',
                 'bg-error-container text-on-error-container' => $dashboard->adaPelanggaran(),
@@ -68,7 +68,7 @@
                     </button>
                 </div>
             </div>
-        </section>
+        </section> --}}
 
         {{-- Baris statistik: empat tahap pengaduan, kepatuhan SLA, dan rata-rata penyelesaian. --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-space-md">
@@ -87,7 +87,7 @@
                         </div>
 
                         <span class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $item->warnaIkon() }}">
-                            <x-symbol :nama="['inbox', 'autorenew', 'history_edu', 'task_alt'][$loop->index]" class="text-[18px]" />
+                            <x-symbol :nama="$item->ikon()" class="text-[18px]" />
                         </span>
                     </div>
 
@@ -320,7 +320,7 @@
 
                                     <div class="flex items-center gap-space-xs shrink-0 w-full sm:w-auto justify-end">
                                         @foreach ($tiket['tombol'] as $tombol)
-                                            <button type="button" class="{{ $tombol['nada'] }} text-label-sm text-label-sm flex items-center gap-space-xs">
+                                            <button type="button" class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs">
                                                 <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
                                                 {{ $tombol['label'] }}
                                             </button>
@@ -329,7 +329,7 @@
                                 </div>
                             </article>
                         @empty
-                            <p class="rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-body-sm text-on-surface-variant">
+                            <p class="rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-on-surface-variant">
                                 Tidak ada pengaduan yang membutuhkan tindakan segera. Semua tiket berada dalam batas SLA.
                             </p>
                         @endforelse
@@ -362,7 +362,7 @@
 
                                 <div class="mt-space-sm flex items-baseline justify-between gap-space-sm">
                                     <span class="font-headline-sm text-headline-sm font-bold text-on-surface">{{ $unit->beban_aktif }} Aduan</span>
-                                    <span class="text-body-sm text-body-sm font-semibold {{ $persen !== null && $persen < $dashboard->standarKepatuhan ? 'text-error' : 'text-secondary' }}">
+                                    <span class="text-body-sm font-semibold {{ $persen !== null && $persen < $dashboard->standarKepatuhan ? 'text-error' : 'text-secondary' }}">
                                         {{ $persen === null ? 'SLA —' : 'SLA '.number_format($persen, 1, ',', '.').'%' }}
                                     </span>
                                 </div>
@@ -375,8 +375,8 @@
                                 </div>
                             </div>
                         @empty
-                            <p class="sm:col-span-2 lg:col-span-4 rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-body-sm text-on-surface-variant">
-                                Belum ada pengaduan aktif yang ditugaskan ke unit MASTER_UNITS.
+                            <p class="sm:col-span-2 lg:col-span-4 rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-on-surface-variant">
+                                Belum ada pengaduan aktif yang ditugaskan ke unit pelayanan.
                             </p>
                         @endforelse
                     </div>
@@ -446,7 +446,7 @@
                                 <x-symbol :nama="$unit['aktif'] ? 'cloud_done' : 'cloud_off'" class="text-[18px] {{ $unit['aktif'] ? 'text-secondary' : 'text-error' }}" />
                             </div>
                         @empty
-                            <p class="text-body-sm text-body-sm text-on-surface-variant">Belum ada unit yang terdaftar di MASTER_UNITS.</p>
+                            <p class="text-body-sm text-on-surface-variant">Belum ada unit pelayanan yang terdaftar di sistem.</p>
                         @endforelse
                     </div>
 

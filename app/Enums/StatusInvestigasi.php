@@ -62,6 +62,24 @@ enum StatusInvestigasi: string
         };
     }
 
+    /**
+     * Uraian satu baris untuk kolom tabel yang sempit.
+     *
+     * Versi panjang di ringkas() tetap dipakai sebagai teks alternatif pada
+     * sel, sedangkan yang tampil hanya penjelas singkatnya.
+     */
+    public function ringkasPendek(): string
+    {
+        return match ($this) {
+            self::MenungguTriase => 'Belum ada PIC unit',
+            self::SedangInvestigasi => 'PIC unit menelusuri',
+            self::MenungguInfoTambahan => 'Berkas tertunda di pelapor',
+            self::MenungguRacikan => 'Draf unit sudah masuk',
+            self::JawabanUnit => 'Arsip unit tersimpan',
+            self::LangsungHumas => 'Tanpa disposisi unit',
+        };
+    }
+
     /** Warna lencana pada tab filter dan sel tabel. */
     public function nada(): string
     {
@@ -117,19 +135,11 @@ enum StatusInvestigasi: string
     }
 
     /**
-     * True bila status ini menandai tiket yang sudah mencapai target unit.
-     */
-    public function nilaiButuhKiram(): bool
-    {
-        return in_array($this, [self::MenungguRacikan, self::JawabanUnit], true);
-    }
-
-    /**
      * Status investigasi yang ditandai hijau pada tabel.
      *
-     * Dipisah dari nilaiButuhKiram() karena dua syarat ini tidak selalu
-     * sama: tiket yang sudah ditutup tidak lagi butuh actuation, tetapi
-     * tetap ditampilkan sebagai tahap yang mencapai target.
+     * Dipisah dari kondisi "butuh actuation" karena dua syarat ini tidak
+     * selalu sama: tiket yang sudah ditutup tidak lagi butuh tindakan, tetapi
+     * tetap ditandai sebagai tahap yang mencapai target.
      *
      * @return array<int, self>
      */

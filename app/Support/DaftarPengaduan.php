@@ -335,7 +335,8 @@ final class DaftarPengaduan
      * Semua aksi masih berupa tombol nonaktif: halaman detail tiket dan
      * alur triase belum dibangun, jadi tidak ada url yang boleh ditautkan
      * lebih dulu. Tombol yang paling relevan per kondisi tiket tetap
-     * ditampilkan supaya bentuk antrean triase sudah terlihat.
+     * ditampilkan supaya bentuk antrean triase sudah terlihat, dan jumlah
+     * tombol dibatasi supaya tinggi baris tabel tetap seragam.
      *
      * @return array<int, array{label: string, ikon: string, nada: string}>
      */
@@ -343,7 +344,7 @@ final class DaftarPengaduan
     {
         if ($pengaduan->status->perluAksi()) {
             return [[
-                'label' => 'Menunggu Kelengkapan Pelapor',
+                'label' => 'Menunggu Kelengkapan',
                 'ikon' => 'hourglass_top',
                 'nada' => 'bg-surface-container text-outline border border-outline-variant/30',
             ]];
@@ -362,7 +363,7 @@ final class DaftarPengaduan
         if (! $pengaduan->status->selesai()) {
             $aksi[] = [
                 'label' => Sla::lewatInvestigasi($pengaduan->created_at)
-                    ? 'Nudge Unit (Eskalasi)'
+                    ? 'Nudge (Eskalasi)'
                     : 'Nudge Unit',
                 'ikon' => 'notifications_active',
                 'nada' => 'bg-surface-container text-on-surface-variant',
@@ -370,21 +371,9 @@ final class DaftarPengaduan
         }
 
         $aksi[] = [
-            'label' => 'Buka Detail & Workspace',
+            'label' => 'Buka Detail',
             'ikon' => 'visibility',
             'nada' => 'bg-primary-container text-on-primary',
-        ];
-
-        $aksi[] = [
-            'label' => 'Log Audit',
-            'ikon' => 'history',
-            'nada' => 'bg-surface-container text-on-surface-variant',
-        ];
-
-        $aksi[] = [
-            'label' => 'Menu Lainnya',
-            'ikon' => 'more_vert',
-            'nada' => 'bg-surface-container-low text-outline',
         ];
 
         return $aksi;

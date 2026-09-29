@@ -198,7 +198,7 @@ class DaftarPengaduanAdminTest extends TestCase
 
         $tampilan = $this->get(route('admin.pengaduan.index'))
             ->assertOk()
-            ->assertSee('Buka Detail &amp; Workspace', false)
+            ->assertSee('Buka Detail', false)
             ->getContent();
 
         // Detail tiket belum dibangun, jadi tidak boleh ada tautan palsu.
