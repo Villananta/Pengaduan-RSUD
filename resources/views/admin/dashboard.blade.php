@@ -5,85 +5,17 @@
 @section('content')
     <div class="w-full px-margin py-space-lg flex flex-col gap-space-lg">
 
-        {{-- Peringatan kritis: tiket yang lewat SLA unit dan telaah yang siap diracik. --}}
-        {{-- <section
-            @class([
-                'relative w-full overflow-hidden rounded-lg p-space-md shadow-sm',
-                'bg-error-container text-on-error-container' => $dashboard->adaPelanggaran(),
-                'bg-secondary-container text-on-secondary-container' => ! $dashboard->adaPelanggaran(),
-            ])
-            aria-live="polite"
-        >
-            <div
-                @class([
-                    'absolute -right-6 -bottom-6 w-36 h-36 rounded-xl blur-2xl pointer-events-none',
-                    'bg-error/10' => $dashboard->adaPelanggaran(),
-                    'bg-secondary/20' => ! $dashboard->adaPelanggaran(),
-                ])
-                aria-hidden="true"
-            ></div>
+       
+    
 
-            <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
-                <div class="flex items-start gap-space-sm">
-                    <span
-                        @class([
-                            'w-10 h-10 rounded-full flex items-center justify-center shrink-0',
-                            'bg-error text-on-error' => $dashboard->adaPelanggaran(),
-                            'bg-secondary text-on-secondary' => ! $dashboard->adaPelanggaran(),
-                        ])
-                    >
-                        <x-symbol :nama="$dashboard->adaPelanggaran() ? 'crisis_alert' : 'verified'" class="text-[22px] animate-pulse" />
-                    </span>
-
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-space-xs flex-wrap">
-                            <span class="font-title-md text-title-md font-bold">Peringatan Kritis Kepatuhan SLA Unit &amp; Humas</span>
-                            <span
-                                @class([
-                                    'px-space-xs py-0.5 rounded-xs font-label-sm text-label-sm uppercase font-bold tracking-wider',
-                                    'bg-error text-on-error' => $dashboard->adaPelanggaran(),
-                                    'bg-secondary text-on-secondary' => ! $dashboard->adaPelanggaran(),
-                                ])
-                            >{{ $dashboard->adaPelanggaran() ? 'Tindakan Diperlukan' : 'Semua Dalam Batas' }}</span>
-                        </div>
-
-                        <p class="font-body-md text-body-md mt-0.5 max-w-4xl opacity-90">{{ $dashboard->kalimatKritis() }}</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-space-sm w-full lg:w-auto shrink-0 justify-end">
-                    <button
-                        type="button"
-                        class="px-space-md py-2 rounded-sm bg-surface-container-lowest text-error font-label-lg text-label-lg shadow-sm transition-colors flex items-center gap-space-xs"
-                    >
-                        <x-symbol nama="emergency_home" class="text-[18px]" />
-                        Eskalasi ke Wadir Pelayanan
-                    </button>
-                    <button
-                        type="button"
-                        class="px-space-md py-2 rounded-sm bg-error text-on-error font-label-lg text-label-lg shadow-sm transition-opacity flex items-center gap-space-xs"
-                    >
-                        <x-symbol nama="bolt" class="text-[18px]" />
-                        Tinjau {{ $dashboard->telaah() }} Draft Jawaban
-                    </button>
-                </div>
-            </div>
-        </section> --}}
-
-        {{-- Baris statistik: empat tahap pengaduan, kepatuhan SLA, dan rata-rata penyelesaian. --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-space-md">
+        {{-- Baris statistik: empat tahap pengaduan. Kartu kepatuhan SLA dan
+             rata-rata waktu sengaja dimatikan sementara, isinya masih disusun. --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
             @foreach ($tahap as $item)
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md">
                     <div class="flex items-center justify-between gap-space-sm">
                         <div class="flex flex-col">
                             <span class="font-label-md text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">{{ $item->label() }}</span>
-
-                            @if ($item === $tahap[0])
-                                <span class="px-space-xs py-0.5 mt-1 rounded-xs bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1 w-fit">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" aria-hidden="true"></span>
-                                    Perlu triase penanganan
-                                </span>
-                            @endif
                         </div>
 
                         <span class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $item->warnaIkon() }}">
@@ -120,14 +52,16 @@
                         @else
                             <div class="flex items-center gap-space-xs mt-space-xs text-on-surface-variant font-body-sm text-body-sm">
                                 <span class="font-semibold text-secondary">Belum ada keputusan</span>
-                                <span>triage oleh humas</span>
+                                <span>dari unit pelayanan</span>
                             </div>
                         @endif
                     </div>
                 </div>
             @endforeach
 
-            <div class="rounded-lg bg-primary-container text-on-primary p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden">
+            {{-- Kartu kepatuhan SLA dan rata-rata waktu. Keduanya sengaja
+                 disimpan tanpa dihapus karena angkanya akan dipakai lagi. --}}
+            {{-- <div class="rounded-lg bg-primary-container text-on-primary p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden">
                 <div class="absolute -right-4 -top-4 w-24 h-24 rounded-xl bg-secondary/30 blur-xl pointer-events-none" aria-hidden="true"></div>
 
                 <div class="relative z-10 flex items-center justify-between">
@@ -181,15 +115,15 @@
                         </div>
                     @endif
                 </div>
-            </div>
+            </div> --}}
         </div>
 
-        {{-- Sinkronisasi sub-status unit layanan terkait. --}}
+        {{-- Status tiket yang sedang ditangani unit layanan. --}}
         <div class="w-full rounded-lg bg-surface-container-low p-space-md shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-xs mb-space-sm pb-space-xs">
                 <div class="flex items-center gap-space-xs">
                     <x-symbol nama="hub" class="text-secondary text-[20px]" />
-                    <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Sinkronisasi Real-Time: Status Agregat di Unit Layanan Terkait</h2>
+                    <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Status Tiket di Unit Layanan</h2>
                 </div>
                 <span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs">
                     <span class="w-2 h-2 rounded-full bg-secondary animate-ping" aria-hidden="true"></span>
@@ -197,7 +131,7 @@
                 </span>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-md">
                 @foreach ($dashboard->sinkronisasiUnit() as $kartu)
                     <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-sm">
                         <div class="flex items-start justify-between gap-space-sm">
@@ -245,7 +179,7 @@
         </div>
 
         {{-- Isi utama: daftar pengaduan butuh tindakan dan ringkasan beban unit. --}}
-        <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+        <div class="w-full grid grid-cols-1 lg:grid-full gap-space-lg">
             <div class="lg:col-span-8 flex flex-col gap-space-md">
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-sm border-b border-outline-variant/30">
@@ -384,7 +318,7 @@
             </div>
 
             {{-- Sidebar: siklus SLA, status koneksi SIMRS, dan instruksi direksi. --}}
-            <div class="lg:col-span-4 flex flex-col gap-space-md">
+            {{-- <div class="lg:col-span-4 flex flex-col gap-space-md">
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
                     <div class="flex items-start justify-between gap-space-sm">
                         <div class="flex flex-col">
@@ -472,7 +406,7 @@
                         <span class="font-label-sm text-label-sm text-on-primary-container">Surabaya, Jawa Timur</span>
                     </div>
                 </div>
-            </div>
+            </div> --}}
         </div>
     </div>
 @endsection

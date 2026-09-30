@@ -29,9 +29,10 @@ Route::post('/buat-aduan', [PengaduanController::class, 'store'])
 
 Route::get('/buat-aduan/sukses/{kode}', [PengaduanController::class, 'sukses'])->name('pengaduan.sukses');
 
-// Konsol admin. Fitur selain beranda dan daftar pengaduan akan menyusul
-// karena desainnya sedang dikerjakan, sehingga route-nya belum dibuat.
+// Konsol admin. Fitur selain beranda, daftar pengaduan, dan detail tiket
+// masih dalam tahap desain sehingga route-nya belum dibuat.
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/pengaduan', [AdminPengaduanController::class, 'index'])->name('pengaduan.index');
+    Route::get('/pengaduan/{kode}', [AdminPengaduanController::class, 'show'])->name('pengaduan.show');
 });

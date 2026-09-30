@@ -27,9 +27,9 @@ class DashboardAdminTest extends TestCase
     {
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Sinkronisasi Real-Time')
+            ->assertSee('Status Tiket di Unit Layanan')
             ->assertSee('Beban Resolusi Unit Terbanyak')
-            ->assertSee('Koneksi SIMRS &amp; Disposisi', false);
+            ->assertSee('Sinkron SIMRS terpadu');
     }
 
     public function test_menu_yang_desainnya_belum_ada_tidak_ditautkan(): void
@@ -63,7 +63,7 @@ class DashboardAdminTest extends TestCase
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Kepatuhan SLA 12 Hari');
+            ->assertSee('Status Tiket di Unit Layanan');
 
         $this->assertSame([
             StatusPengaduan::Diterima->value => 3,
@@ -78,9 +78,9 @@ class DashboardAdminTest extends TestCase
         $this->assertNull(StatistikDashboard::kepatuhanSlaPersen());
         $this->assertNull(StatistikDashboard::rataRataHariKerja());
 
-        $this->get(route('admin.dashboard'))
-            ->assertOk()
-            ->assertSee('Belum ada pengaduan selesai');
+        // Kartu kepatuhan SLA dan rata-rata waktu sedang dimatikan di
+        // beranda, jadi yang diuji di sini hanya angkanya.
+        $this->get(route('admin.dashboard'))->assertOk();
     }
 
     public function test_kepatuhan_sla_dihitung_dari_pengaduan_selesai(): void
@@ -119,7 +119,7 @@ class DashboardAdminTest extends TestCase
         $this->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Peringatan Kritis Kepatuhan SLA')
-            ->assertSee('Tindakan Diperlukan')
+            ->assertSee('Menunggu Unit Membuka')
             ->assertSee('ADUAN-LAMA-01')
             ->assertSee('LEWAT BATAS');
     }

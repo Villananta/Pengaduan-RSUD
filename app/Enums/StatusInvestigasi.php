@@ -19,14 +19,9 @@ use Illuminate\Database\Eloquent\Builder;
  */
 enum StatusInvestigasi: string
 {
-    // Tiket sudah masuk ke unit, tapi belum ada keputusan penanganan.
-    case MenungguTriase = 'menunggu_triase';
-
-    // Unit sedang menelusuri jalannya complain.
+    // Tiket sudah masuk ke unit dan masih ditelusuri, apa pun tahapnya
+    // di sisi humas termasuk pelengkapan pelapor.
     case SedangInvestigasi = 'sedang_investigasi';
-
-    // Tiket berhenti menunggu pelapor melengkapi data.
-    case MenungguInfoTambahan = 'menunggu_info_tambahan';
 
     // Unit sudah menjawab, tinggal diracik dan diterbitkan humas.
     case MenungguRacikan = 'menunggu_racikan';
@@ -40,9 +35,7 @@ enum StatusInvestigasi: string
     public function label(): string
     {
         return match ($this) {
-            self::MenungguTriase => 'Menunggu Triase',
             self::SedangInvestigasi => 'Sedang Investigasi',
-            self::MenungguInfoTambahan => 'Menunggu Info Tambahan',
             self::MenungguRacikan => 'Menunggu Racikan Humas',
             self::JawabanUnit => 'Jawaban Unit Masuk',
             self::LangsungHumas => 'Ditangani Langsung Humas',
@@ -53,9 +46,7 @@ enum StatusInvestigasi: string
     public function ringkas(): string
     {
         return match ($this) {
-            self::MenungguTriase => 'Belum didisposisi ke instalasi teknis, kepala unit belum menetapkan PIC.',
             self::SedangInvestigasi => 'PIC unit sedang menelusuri kronologi, berkas, dan hasil pemeriksaan.',
-            self::MenungguInfoTambahan => 'Investigasi berhenti karena data pelapor belum lengkap.',
             self::MenungguRacikan => 'Draf klarifikasi unit sudah masuk dan siap diracik humas.',
             self::JawabanUnit => 'Arsip unit lengkap, tiket ditutup dengan jawaban resmi.',
             self::LangsungHumas => 'Klarifikasi dikerjakan Customer Care humas tanpa disposisi unit teknis.',
@@ -71,9 +62,7 @@ enum StatusInvestigasi: string
     public function ringkasPendek(): string
     {
         return match ($this) {
-            self::MenungguTriase => 'Belum ada PIC unit',
             self::SedangInvestigasi => 'PIC unit menelusuri',
-            self::MenungguInfoTambahan => 'Berkas tertunda di pelapor',
             self::MenungguRacikan => 'Draf unit sudah masuk',
             self::JawabanUnit => 'Arsip unit tersimpan',
             self::LangsungHumas => 'Tanpa disposisi unit',
@@ -86,8 +75,6 @@ enum StatusInvestigasi: string
         return match ($this) {
             self::SedangInvestigasi => 'bg-surface-container text-on-surface',
             self::MenungguRacikan, self::JawabanUnit => 'bg-secondary-container text-on-secondary-container',
-            self::MenungguInfoTambahan => 'bg-tertiary-container text-tertiary-fixed-dim',
-            self::MenungguTriase => 'bg-surface-container-lowest text-on-surface',
             self::LangsungHumas => 'bg-surface-container-low text-on-surface-variant',
         };
     }
@@ -98,8 +85,6 @@ enum StatusInvestigasi: string
         return match ($this) {
             self::SedangInvestigasi => 'bg-on-tertiary-container',
             self::MenungguRacikan, self::JawabanUnit => 'bg-secondary',
-            self::MenungguInfoTambahan => 'bg-tertiary-fixed-dim',
-            self::MenungguTriase => 'bg-outline',
             self::LangsungHumas => 'bg-surface-tint',
         };
     }
@@ -110,7 +95,7 @@ enum StatusInvestigasi: string
      * Urutan pemeriksaan penting: tiket tanpa master_unit_id selalu
      * berstatus ditangani langsung humas, tiket yang sudah ditutup selalu
      * berstatus arsip unit, dan hanya tiket aktif bertaut unit yang bisa
-     * berstatus menunggu racikan atau salah satu tahap investigasi.
+     * berstatus menunggu racikan atau sedang ditelusuri unit.
      */
     public static function dariPengaduan(Pengaduan $pengaduan, bool $sudahDibalas = false): self
     {
@@ -127,9 +112,9 @@ enum StatusInvestigasi: string
         }
 
         return match ($pengaduan->status) {
-            StatusPengaduan::Diterima => self::MenungguTriase,
-            StatusPengaduan::Diproses => self::SedangInvestigasi,
-            StatusPengaduan::Revisi => self::MenungguInfoTambahan,
+            StatusPengaduan::Diterima,
+            StatusPengaduan::Diproses,
+            StatusPengaduan::Revisi => self::SedangInvestigasi,
             StatusPengaduan::Selesai => self::JawabanUnit,
         };
     }
@@ -171,15 +156,12 @@ enum StatusInvestigasi: string
             self::JawabanUnit => $ditugaskan($query)
                 ->where('status', StatusPengaduan::Selesai->value),
             self::MenungguRacikan => $sudahDibalas($ditugaskan($query->aktif())),
-            self::MenungguTriase => $belumDibalas(
-                $ditugaskan($query->aktif())->where('status', StatusPengaduan::Diterima->value)
-            ),
-            self::SedangInvestigasi => $belumDibalas(
-                $ditugaskan($query->aktif())->where('status', StatusPengaduan::Diproses->value)
-            ),
-            self::MenungguInfoTambahan => $belumDibalas(
-                $ditugaskan($query->aktif())->where('status', StatusPengaduan::Revisi->value)
-            ),
+            self::SedangInvestigasi => $belumDibalas($ditugaskan($query->aktif()))
+                ->whereIn('status', [
+                    StatusPengaduan::Diterima->value,
+                    StatusPengaduan::Diproses->value,
+                    StatusPengaduan::Revisi->value,
+                ]),
         };
     }
 

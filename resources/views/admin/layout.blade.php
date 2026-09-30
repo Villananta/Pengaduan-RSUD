@@ -20,12 +20,16 @@
      * Item yang belum punya url sengaja ditampilkan tanpa tautan: fitur
      * berikutnya masih dalam tahap desain, jadi tidak ada halaman tujuan
      * yang boleh ditautkan lebih dulu.
+     *
+     * Item yang tidak punya halaman tunggal memakai 'pola' supaya tetap
+     * bisa ditandai aktif. Workspace & Detail tidak pernah punya url karena
+     * selalu dibuka per tiket, bukan lewat daftar halaman.
      */
     $beranda = 'admin.dashboard';
     $navigasi = [
         ['label' => 'Beranda Utama', 'route' => $beranda],
         ['label' => 'Daftar Pengaduan', 'route' => 'admin.pengaduan.index'],
-        ['label' => 'Workspace & Detail', 'route' => null],
+        ['label' => 'Workspace & Detail', 'route' => null, 'pola' => 'admin.pengaduan.show'],
         ['label' => 'Monitor Disposisi & SLA', 'route' => null],
         ['label' => 'Master Data Unit', 'route' => null],
     ];
@@ -84,7 +88,10 @@
     <div class="bg-surface-container-lowest border-b border-outline-variant h-12 w-full px-margin flex items-center justify-between">
         <nav class="flex items-center h-full gap-space-md" aria-label="Navigasi konsol admin">
             @foreach ($navigasi as $item)
-                @php $aktif = $item['route'] !== null && request()->routeIs($item['route']); @endphp
+                @php
+                    $pola = $item['pola'] ?? $item['route'];
+                    $aktif = $pola !== null && request()->routeIs($pola);
+                @endphp
 
                 @if ($item['route'])
                     <a
@@ -98,9 +105,13 @@
                     >{{ $item['label'] }}</a>
                 @else
                     <span
-                        class="h-full flex items-center px-space-sm text-on-surface-variant/50 font-title-sm text-title-sm cursor-not-allowed select-none"
-                        title="Fitur sedang dirancang"
-                        aria-disabled="true"
+                        @class([
+                            'h-full flex items-center px-space-sm font-title-sm text-title-sm',
+                            'select-none',
+                            'text-secondary border-b-[3px] border-secondary font-semibold bg-surface-container/50' => $aktif,
+                            'text-on-surface-variant/50 cursor-not-allowed' => ! $aktif,
+                        ])
+                        @if (! $aktif) title="Fitur sedang dirancang" aria-disabled="true" @endif
                     >{{ $item['label'] }}</span>
                 @endif
             @endforeach
@@ -138,6 +149,9 @@
         </div>
     </div>
 </footer>
+
+{{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}
+@stack('scripts')
 
 </body>
 </html>

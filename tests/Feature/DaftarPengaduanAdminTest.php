@@ -192,7 +192,7 @@ class DaftarPengaduanAdminTest extends TestCase
         $this->assertStringContainsString('value="25" selected', $tampilan);
     }
 
-    public function test_aksi_menampilkan_antrean_tanpa_tautan(): void
+    public function test_hanya_aksi_buka_detail_yang_memakai_tautan(): void
     {
         Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-AKSI-01']);
 
@@ -201,8 +201,13 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertSee('Buka Detail', false)
             ->getContent();
 
-        // Detail tiket belum dibangun, jadi tidak boleh ada tautan palsu.
-        $this->assertStringNotContainsString('ADUAN-AKSI-01/', $tampilan);
+        // Halaman detail sudah ada, jadi "Buka Detail" boleh tautan.
+        // Nudging dan penentuan penanganan belum dibangun, jadi sisanya
+        // tetap tombol mati dan tidak boleh muncul tautan palsu.
+        $this->assertStringContainsString(
+            'href="'.route('admin.pengaduan.show', 'ADUAN-AKSI-01').'"',
+            $tampilan
+        );
         $this->assertStringNotContainsString('href="#', $tampilan);
     }
 }

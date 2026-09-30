@@ -95,7 +95,7 @@
         <div class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm">
                 <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded-xs bg-primary-container text-on-primary-fixed font-label-sm text-label-sm uppercase font-bold tracking-wide">Lapis 1</span>
+                    <span class="px-2 py-0.5 rounded-xs bg-primary-container font-label-sm text-label-sm uppercase font-bold tracking-wide" style="color: rgb(149, 249, 166)">Lapis 1</span>
                     <span class="font-title-sm text-title-sm text-on-surface font-semibold">Status Pengaduan Humas:</span>
                 </div>
 
@@ -382,9 +382,7 @@
                                         <span @class([
                                             'font-label-sm text-label-sm leading-snug',
                                             'text-secondary' => in_array($baris['investigasi'], StatusInvestigasi::racikanDanArsip(), true),
-                                            'text-on-tertiary-container' => $baris['investigasi'] === StatusInvestigasi::MenungguInfoTambahan,
-                                            'text-outline' => ! in_array($baris['investigasi'], StatusInvestigasi::racikanDanArsip(), true)
-                                                && $baris['investigasi'] !== StatusInvestigasi::MenungguInfoTambahan,
+                                            'text-outline' => ! in_array($baris['investigasi'], StatusInvestigasi::racikanDanArsip(), true),
                                         ])>
                                             {{ $baris['catatanInvestigasi'] }}
                                         </span>
@@ -418,15 +416,25 @@
                                 <td class="py-space-sm px-space-md align-top">
                                     <div class="flex flex-col items-stretch gap-1">
                                         @foreach ($baris['aksi'] as $tombol)
-                                            <button
-                                                type="button"
-                                                disabled
-                                                title="{{ $tombol['label'] }} &mdash; fitur sedang dirancang"
-                                                class="px-2 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1 cursor-not-allowed opacity-70 whitespace-nowrap"
-                                            >
-                                                <x-symbol :nama="$tombol['ikon']" class="text-[14px] shrink-0" />
-                                                {{ $tombol['label'] }}
-                                            </button>
+                                            @if ($tombol['url'])
+                                                <a
+                                                    href="{{ $tombol['url'] }}"
+                                                    class="px-2 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1 hover:opacity-90 transition-opacity whitespace-nowrap"
+                                                >
+                                                    <x-symbol :nama="$tombol['ikon']" class="text-[14px] shrink-0" />
+                                                    {{ $tombol['label'] }}
+                                                </a>
+                                            @else
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    title="{{ $tombol['label'] }} &mdash; fitur sedang dirancang"
+                                                    class="px-2 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1 cursor-not-allowed opacity-70 whitespace-nowrap"
+                                                >
+                                                    <x-symbol :nama="$tombol['ikon']" class="text-[14px] shrink-0" />
+                                                    {{ $tombol['label'] }}
+                                                </button>
+                                            @endif
                                         @endforeach
                                     </div>
                                 </td>
@@ -524,59 +532,6 @@
                         @endif
                     </nav>
                 @endif
-            </div>
-        </div>
-
-        {{-- Strip telemetri: koneksi SIMRS, kepatuhan SLA, dan beban eskalasi. --}}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
-            <div class="bg-surface-container-lowest p-space-md rounded-lg shadow-sm flex items-start gap-space-sm">
-                <div class="w-10 h-10 rounded-sm bg-surface-container flex items-center justify-center text-secondary shrink-0">
-                    <x-symbol nama="dns" class="text-[24px]" />
-                </div>
-                <div class="flex flex-col">
-                    <div class="flex items-center gap-2">
-                        <span class="font-title-sm text-title-sm font-bold text-on-surface">SIMRS Bridge</span>
-                        <span class="w-2 h-2 rounded-full {{ $ringkas['unit_terhubung'] > 0 ? 'bg-secondary' : 'bg-error' }}" aria-hidden="true"></span>
-                    </div>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                        {{ $ringkas['unit_terhubung'] }} dari {{ $ringkas['unit_total'] }} instalasi unit
-                        merespons heartbeat SIMRS dalam 15 menit terakhir.
-                    </p>
-                </div>
-            </div>
-
-            <div class="bg-surface-container-lowest p-space-md rounded-lg shadow-sm flex items-start gap-space-sm">
-                <div class="w-10 h-10 rounded-sm bg-surface-container flex items-center justify-center text-secondary shrink-0">
-                    <x-symbol nama="verified" class="text-[24px]" />
-                </div>
-                <div class="flex flex-col">
-                    <div class="flex items-center gap-2">
-                        <span class="font-title-sm text-title-sm font-bold text-on-surface">Kepatuhan SLA</span>
-                        <span class="font-title-sm text-title-sm font-bold text-secondary">
-                            {{ $ringkas['kepatuhan'] === null ? '—' : number_format($ringkas['kepatuhan'], 1, ',', '.') }}%
-                        </span>
-                    </div>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                        Dari pengaduan yang sudah selesai dalam {{ $ringkas['hari_kerja'] }} hari kerja,
-                        standar Kemenkes &ge; {{ $ringkas['standar'] }}%.
-                    </p>
-                </div>
-            </div>
-
-            <div class="bg-surface-container-lowest p-space-md rounded-lg shadow-sm flex items-start gap-space-sm">
-                <div class="w-10 h-10 rounded-sm bg-surface-container flex items-center justify-center text-on-tertiary-container shrink-0">
-                    <x-symbol nama="phone_in_talk" class="text-[24px]" />
-                </div>
-                <div class="flex flex-col">
-                    <div class="flex items-center gap-2">
-                        <span class="font-title-sm text-title-sm font-bold text-on-surface">Eskalasi Mediko-Legal</span>
-                        <span class="px-1.5 py-0.5 rounded-xs bg-tertiary-container text-tertiary-fixed font-label-sm text-label-sm font-bold">24/7</span>
-                    </div>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                        {{ $ringkas['lewat'] }} tiket lewat batas {{ $ringkas['hari_investigasi'] }} hari investigasi unit,
-                        {{ $ringkas['telaah'] }} telaah menunggu racikan humas.
-                    </p>
-                </div>
             </div>
         </div>
     </div>

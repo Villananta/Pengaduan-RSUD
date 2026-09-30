@@ -215,7 +215,7 @@ final class DaftarPengaduan
 
         if ($pengaduan->status->diterima()) {
             return [
-                'label' => 'Perlu Triase',
+                'label' => 'Menunggu Unit',
                 'ikon' => 'pending_actions',
                 'nada' => 'bg-tertiary-container text-tertiary-fixed',
             ];
@@ -232,7 +232,7 @@ final class DaftarPengaduan
         $unit = $pengaduan->masterUnit;
 
         return match ($pengaduan->status) {
-            StatusPengaduan::Diterima => 'Perlu penelaahan dan triase humas',
+            StatusPengaduan::Diterima => 'Menunggu unit membuka tiket',
             StatusPengaduan::Diproses => $unit === null
                 ? 'Klarifikasi ditangani humas langsung'
                 : 'Disposisi humas ke '.$unit->kode,
@@ -253,8 +253,6 @@ final class DaftarPengaduan
             StatusInvestigasi::MenungguRacikan => $pengaduan->pesan_count
                 .' balasan unit masuk, siap diracik humas',
             StatusInvestigasi::LangsungHumas => 'Tanpa disposisi unit teknis',
-            StatusInvestigasi::MenungguTriase => 'PIC unit belum ditunjuk, triase masih di humas',
-            StatusInvestigasi::MenungguInfoTambahan => 'Status berkas tertunda di pelapor',
             StatusInvestigasi::SedangInvestigasi => $this->lamaBerjalan($pengaduan),
             StatusInvestigasi::JawabanUnit => 'Arsip unit tersimpan sebagai bukti penyelesaian',
         };
@@ -332,13 +330,13 @@ final class DaftarPengaduan
     /**
      * Tombol aksi pada kolom terakhir.
      *
-     * Semua aksi masih berupa tombol nonaktif: halaman detail tiket dan
-     * alur triase belum dibangun, jadi tidak ada url yang boleh ditautkan
-     * lebih dulu. Tombol yang paling relevan per kondisi tiket tetap
-     * ditampilkan supaya bentuk antrean triase sudah terlihat, dan jumlah
-     * tombol dibatasi supaya tinggi baris tabel tetap seragam.
+     * Hanya "Buka Detail" yang sudah punya halaman, jadi hanya dia yang
+     * membawa url. Sisanya masih berupa tombol nonaktif karena alur
+     * disposisi dan nudging unit belum dibangun, sehingga tidak boleh ada
+     * tautan palsu. Jumlah tombol dibatasi supaya tinggi baris tabel tetap
+     * seragam.
      *
-     * @return array<int, array{label: string, ikon: string, nada: string}>
+     * @return array<int, array{label: string, ikon: string, nada: string, url: ?string}>
      */
     private function aksi(Pengaduan $pengaduan): array
     {
@@ -347,6 +345,7 @@ final class DaftarPengaduan
                 'label' => 'Menunggu Kelengkapan',
                 'ikon' => 'hourglass_top',
                 'nada' => 'bg-surface-container text-outline border border-outline-variant/30',
+                'url' => null,
             ]];
         }
 
@@ -357,6 +356,7 @@ final class DaftarPengaduan
                 'label' => 'Tentukan Penanganan',
                 'ikon' => 'forward_to_inbox',
                 'nada' => 'bg-secondary text-on-secondary',
+                'url' => null,
             ];
         }
 
@@ -367,6 +367,7 @@ final class DaftarPengaduan
                     : 'Nudge Unit',
                 'ikon' => 'notifications_active',
                 'nada' => 'bg-surface-container text-on-surface-variant',
+                'url' => null,
             ];
         }
 
@@ -374,32 +375,27 @@ final class DaftarPengaduan
             'label' => 'Buka Detail',
             'ikon' => 'visibility',
             'nada' => 'bg-primary-container text-on-primary',
+            'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
         ];
 
         return $aksi;
     }
 
     /**
-     * Angka untuk strip konteks di atas dan strip telemetri di bawah.
+     * Angka untuk strip konteks di atas dan kaki tabel.
      *
      * @param  array<string, int>  $jumlahTahap
      * @return array<string, mixed>
      */
     private static function ringkas(array $jumlahTahap): array
     {
-        $kritis = StatistikDashboard::ringkasanKritis();
-
         return [
             'total' => $jumlahTahap['semua'],
             'aktif' => $jumlahTahap['semua'] - $jumlahTahap[StatusPengaduan::Selesai->value],
             'unit_terhubung' => StatistikDashboard::unitTerhubung(),
             'unit_total' => MasterUnit::query()->count(),
-            'kepatuhan' => StatistikDashboard::kepatuhanSlaPersen(),
-            'standar' => (int) config('pengaduan.kepatuhan_standar_persen', 90),
-            'hari_kerja' => Sla::hariKerja(),
             'hari_investigasi' => Sla::hariInvestigasi(),
-            'lewat' => $kritis['total_lewat'],
-            'telaah' => $kritis['telaah'],
+            'lewat' => StatistikDashboard::ringkasanKritis()['total_lewat'],
         ];
     }
 

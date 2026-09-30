@@ -113,11 +113,14 @@ final class Dashboard
     }
 
     /**
-     * Empat kartu sinkronisasi sub-status unit layanan terkait.
+     * Tiga kartu tahap pengaduan pada panel sinkronisasi.
      *
-     * Tiga kartu pertama dipetakan langsung dari tahap pengaduan,
-     * sedangkan kartu keempat memakai telaah jawaban yang benar-benar
-     * sudah masuk, bukan pengaduan yang sudah ditutup.
+     * Setiap kartu memakai satu tahap pengaduan dan diambil dari
+     * penghitung yang sama dengan baris statistik di atasnya, jadi
+     * tidak ada lagi dimensi "butuh putusan" yang terpisah. Tahap
+     * Perlu Revisi tidak ikut ditampilkan karena sudah ada di baris
+     * statistik dan di daftar pengaduan. Sebutan di sisi unit
+     * tetap disimpan sebagai keterangan tiap kartu.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -125,7 +128,7 @@ final class Dashboard
     {
         return [
             $this->kartuSinkronisasi(
-                eyebrow: 'Tindakan Diperlukan',
+                eyebrow: StatusPengaduan::Diterima->label(),
                 nada: 'text-error',
                 judul: StatusPengaduan::Diterima->subStatus(),
                 jumlah: $this->jumlah(StatusPengaduan::Diterima),
@@ -137,7 +140,7 @@ final class Dashboard
                 aksi: ['label' => 'Kirim Bell Ping (Manual)', 'ikon' => 'campaign'],
             ),
             $this->kartuSinkronisasi(
-                eyebrow: 'Proses Medis/Layanan',
+                eyebrow: StatusPengaduan::Diproses->label(),
                 nada: 'text-secondary',
                 judul: StatusPengaduan::Diproses->subStatus(),
                 jumlah: $this->jumlah(StatusPengaduan::Diproses),
@@ -147,25 +150,14 @@ final class Dashboard
                 catatan: 'Limit '.$this->hariInvestigasi.' hari kerja',
             ),
             $this->kartuSinkronisasi(
-                eyebrow: 'Butuh Putusan Humas',
-                nada: 'text-tertiary-fixed-dim',
-                judul: StatusPengaduan::Revisi->subStatus(),
-                jumlah: $this->jumlah(StatusPengaduan::Revisi),
-                ikon: 'contact_support',
-                warnaIkon: 'bg-tertiary-container text-tertiary-fixed',
-                warnaAngka: 'text-on-tertiary-container',
-                catatan: 'Tanya Pasien',
-                nadaCatatan: 'bg-tertiary-container/30 text-on-tertiary-container',
-            ),
-            $this->kartuSinkronisasi(
-                eyebrow: 'Siap Dirumuskan',
+                eyebrow: StatusPengaduan::Selesai->label(),
                 nada: 'text-secondary',
                 judul: StatusPengaduan::Selesai->subStatus(),
-                jumlah: $this->telaah(),
-                ikon: 'rate_review',
+                jumlah: $this->jumlah(StatusPengaduan::Selesai),
+                ikon: 'task_alt',
                 warnaIkon: 'bg-secondary-container text-on-secondary-container',
                 warnaAngka: 'text-secondary',
-                catatan: 'Menunggu Racikan Humas',
+                catatan: 'Tidak perlu ditindaklanjuti',
                 nadaCatatan: 'bg-secondary-container text-on-secondary-container font-bold',
             ),
         ];
@@ -287,14 +279,6 @@ final class Dashboard
                 'label' => 'Jawaban Unit Masuk',
                 'ikon' => 'task',
                 'nada' => 'bg-secondary text-on-secondary',
-            ];
-        }
-
-        if ($pengaduan->status === StatusPengaduan::Diterima) {
-            return [
-                'label' => 'Menunggu Triase',
-                'ikon' => 'pending_actions',
-                'nada' => 'bg-secondary-container text-on-secondary-container',
             ];
         }
 
