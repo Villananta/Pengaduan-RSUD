@@ -16,20 +16,23 @@
     /*
      * Navigasi konsol admin.
      *
-     * Item aktif ditentukan dari nama route halaman yang sedang dibuka.
-     * Item yang belum punya url sengaja ditampilkan tanpa tautan: fitur
-     * berikutnya masih dalam tahap desain, jadi tidak ada halaman tujuan
-     * yang boleh ditautkan lebih dulu.
+     * Item dibedakan menjadi tiga bentuk supaya tidak ada menu yang
+     * ditampilkan lebihenabled daripada kenyataannya:
      *
-     * Item yang tidak punya halaman tunggal memakai 'pola' supaya tetap
-     * bisa ditandai aktif. Workspace & Detail tidak pernah punya url karena
-     * selalu dibuka per tiket, bukan lewat daftar halaman.
+     * - 'route'  : punya halaman sendiri, jadi benar-benar tautan.
+     * - 'pola'   : fiturnya sudah jadi tetapi tidak punya halaman indeks.
+     *   Detail Pengaduan hanya bisa dibuka per tiket dari daftar pengaduan,
+     *   jadi menunya tidak punya tujuan untuk diklik.
+     * - kosong   : fiturnya belum dibangun, tampil sebagai menu mati.
+     *
+     * Penanda aktif diambil dari route yang sedang dibuka, sehingga Detail
+     * Pengaduan tetap ditandai aktif meskipun tidak punya tautan.
      */
     $beranda = 'admin.dashboard';
     $navigasi = [
         ['label' => 'Beranda Utama', 'route' => $beranda],
         ['label' => 'Daftar Pengaduan', 'route' => 'admin.pengaduan.index'],
-        ['label' => 'Workspace & Detail', 'route' => null, 'pola' => 'admin.pengaduan.show'],
+        ['label' => 'Detail Pengaduan', 'route' => null, 'pola' => 'admin.pengaduan.show'],
         ['label' => 'Monitor Disposisi & SLA', 'route' => null],
         ['label' => 'Master Data Unit', 'route' => null],
     ];
@@ -89,8 +92,8 @@
         <nav class="flex items-center h-full gap-space-md" aria-label="Navigasi konsol admin">
             @foreach ($navigasi as $item)
                 @php
-                    $pola = $item['pola'] ?? $item['route'];
-                    $aktif = $pola !== null && request()->routeIs($pola);
+                    $penanda = $item['route'] ?? $item['pola'] ?? null;
+                    $aktif = $penanda !== null && request()->routeIs($penanda);
                 @endphp
 
                 @if ($item['route'])
@@ -103,6 +106,18 @@
                         ])
                         @if ($aktif) aria-current="page" @endif
                     >{{ $item['label'] }}</a>
+                @elseif ($item['pola'] ?? false)
+                    {{-- Menu tanpa halaman indeks. Tidak diklik karena tidak
+                         ada tujuan yang boleh ditautkan, tapi tampil normal
+                         supaya tidak terbaca sebagai fitur yang belum ada. --}}
+                    <span
+                        @class([
+                            'h-full flex items-center px-space-sm font-title-sm text-title-sm',
+                            'text-secondary border-b-[3px] border-secondary font-semibold bg-surface-container/50' => $aktif,
+                            'text-on-surface-variant' => ! $aktif,
+                        ])
+                        @if ($aktif) aria-current="page" @endif
+                    >{{ $item['label'] }}</span>
                 @else
                     <span
                         @class([

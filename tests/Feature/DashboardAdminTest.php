@@ -34,12 +34,15 @@ class DashboardAdminTest extends TestCase
 
     public function test_menu_yang_desainnya_belum_ada_tidak_ditautkan(): void
     {
-        $menu = ['Workspace &amp; Detail', 'Monitor Disposisi &amp; SLA', 'Master Data Unit'];
+        // Detail Pengaduan sudah jadi bagian dari aplikasi, jadi tidak lagi
+        // masuk daftar menu yang belum dibangun.
+        $menu = ['Monitor Disposisi &amp; SLA', 'Master Data Unit'];
 
         $tampilan = $this->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Beranda Utama')
             ->assertSee('Daftar Pengaduan')
+            ->assertSee('Detail Pengaduan')
             ->getContent();
 
         foreach ($menu as $label) {

@@ -32,6 +32,23 @@ final class Sla
     }
 
     /**
+     * Tambahan hari kerja untuk tiket yang ditandai kasus berat.
+     *
+     * Penandaan kasus berat tidak menambah batas investigasi unit karena
+     * yang perlu dipercepat tetap pengumpulan bukti, bukan jawaban akhir.
+     */
+    public static function tambahanKasusBerat(): int
+    {
+        return (int) config('pengaduan.sla.kasus_berat_hari_kerja', 8);
+    }
+
+    /** Total hari kerja penyelesaian, sudah termasuk tambahan kasus berat. */
+    public static function totalHariKerja(bool $kasusBerat = false): int
+    {
+        return self::hariKerja() + ($kasusBerat ? self::tambahanKasusBerat() : 0);
+    }
+
+    /**
      * Jumlah hari kerja yang sudah berjalan sejak sebuah tanggal.
      *
      * Nilai selalu positif, dipakai untuk melihat sejauh mana satu
@@ -53,16 +70,25 @@ final class Sla
         return self::hariKerjaLewat($mulai, $sekarang) >= self::hariInvestigasi();
     }
 
-    /** Tanggal jatuh tempo penyelesaian pengaduan. */
-    public static function target(CarbonInterface $mulai): CarbonInterface
+    /**
+     * Tanggal jatuh tempo penyelesaian pengaduan.
+     *
+     * Tiket kasus berat memakai total hari kerja yang lebih panjang. Tanpa
+     * parameter ini setiap pemanggilan harus ingat ikut meneruskan penandanya,
+     * dan target tiket yang sama bisa berbeda antara daftar dan detail.
+     */
+    public static function target(CarbonInterface $mulai, bool $kasusBerat = false): CarbonInterface
     {
-        return $mulai->copy()->addWeekdays(self::hariKerja());
+        return $mulai->copy()->addWeekdays(self::totalHariKerja($kasusBerat));
     }
 
     /** Jumlah hari kerja yang tersisa dari $sekarang menuju target. */
-    public static function sisaHariKerja(CarbonInterface $mulai, ?CarbonInterface $sekarang = null): int
-    {
-        $target = self::target($mulai);
+    public static function sisaHariKerja(
+        CarbonInterface $mulai,
+        ?CarbonInterface $sekarang = null,
+        bool $kasusBerat = false,
+    ): int {
+        $target = self::target($mulai, $kasusBerat);
 
         return max(0, ($sekarang ?? now())->diffInWeekdays($target, false));
     }
@@ -73,16 +99,19 @@ final class Sla
      * Pengaduan yang sudah selesai dinilai dari waktu penyelesaiannya,
      * sedangkan pengaduan yang masih berjalan dinilai dari posisi hari ini.
      */
-    public static function zona(CarbonInterface $mulai, ?CarbonInterface $selesai = null): ZonaSla
-    {
-        $target = self::target($mulai);
+    public static function zona(
+        CarbonInterface $mulai,
+        ?CarbonInterface $selesai = null,
+        bool $kasusBerat = false,
+    ): ZonaSla {
+        $target = self::target($mulai, $kasusBerat);
         $peringatan = (int) config('pengaduan.sla.peringatan_hari_kerja', 2);
 
         if ($selesai !== null) {
             return $selesai->lessThanOrEqualTo($target) ? ZonaSla::TepatWaktu : ZonaSla::Terlambat;
         }
 
-        $sisa = self::sisaHariKerja($mulai);
+        $sisa = self::sisaHariKerja($mulai, null, $kasusBerat);
 
         if ($sisa === 0) {
             return ZonaSla::Terlambat;
@@ -92,7 +121,7 @@ final class Sla
     }
 
     /** Persentase progres tahap terhadap total hari kerja SLA. */
-    public static function persen(int $tahap): int
+    public static function persen(int $tahap, bool $kasusBerat = false): int
     {
         $prosedur = config('pengaduan.prosedur', []);
 
@@ -101,12 +130,12 @@ final class Sla
         }
 
         $batas = (int) ($prosedur[$tahap]['batas'] ?? 0);
-        $hariKerja = self::hariKerja();
+        $total = self::totalHariKerja($kasusBerat);
 
-        if ($batas >= $hariKerja) {
+        if ($batas >= $total) {
             return 100;
         }
 
-        return (int) round($batas / $hariKerja * 100);
+        return (int) round($batas / $total * 100);
     }
 }

@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pengaduan;
 use App\Support\DaftarPengaduan;
 use App\Support\DetailPengaduan;
+use App\Support\TindakLanjutPengaduan;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PengaduanController extends Controller
@@ -34,5 +38,126 @@ class PengaduanController extends Controller
         return view('admin.pengaduan.show', [
             'detail' => DetailPengaduan::dariKode($kode),
         ]);
+    }
+
+    /** Simpan draf jawaban resmi tanpa mengirimnya ke pelapor. */
+    public function simpanDraf(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'draf' => ['nullable', 'string', 'max:5000'],
+        ], [
+            'draf.max' => 'Draf jawaban maksimal 5000 karakter.',
+        ]);
+
+        TindakLanjutPengaduan::simpanDraf($pengaduan, $validated['draf'] ?? null);
+
+        return $this->kembali($pengaduan, 'Draf jawaban tersimpan. Belum ada yang dikirim ke pelapor.');
+    }
+
+    /** Aksi A: kirim jawaban resmi ke pelapor sekaligus menutup tiket. */
+    public function kirimJawaban(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'isi' => ['required', 'string', 'min:10', 'max:5000'],
+            'catatan' => ['nullable', 'string', 'max:500'],
+        ], [
+            'isi.required' => 'Tuliskan jawaban resmi sebelum mengirimnya ke pelapor.',
+            'isi.min' => 'Jawaban resmi minimal 10 karakter agar pelapor mendapat penjelasan yang berarti.',
+            'isi.max' => 'Jawaban resmi maksimal 5000 karakter.',
+            'catatan.max' => 'Catatan internal maksimal 500 karakter.',
+        ]);
+
+        $tindakan = TindakLanjutPengaduan::tindakanTersedia($pengaduan);
+
+        // Alasan penolakan ditulis dengan nama field yang dipakai template,
+        // supaya pesan salahnya muncul di panel yang sama dengan formulirnya.
+        if (! $tindakan['tutup']) {
+            throw ValidationException::withMessages([
+                'isi' => $tindakan['alasanTutup'],
+            ]);
+        }
+
+        TindakLanjutPengaduan::kirimJawabanResmi(
+            $pengaduan,
+            $validated['isi'],
+            $validated['catatan'] ?? null,
+        );
+
+        return $this->kembali($pengaduan, 'Jawaban resmi terkirim ke pelapor dan tiket ditandai selesai.');
+    }
+
+    /** Aksi B: kembalikan tiket ke unit untuk klarifikasi ulang. */
+    public function kembalikan(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'catatan' => ['nullable', 'string', 'max:500'],
+        ], [
+            'catatan.max' => 'Catatan untuk unit maksimal 500 karakter.',
+        ]);
+
+        $tindakan = TindakLanjutPengaduan::tindakanTersedia($pengaduan);
+
+        // Alasan penolakan ditulis dengan nama field yang dipakai template,
+        // supaya pesan salahnya muncul di panel yang sama dengan formulirnya.
+        if (! $tindakan['kembalikan']) {
+            throw ValidationException::withMessages([
+                'catatan' => $tindakan['alasanKembalikan'],
+            ]);
+        }
+
+        TindakLanjutPengaduan::kembalikanKeUnit($pengaduan, $validated['catatan'] ?? null);
+
+        return $this->kembali($pengaduan, 'Tiket dikembalikan ke unit untuk klarifikasi ulang.');
+    }
+
+    /** Nyalakan atau matikan penandaan kasus berat beserta ekstensi SLA-nya. */
+    public function kasusBerat(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'aktif' => ['required', 'boolean'],
+        ], [
+            'aktif.required' => 'Status kasus berat tidak terbaca.',
+        ]);
+
+        $aktif = $request->boolean('aktif');
+
+        TindakLanjutPengaduan::tandaiKasusBerat($pengaduan, $aktif);
+
+        return $this->kembali(
+            $pengaduan,
+            $aktif
+                ? 'Tiket ditandai kasus berat, target penyelesaian digeser.'
+                : 'Penandaan kasus berat dilepas, target kembali ke standar.'
+        );
+    }
+
+    /**
+     * Tiket yang dibuka formulir harus benar-benar ada; kalau tidak, kode
+     * yang diketik admin tidak boleh sampai tersimpan sebagai balasan.
+     */
+    private function cariTiket(string $kode): Pengaduan
+    {
+        return Pengaduan::where('kode_tiket', $kode)->firstOrFail();
+    }
+
+    /**
+     * Kembali ke panel tiket dengan pesan hasil.
+     *
+     * Semua tindakan pada halaman detail berakhir di halaman yang sama,
+     * supaya admin tidak perlu mencari ulang tiketnya di daftar.
+     */
+    private function kembali(Pengaduan $pengaduan, string $pesan): RedirectResponse
+    {
+        return redirect()
+            ->route('admin.pengaduan.show', $pengaduan->kode_tiket)
+            ->with('sukses', $pesan);
     }
 }

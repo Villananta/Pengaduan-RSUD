@@ -86,6 +86,30 @@ final class DetailPengaduan
     }
 
     /**
+     * Draf jawaban admin yang belum pernah dikirim.
+     *
+     * Disimpan sebagai nilai terpisah supaya template tidak perlu membaca
+     * kolom draf_jawaban langsung.
+     */
+    public function draf(): ?string
+    {
+        return $this->pengaduan->draf_jawaban;
+    }
+
+    /**
+     * Tindakan yang boleh dijalankan pada tiket ini.
+     *
+     * Disalin dari App\Support\TindakLanjutPengaduan supaya template punya
+     * satu sumber kebenaran untuk menentukan tombol aktif dan alasannya.
+     *
+     * @return array{tutup: bool, kembalikan: bool, alasanTutup: ?string, alasanKembalikan: ?string}
+     */
+    public function tindakan(): array
+    {
+        return TindakLanjutPengaduan::tindakanTersedia($this->pengaduan);
+    }
+
+    /**
      * Stepper empat tahap pengaduan.
      *
      * Waktu pada tiap pilar diambil dari baris riwayat saat tiket pertama
@@ -176,6 +200,13 @@ final class DetailPengaduan
             'ringkas' => $pengaduan->ringkasSla(),
             'lewatUnit' => Sla::lewatInvestigasi($pengaduan->created_at),
             'hariInvestigasi' => Sla::hariInvestigasi(),
+
+            // Kasus berat menggeser target, jadi ringkasan di bawah harus
+            // menyebut total hari kerja yang benar, bukan angka default.
+            'kasusBerat' => $pengaduan->kasus_berat,
+            'kasusBeratAt' => $pengaduan->kasus_berat_at?->format('d M Y, H:i'),
+            'totalHariKerja' => $pengaduan->totalHariKerjaSla(),
+            'tambahanHariKerja' => Sla::tambahanKasusBerat(),
         ];
     }
 

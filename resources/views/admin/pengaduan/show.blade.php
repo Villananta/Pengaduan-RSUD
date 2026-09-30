@@ -9,9 +9,23 @@
         $tiket = $detail->pengaduan;
         $unit = $detail->unit;
         $sla = $detail->sla;
+        $tindakan = $detail->tindakan();
+        $kode = $detail->kode();
     @endphp
 
     <div class="w-full px-margin py-space-md flex flex-col gap-space-lg">
+
+        {{-- Hasil tindakan: muncul setelah kirim jawaban, kembalikan unit,
+             simpan draf, atau ubah penandaan kasus berat. --}}
+        @if (session('sukses'))
+            <div
+                role="status"
+                class="w-full bg-secondary-container text-on-secondary-container rounded-lg px-space-md py-space-sm flex items-start gap-space-sm"
+            >
+                <x-symbol nama="check_circle" class="text-[20px] shrink-0" />
+                <span class="text-body-sm">{{ session('sukses') }}</span>
+            </div>
+        @endif
 
         {{-- Remah roti: kembali ke daftar, kode tiket, dan posisi SLA singkat. --}}
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
@@ -174,33 +188,59 @@
             </div>
         </section>
 
-        {{-- Penandaan kasus berat. Kolom penanda belum ada di tabel pengaduan,
-             jadi sakelarnya sengaja dimatikan daripada menuliskan nilai yang
-             tidak pernah tersimpan. --}}
-        <div class="w-full bg-surface-container-lowest rounded-lg shadow-sm px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+        {{-- Penandaan kasus berat. Menyalakannya menambah hari kerja SLA,
+             jadi panel ini menampilkan berapa lama target ikut bergeser. --}}
+        <div @class([
+            'w-full rounded-lg shadow-sm px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-sm',
+            'bg-error-container/40 border border-error/30' => $sla['kasusBerat'],
+            'bg-surface-container-lowest' => ! $sla['kasusBerat'],
+        ])>
             <div class="flex items-start gap-space-sm">
-                <span class="w-9 h-9 rounded-lg bg-error-container text-on-error-container flex items-center justify-center shrink-0">
+                <span @class([
+                    'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                    'bg-error text-on-error' => $sla['kasusBerat'],
+                    'bg-error-container text-on-error-container' => ! $sla['kasusBerat'],
+                ])>
                     <x-symbol nama="emergency" class="text-[20px]" />
                 </span>
                 <div>
-                    <h2 class="font-title-md text-title-md text-on-surface font-bold">Tandai sebagai Kasus Berat</h2>
+                    <h2 class="font-title-md text-title-md text-on-surface font-bold">
+                        @if ($sla['kasusBerat'])
+                            Kasus Berat Aktif
+                        @else
+                            Tandai sebagai Kasus Berat
+                        @endif
+                    </h2>
                     <p class="font-body-sm text-body-sm text-on-surface-variant">
-                        Kasus berat menaikkan target penyelesaian karena pengaduan menyangkut keselamatan pasien.
-                        Penandaan ini belum ada di data pengaduan, jadi belum bisa diaktifkan.
+                        Kasus berat menambah {{ $sla['tambahanHariKerja'] }} hari kerja pada target penyelesaian,
+                        jadi standar {{ $sla['hariKerja'] }} hari kerja menjadi
+                        <strong>{{ $sla['totalHariKerja'] }} hari kerja</strong>.
+                        @if ($sla['kasusBeratAt'])
+                            Ditandai sejak {{ $sla['kasusBeratAt'] }} WIB.
+                        @endif
                     </p>
                 </div>
             </div>
 
-            <button
-                type="button"
-                disabled
-                aria-pressed="false"
-                title="Tandai kasus berat &mdash; fitur sedang dirancang"
-                class="shrink-0 px-space-md py-2 rounded-full bg-surface-container-highest text-on-surface-variant font-label-md text-label-md font-bold flex items-center gap-1.5 cursor-not-allowed opacity-70"
-            >
-                <x-symbol nama="toggle_off" class="text-[18px]" />
-                Tidak Ditandai
-            </button>
+            {{-- Satu form untuk dua arah: tombol mengirim nilai aktif yang
+                 kebalikan dari penandaan sekarang. --}}
+            <form method="POST" action="{{ route('admin.pengaduan.kasus-berat', $kode) }}" class="shrink-0">
+                @csrf
+                <input type="hidden" name="aktif" value="{{ $sla['kasusBerat'] ? 0 : 1 }}">
+
+                <button
+                    type="submit"
+                    aria-pressed="{{ $sla['kasusBerat'] ? 'true' : 'false' }}"
+                    @class([
+                        'px-space-md py-2 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 transition-colors',
+                        'bg-surface-container text-on-surface-variant hover:bg-surface-container-highest' => $sla['kasusBerat'],
+                        'bg-error text-on-error hover:opacity-90' => ! $sla['kasusBerat'],
+                    ])
+                >
+                    <x-symbol :nama="$sla['kasusBerat'] ? 'toggle_off' : 'toggle_on'" class="text-[18px]" />
+                    {{ $sla['kasusBerat'] ? 'Lepas Penandaan' : 'Tandai Kasus Berat' }}
+                </button>
+            </form>
         </div>
 
         {{-- Kolom kerja: kiri kronologi dan formulasi, kanan panel keputusan. --}}
@@ -310,23 +350,44 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col gap-space-xs">
+                    {{-- Draf jawaban memakai form sendiri supaya admin bisa
+                         menyimpan pekerjaan setengah jadi tanpa ikut menutup
+                         tiket. --}}
+                    <form method="POST" action="{{ route('admin.pengaduan.draf', $kode) }}" class="flex flex-col gap-space-xs">
+                        @csrf
+
                         <label for="drafJawaban" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
                             Draf Tanggapan Resmi
                         </label>
                         <textarea
                             id="drafJawaban"
+                            name="draf"
                             rows="7"
                             placeholder="Tuliskan narasi penjelasan resmi RSUD Dr. Soetomo untuk pelapor..."
                             class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
-                        ></textarea>
-                        <span class="font-label-sm text-label-sm text-outline">
-                            Draf disimpan di sisi admin dan belum pernah dikirim ke pelapor.
-                        </span>
-                    </div>
+                        >{{ old('draf', $detail->draf()) }}</textarea>
 
-                    {{-- Dua pilihan tindak lanjut. Keduanya belum punya endpoint
-                         sehingga sengaja dinonaktifkan, bukan mengirim data. --}}
+                        @error('draf')
+                            <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                        @enderror
+
+                        <div class="flex flex-wrap items-center justify-between gap-space-sm">
+                            <span class="font-label-sm text-label-sm text-outline">
+                                Draf disimpan di sisi admin dan belum pernah dikirim ke pelapor.
+                            </span>
+                            <button
+                                type="submit"
+                                class="shrink-0 px-space-md py-2 rounded-full bg-surface-container-highest text-on-surface font-label-md text-label-md font-bold flex items-center gap-1.5 transition-opacity hover:opacity-70"
+                            >
+                                <x-symbol nama="save" class="text-[18px]" />
+                                Simpan Draf
+                            </button>
+                        </div>
+                    </form>
+
+                    {{-- Dua pilihan tindak lanjut memakai dua form terpisah
+                         karena tujuannya berbeda: satu menutup tiket, satu lagi
+                         mengembalikannya ke unit yang ditugaskan. --}}
                     <div class="pt-space-sm bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-md">
                         <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
                             Tentukan Keputusan Tindak Lanjut Pengaduan
@@ -334,8 +395,17 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 
-                            {{-- Aksi A: kirim jawaban resmi dan tutup tiket. --}}
-                            <div class="p-space-md rounded-lg bg-surface-container-lowest shadow-sm flex flex-col justify-between gap-space-sm">
+                            {{-- Aksi A: kirim jawaban resmi dan tutup tiket.
+                                 Narasi jawaban ditulis ulang di sini supaya yang
+                                 terkirim ke pelapor bukan sekadar draf yang
+                                 kebetulan masih tertinggal. --}}
+                            <form
+                                method="POST"
+                                action="{{ route('admin.pengaduan.jawaban', $kode) }}"
+                                class="p-space-md rounded-lg bg-surface-container-lowest shadow-sm flex flex-col justify-between gap-space-sm"
+                            >
+                                @csrf
+
                                 <div class="flex items-start gap-space-sm">
                                     <span class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
                                         <x-symbol nama="verified" class="text-[18px]" />
@@ -348,19 +418,64 @@
                                     </div>
                                 </div>
 
+                                <div class="flex flex-col gap-space-xs">
+                                    <label for="isiJawaban" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                        Narasi Jawaban Resmi
+                                    </label>
+                                    <textarea
+                                        id="isiJawaban"
+                                        name="isi"
+                                        rows="5"
+                                        placeholder="Jawaban resmi yang akan dibaca pelapor beserta kronologi pengaduannya..."
+                                        class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
+                                    >{{ old('isi', $detail->draf()) }}</textarea>
+
+                                    @error('isi')
+                                        <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="flex flex-col gap-space-xs">
+                                    <label for="catatanTutup" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                        Catatan Penutupan
+                                    </label>
+                                    <input
+                                        id="catatanTutup"
+                                        type="text"
+                                        name="catatan"
+                                        value="{{ old('catatan') }}"
+                                        placeholder="Opsional, hanya untuk jejak audit internal."
+                                        @class([
+                                            'w-full p-space-sm rounded-lg bg-surface font-body-sm text-body-sm text-on-surface outline-none transition-all placeholder:text-outline border',
+                                            'border-error' => $errors->has('catatan'),
+                                            'border-outline-variant/40' => ! $errors->has('catatan'),
+                                        ])
+                                    >
+
+                                    @error('catatan')
+                                        <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
                                 <button
-                                    type="button"
-                                    disabled
-                                    title="Kirim jawaban resmi &mdash; fitur sedang dirancang"
-                                    class="w-full mt-space-xs py-2.5 px-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
+                                    type="submit"
+                                    @disabled(! $tindakan['tutup'])
+                                    title="{{ $tindakan['alasanTutup'] ?? 'Kirim jawaban resmi lalu tutup tiket' }}"
+                                    class="w-full mt-space-xs py-2.5 px-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     <x-symbol nama="send" class="text-[18px]" />
                                     Kirim &amp; Selesaikan Tiket
                                 </button>
-                            </div>
+                            </form>
 
                             {{-- Aksi B: kembalikan ke unit untuk klarifikasi ulang. --}}
-                            <div class="p-space-md rounded-lg bg-surface-container-lowest shadow-sm flex flex-col justify-between gap-space-sm">
+                            <form
+                                method="POST"
+                                action="{{ route('admin.pengaduan.kembalikan', $kode) }}"
+                                class="p-space-md rounded-lg bg-surface-container-lowest shadow-sm flex flex-col justify-between gap-space-sm"
+                            >
+                                @csrf
+
                                 <div class="flex items-start gap-space-sm">
                                     <span class="w-8 h-8 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0">
                                         <x-symbol nama="replay" class="text-[18px]" />
@@ -374,16 +489,43 @@
                                     </div>
                                 </div>
 
+                                <div class="flex flex-col gap-space-xs">
+                                    <label for="catatanKembalikan" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                        Alasan Dikembalikan ke Unit
+                                    </label>
+                                    <textarea
+                                        id="catatanKembalikan"
+                                        name="catatan"
+                                        rows="5"
+                                        placeholder="Contoh: hasil rontgen belum dilampirkan, mohon dilengkapi unit pemeriksa."
+                                        @class([
+                                            'w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none transition-all placeholder:text-outline border',
+                                            'border-error' => $errors->has('catatan'),
+                                            'border-outline-variant/40' => ! $errors->has('catatan'),
+                                        ])
+                                    >{{ old('catatan') }}</textarea>
+
+                                    @error('catatan')
+                                        <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
                                 <button
-                                    type="button"
-                                    disabled
-                                    title="Kembalikan ke unit &mdash; fitur sedang dirancang"
-                                    class="w-full mt-space-xs py-2.5 px-space-md rounded-lg bg-surface-container-highest text-error font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 cursor-not-allowed opacity-70"
+                                    type="submit"
+                                    @disabled(! $tindakan['kembalikan'])
+                                    title="{{ $tindakan['alasanKembalikan'] ?? 'Kembalikan tiket ke unit yang ditugaskan' }}"
+                                    class="w-full mt-space-xs py-2.5 px-space-md rounded-lg bg-surface-container-highest text-error font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity enabled:hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                     <x-symbol nama="reply_all" class="text-[18px]" />
                                     Kembalikan ke Unit
                                 </button>
-                            </div>
+
+                                @unless ($tindakan['kembalikan'])
+                                    <span class="font-label-sm text-label-sm text-outline text-center">
+                                        {{ $tindakan['alasanKembalikan'] }}
+                                    </span>
+                                @endunless
+                            </form>
                         </div>
                     </div>
                 </article>

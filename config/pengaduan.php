@@ -14,6 +14,15 @@ return [
         // ini akan disorot di banner konsol admin sekaligus menjadi dasar
         // eskalasi otomatis ke Wadir Pelayanan Medik dan Komite Medik.
         'investigasi_hari_kerja' => 5,
+
+        // Tambahan hari kerja untuk tiket yang ditandai kasus berat.
+        //
+        // Kasus yang menyangkut keselamatan pasien atau butuh telaah komite
+        // etik tidak bisa diselesaikan dalam 12 hari kerja, jadi target
+        // penyelesaiannya digeser sebesar angka ini. Batas investigasi
+        // internal unit tetap 5 hari kerja karena yang harus dipercepat
+        // adalah pengumpulan bukti, bukan waktu penyelesaian akhir.
+        'kasus_berat_hari_kerja' => 8,
     ],
 
     // Data pribadi pengaduan dihapus setelah melewati masa retensi ini.

@@ -20,6 +20,16 @@ class Pengaduan extends Model
 
     protected $table = 'pengaduan';
 
+    /**
+     * Nilai bawaan yang ikut dikirim saat insert.
+     *
+     * Tanpa ini atribut kasus_berat kosong pada model yang baru dibuat,
+     * sehingga perhitungan SLA menerima null dan gagal saat dipakai.
+     */
+    protected $attributes = [
+        'kasus_berat' => false,
+    ];
+
     protected $fillable = [
         'kategori',
         'nama_lengkap',
@@ -34,11 +44,15 @@ class Pengaduan extends Model
         'lampiran',
         'status',
         'master_unit_id',
+        'kasus_berat',
+        'draf_jawaban',
     ];
 
     protected $casts = [
         'waktu_kejadian' => 'datetime',
         'selesai_at' => 'datetime',
+        'kasus_berat' => 'boolean',
+        'kasus_berat_at' => 'datetime',
         'lampiran' => 'array',
         'kategori' => KategoriPengaduan::class,
         'status' => StatusPengaduan::class,
@@ -108,6 +122,58 @@ class Pengaduan extends Model
         return $this->hasMany(RiwayatStatusPengaduan::class)->oldest();
     }
 
+    /**
+     * Pindahkan tiket ke tahap lain dan catat jejak auditnya.
+     *
+     * Penulisan status, waktu selesai, dan baris riwayat harus atomik:
+     * kalau salah satu gagal, halaman detail akan menampilkan tahap yang
+     * tidak pernah tercatat di riwayat.
+     *
+     * Method ini tidak memeriksa apakah perpindahan itu wajar; pemeriksaannya
+     * ada di App\Support\TindakLanjutPengaduan sesuai konteks tiap aksi.
+     */
+    public function pindahTahap(StatusPengaduan $tujuan, ?string $catatan = null, ?int $adminId = null): void
+    {
+        $sebelumnya = $this->status;
+
+        $this->status = $tujuan;
+        $this->selesai_at = $tujuan->selesai() ? now() : null;
+        $this->save();
+
+        $this->riwayatStatus()->create([
+            'dari' => $sebelumnya,
+            'ke' => $tujuan,
+            'catatan' => $catatan,
+            'admin_id' => $adminId,
+        ]);
+    }
+
+    /**
+     * Nyalakan atau matikan penandaan kasus berat.
+     *
+     * Waktu penandaan ikut disimpan karena melihat kapan masalahnya pertama
+     * kali menaikkan batas SLA jauh lebih berguna daripada melihatnya saja.
+     */
+    public function tandaiKasusBerat(bool $aktif, ?int $adminId = null): void
+    {
+        if ($aktif === $this->kasus_berat) {
+            return;
+        }
+
+        $this->kasus_berat = $aktif;
+        $this->kasus_berat_at = $aktif ? now() : null;
+        $this->save();
+
+        $this->riwayatStatus()->create([
+            'dari' => $this->status,
+            'ke' => $this->status,
+            'catatan' => $aktif
+                ? 'Pengaduan ditandai sebagai kasus berat oleh admin humas.'
+                : 'Penandaan kasus berat dilepas oleh admin humas.',
+            'admin_id' => $adminId,
+        ]);
+    }
+
     public function scopeSelesai(Builder $query): Builder
     {
         return $query->where('status', StatusPengaduan::Selesai->value);
@@ -121,7 +187,9 @@ class Pengaduan extends Model
     /** Progres tahap terhadap standar pelayanan, dalam persen. */
     public function progresPersen(): int
     {
-        return $this->status->selesai() ? 100 : Sla::persen($this->status->tahap());
+        return $this->status->selesai()
+            ? 100
+            : Sla::persen($this->status->tahap(), $this->kasus_berat);
     }
 
     /**
@@ -136,22 +204,29 @@ class Pengaduan extends Model
         return $this->status->subStatus();
     }
 
-    /** Tanggal jatuh tempo penyelesaian pengaduan. */
+    /**
+     * Target penyelesaian pengaduan.
+     *
+     * Tiket kasus berat memakai target yang lebih panjang karena perlu telaah
+     * komite etik, sehingga batas 12 hari kerja tidak lagi berlaku padanya.
+     */
     public function targetSla(): CarbonInterface
     {
-        return Sla::target($this->created_at);
+        return Sla::target($this->created_at, $this->kasus_berat);
     }
 
     /** Zona SLA berdasarkan waktu berjalan atau waktu penyelesaian. */
     public function zonaSla(): ZonaSla
     {
-        return Sla::zona($this->created_at, $this->selesai_at);
+        return Sla::zona($this->created_at, $this->selesai_at, $this->kasus_berat);
     }
 
     /** Sisa hari kerja menuju target, nol bila sudah lewat atau selesai. */
     public function sisaHariSla(): int
     {
-        return $this->status->selesai() ? 0 : Sla::sisaHariKerja($this->created_at);
+        return $this->status->selesai()
+            ? 0
+            : Sla::sisaHariKerja($this->created_at, null, $this->kasus_berat);
     }
 
     /** Ringkasan SLA satu kalimat untuk ditampilkan pada panel. */
@@ -167,7 +242,13 @@ class Pengaduan extends Model
             return 'Sisa '.$sisa.' hari kerja, target '.$this->targetSla()->format('d M Y');
         }
 
-        return 'Melewati target SLA '.Sla::hariKerja().' hari kerja';
+        return 'Melewati target SLA '.$this->totalHariKerjaSla().' hari kerja';
+    }
+
+    /** Total hari kerja SLA tiket ini, termasuk tambahan kasus berat. */
+    public function totalHariKerjaSla(): int
+    {
+        return Sla::totalHariKerja($this->kasus_berat);
     }
 
     /** Daftar berkas lampiran yang diunggah bersama pengaduan. */

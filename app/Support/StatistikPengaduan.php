@@ -109,7 +109,7 @@ final class StatistikPengaduan
         Pengaduan::query()
             ->where('status', StatusPengaduan::Selesai->value)
             ->whereNotNull('selesai_at')
-            ->get(['created_at', 'selesai_at'])
+            ->get(['created_at', 'selesai_at', 'kasus_berat'])
             ->each(function (Pengaduan $pengaduan) use (&$tepatWaktu, &$totalHari, &$terhitung): void {
                 $mulai = $pengaduan->created_at;
                 $selesai = $pengaduan->selesai_at;
@@ -121,7 +121,9 @@ final class StatistikPengaduan
                 $terhitung++;
                 $totalHari += $mulai->diffInDays($selesai, true);
 
-                if (Sla::zona($mulai, $selesai)->value === 'tepat_waktu') {
+                // Kasus berat punya target yang lebih panjang, jadi dihitung
+                // dengan batasnya sendiri supaya tidak otomatis masuk terlambat.
+                if (Sla::zona($mulai, $selesai, $pengaduan->kasus_berat)->value === 'tepat_waktu') {
                     $tepatWaktu++;
                 }
             });

@@ -8,13 +8,7 @@ use App\Models\Pengaduan;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
-/**
- * Data tampilan untuk beranda konsol admin.
- *
- * Controller hanya meneruskan objek ini ke view supaya penyusunan
- * kalimat ringkasan, warna, dan daftar tombol tidak tersebar di
- * dalam template.
- */
+
 final class Dashboard
 {
     /**

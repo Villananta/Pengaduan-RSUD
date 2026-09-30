@@ -269,7 +269,7 @@ final class StatistikDashboard
         $selesaiTiket = Pengaduan::query()
             ->selesai()
             ->whereNotNull('selesai_at')
-            ->get(['created_at', 'selesai_at', 'master_unit_id']);
+            ->get(['created_at', 'selesai_at', 'master_unit_id', 'kasus_berat']);
 
         $tepatWaktu = 0;
         $totalHariKerja = 0.0;
@@ -298,7 +298,9 @@ final class StatistikDashboard
             $terhitung++;
             $totalHariKerja += (int) abs($mulai->diffInWeekdays($selesaiAt, true));
 
-            $tepat = Sla::zona($mulai, $selesaiAt) === ZonaSla::TepatWaktu;
+            // Kasus berat punya target sendiri yang lebih panjang, jadi zona
+            // SLA-nya dihitung dengan batas itu, bukan batas standar 12 hari.
+            $tepat = Sla::zona($mulai, $selesaiAt, $pengaduan->kasus_berat) === ZonaSla::TepatWaktu;
 
             if ($tepat) {
                 $tepatWaktu++;
