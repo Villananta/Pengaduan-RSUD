@@ -526,6 +526,71 @@
                                 </p>
                             @endforelse
                         </div>
+
+                        <!-- Form Balasan Admin: kolom chat yang sama dengan
+                             halaman lacak pelapor, jadi keduanya tinggal
+                             dibaca sebagai percakapan satu arah dua. -->
+                        <form
+                            method="POST"
+                            action="{{ route('admin.pengaduan.balas', $kode) }}"
+                            enctype="multipart/form-data"
+                            class="flex flex-col gap-space-sm bg-surface-container-low p-space-md rounded-lg"
+                        >
+                            @csrf
+
+                            <div class="flex flex-col gap-space-xs">
+                                <label for="isiBalasan" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                    Tulis Balasan untuk Pelapor
+                                </label>
+                                <textarea
+                                    id="isiBalasan"
+                                    name="isi"
+                                    rows="3"
+                                    placeholder="Tuliskan tanggapan atau informasi yang perlu disampaikan ke pelapor..."
+                                    class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
+                                >{{ old('isi') }}</textarea>
+
+                                @error('isi')
+                                    <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-between gap-space-sm">
+                                <label class="flex items-center gap-2 px-space-sm py-2 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold cursor-pointer">
+                                    <x-symbol nama="attach_file" class="text-[16px]" />
+                                    <span>Lampiran</span>
+                                    <input
+                                        type="file"
+                                        name="lampiran"
+                                        accept=".jpg,.jpeg,.png,.pdf"
+                                        class="sr-only"
+                                        onchange="this.parentNode.querySelector('span').textContent = this.files[0] ? this.files[0].name : 'Lampiran'"
+                                    >
+                                </label>
+
+                                <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                    JPG, PNG, atau PDF maksimal 4 MB.
+                                </span>
+                            </div>
+
+                            @error('lampiran')
+                                <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                            @enderror
+
+                            <div class="flex flex-wrap items-center justify-between gap-space-sm">
+                                <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                    Balasan ini muncul di halaman lacak tiket milik pelapor.
+                                </span>
+
+                                <button
+                                    type="submit"
+                                    class="py-2.5 px-space-lg rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                                >
+                                    <x-symbol nama="send" class="text-[18px]" />
+                                    Kirim Balasan
+                                </button>
+                            </div>
+                        </form>
                     </div>
 
                     <!-- Tab 2: kanal disposisi ke unit, belum ada isinya -->

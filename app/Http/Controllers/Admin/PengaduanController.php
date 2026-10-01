@@ -160,6 +160,35 @@ class PengaduanController extends Controller
         return $this->kembali($pengaduan, TindakLanjutPengaduan::pesanTujuan($tujuan));
     }
 
+    /**
+     * Balas di kolom percakapan, sama seperti yang dilakukan pelapor.
+     *
+     * Balasan ini tidak menutup tiket. Tutupannya tetap lewat tombol tahap,
+     * supaya admin bisa membalas berkali-kali tanpa mengubah status utama.
+     */
+    public function balas(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'isi' => ['required', 'string', 'max:2000'],
+            'lampiran' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+        ], [
+            'isi.required' => 'Tuliskan balasan lebih dulu sebelum dikirim.',
+            'isi.max' => 'Balasan maksimal 2000 karakter.',
+            'lampiran.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
+            'lampiran.max' => 'Ukuran maksimal lampiran adalah 4 MB.',
+        ]);
+
+        TindakLanjutPengaduan::balasPelapor(
+            $pengaduan,
+            $validated['isi'],
+            $request->file('lampiran'),
+        );
+
+        return $this->kembali($pengaduan, 'Balasan terkirim ke pelapor.');
+    }
+
     /** Nyalakan atau matikan penandaan kasus berat beserta ekstensi SLA-nya. */
     public function kasusBerat(Request $request, string $kode): RedirectResponse
     {

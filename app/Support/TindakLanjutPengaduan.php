@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -208,6 +209,25 @@ final class TindakLanjutPengaduan
         }
 
         return null;
+    }
+
+    /**
+     * Simpan satu balasan admin di kolom percakapan.
+     *
+     * Balasan ini sengaja tidak mengubah tahap tiket. Admin boleh membalas
+     * sebanyak yang diperlukan, termasuk setelah tiket dinyatakan selesai,
+     * karena percakapan dengan pelapor berjalan terus di luar alur tahap.
+     */
+    public static function balasPelapor(
+        Pengaduan $pengaduan,
+        string $isi,
+        ?UploadedFile $lampiran = null,
+    ): void {
+        $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => $isi,
+            'lampiran' => $lampiran?->store('lampiran', config('pengaduan.disk_lampiran', 'public')),
+        ]);
     }
 
     /** Nyalakan atau matikan penandaan kasus berat beserta jejak auditnya. */

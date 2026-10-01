@@ -215,6 +215,71 @@ class DashboardAdminTest extends TestCase
         $this->assertArrayNotHasKey($bedah->id, $kepatuhan);
     }
 
+    public function test_daftar_butuh_tindakan_segera_hanya_menampilkan_tiket_mendek_dan_kasus_berat(): void
+    {
+        // Sisa 1 hari kerja menuju target 12 hari kerja.
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-MENDEK-1',
+            'created_at' => now()->subWeekdays(10)->setTime(8, 0),
+        ]);
+
+        // Sudah lewat batas SLA.
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-TERLAMBAT-1',
+            'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+        ]);
+
+        // Kasus berat yang SLA-nya masih longgar tetap masuk antrean.
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-BERAT-1',
+            'kasus_berat' => true,
+            'created_at' => now()->subWeekdays(2)->setTime(8, 0),
+        ]);
+
+        // Tiket biasa yang masih jauh dari batas SLA tidak boleh tampil.
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-AMAN-1',
+            'created_at' => now()->subWeekdays(1)->setTime(8, 0),
+        ]);
+
+        $daftar = StatistikDashboard::perluTindakan(10)->pluck('kode_tiket');
+
+        $this->assertCount(3, $daftar);
+        $this->assertTrue($daftar->contains('ADUAN-TERLAMBAT-1'));
+        $this->assertTrue($daftar->contains('ADUAN-MENDEK-1'));
+        $this->assertTrue($daftar->contains('ADUAN-BERAT-1'));
+        $this->assertFalse($daftar->contains('ADUAN-AMAN-1'));
+    }
+
+    public function test_kasus_berat_diurutkan_di_atas_tiket_mendek_batas(): void
+    {
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-MENDEK-2',
+            'created_at' => now()->subWeekdays(10)->setTime(8, 0),
+        ]);
+
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-BERAT-2',
+            'kasus_berat' => true,
+            'created_at' => now()->subWeekdays(1)->setTime(8, 0),
+        ]);
+
+        $this->assertSame(
+            ['ADUAN-BERAT-2', 'ADUAN-MENDEK-2'],
+            StatistikDashboard::perluTindakan(10)->pluck('kode_tiket')->all(),
+        );
+    }
+
+    public function test_tiket_yang_sudah_selesai_tidak_masuk_daftar_butuh_tindakan(): void
+    {
+        Pengaduan::factory()->selesai(now())->create([
+            'kode_tiket' => 'ADUAN-SELESAI-1',
+            'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+        ]);
+
+        $this->assertCount(0, StatistikDashboard::perluTindakan(10));
+    }
+
     public function test_data_dashboard_aman_disimpan_di_cache(): void
     {
         Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([

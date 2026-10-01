@@ -340,15 +340,6 @@ final class DaftarPengaduan
      */
     private function aksi(Pengaduan $pengaduan): array
     {
-        if ($pengaduan->status->perluAksi()) {
-            return [[
-                'label' => 'Menunggu Kelengkapan',
-                'ikon' => 'hourglass_top',
-                'nada' => 'bg-surface-container text-outline border border-outline-variant/30',
-                'url' => null,
-            ]];
-        }
-
         $aksi = [];
 
         if ($pengaduan->status->diterima()) {
@@ -360,7 +351,7 @@ final class DaftarPengaduan
             ];
         }
 
-        if (! $pengaduan->status->selesai()) {
+        if (! $pengaduan->status->selesai() && ! $pengaduan->status->perluAksi()) {
             $aksi[] = [
                 'label' => Sla::lewatInvestigasi($pengaduan->created_at)
                     ? 'Nudge (Eskalasi)'
@@ -372,7 +363,7 @@ final class DaftarPengaduan
         }
 
         $aksi[] = [
-            'label' => 'Buka Detail',
+            'label' => $pengaduan->status->perluAksi() ? 'Buka Detail' : 'Buka Detail',
             'ikon' => 'visibility',
             'nada' => 'bg-primary-container text-on-primary',
             'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),

@@ -377,10 +377,62 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame($sebelum - 1, $sesudah);
     }
 
+    public function test_admin_bisa_membalas_di_kolom_percakapan(): void
+    {
+        $pengaduan = $this->tiketDiproses('ADUAN-CHAT-01');
+
+        $this->post(route('admin.pengaduan.balas', $pengaduan->kode_tiket), [
+            'isi' => 'Kami sudah menerima laporan Anda dan sedang memeriksa catatan service di instalasi.',
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $pengaduan->refresh();
+
+        $balasan = $pengaduan->pesan()->where('peran', 'admin')->latest('id')->first();
+        $this->assertNotNull($balasan);
+
+        // Balasan percakapan tidak boleh ikut mengubah tahap tiket.
+        $this->assertTrue($pengaduan->status->diproses());
+        $this->assertNull($pengaduan->selesai_at);
+    }
+
+    public function test_balasan_admin_tidak_perlu_admin_tiket_sudah_selesai(): void
+    {
+        $pengaduan = $this->tiketDiproses('ADUAN-CHAT-02', StatusPengaduan::Selesai);
+
+        $this->post(route('admin.pengaduan.balas', $pengaduan->kode_tiket), [
+            'isi' => 'Terima kasih sudah menunggu, beberapa keterangan saya kirimkan kembali.',
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $this->assertTrue($pengaduan->fresh()->status->selesai());
+        $this->assertSame(1, $pengaduan->pesan()->where('peran', 'admin')->count());
+    }
+
+    public function test_balasan_kosong_ditolak(): void
+    {
+        $pengaduan = $this->tiketDiproses('ADUAN-CHAT-03');
+
+        $this->from(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->post(route('admin.pengaduan.balas', $pengaduan->kode_tiket), ['isi' => ''])
+            ->assertSessionHasErrors('isi');
+
+        $this->assertCount(0, $pengaduan->pesan()->where('peran', 'admin')->get());
+    }
+
+    public function test_halaman_detail_menampilkan_kolom_tulis_balasan(): void
+    {
+        $pengaduan = $this->tiketDiproses('ADUAN-CHAT-04');
+
+        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->assertSee('Tulis Balasan untuk Pelapor')
+            ->assertSee('Kirim Balasan');
+    }
+
     public function test_tiket_yang_tidak_ada_menghasilkan_not_found_untuk_setiap_tindakan(): void
     {
         $kode = 'ADUAN-HILANG-99';
 
+        $this->post(route('admin.pengaduan.balas', $kode), ['isi' => 'x'])->assertNotFound();
         $this->post(route('admin.pengaduan.tahap', $kode), ['tujuan' => 'diproses'])->assertNotFound();
         $this->post(route('admin.pengaduan.draf', $kode), ['draf' => 'x'])->assertNotFound();
         $this->post(route('admin.pengaduan.jawaban', $kode), ['isi' => 'x'])->assertNotFound();

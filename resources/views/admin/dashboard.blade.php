@@ -191,7 +191,7 @@
                             </span>
                             <div class="flex flex-col">
                                 <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Daftar Pengaduan Butuh Tindakan Segera</h2>
-                                <p class="font-body-sm text-body-sm text-on-surface-variant">Antrean pengaduan prioritas tinggi, mendekati atau lewat SLA, dan memerlukan keputusan Humas.</p>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant">Hanya pengaduan yang sisa 2 hari kerja atau kurang menuju batas SLA, dan pengaduan yang ditandai kasus berat.</p>
                             </div>
                         </div>
 
@@ -269,7 +269,7 @@
                             </article>
                         @empty
                             <p class="rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-on-surface-variant">
-                                Tidak ada pengaduan yang membutuhkan tindakan segera. Semua tiket berada dalam batas SLA.
+                                Tidak ada pengaduan yang mendekati batas SLA dan tidak ada pula kasus berat yang menunggu keputusan humas.
                             </p>
                         @endforelse
                     </div>

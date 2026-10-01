@@ -258,7 +258,7 @@ final class Dashboard
     public function ringkasTindakan(): string
     {
         return 'Menampilkan '.count($this->perluTindakan)
-            .' dari '.$this->aktif.' pengaduan butuh atensi aktif';
+            .' dari '.$this->aktif.' pengaduan aktif, sisa 2 hari kerja atau kurang menuju batas SLA';
     }
 
     /**

@@ -150,8 +150,10 @@ final class StatistikDashboard
     /**
      * Pengaduan yang paling mendesak ditangani humas.
      *
-     * Prioritas diberikan pada tiket yang lewat ambang investigasi unit,
-     * lalu pada tiket yang statusnya memang menunggu tindakan.
+     * Daftar ini sengaja hanya menampilkan tiket yang sudah mendekati batas
+     * SLA atau ditandai kasus berat. Tiket yang masih lama dan biasa-biasa
+     * saja tidak perlu membanjiri antrean, karena daftar ini dipakai untuk
+     * memutuskan tiket mana yang harus ditangani lebih dulu.
      *
      * @return Collection<int, Pengaduan>
      */
@@ -162,11 +164,28 @@ final class StatistikDashboard
             ->with('masterUnit')
             ->withExists(['pesan as sudah_dibalas' => fn ($q) => $q->where('peran', 'admin')])
             ->get()
-            ->sortByDesc(fn (Pengaduan $p): int => $p->zonaSla()->prioritas())
+            ->filter(fn (Pengaduan $p): bool => self::mendesak($p))
             ->sortByDesc(fn (Pengaduan $p): bool => $p->status->perluAksi())
-            ->sortByDesc(fn (Pengaduan $p): bool => Sla::lewatInvestigasi($p->created_at))
+            ->sortByDesc(fn (Pengaduan $p): int => $p->zonaSla()->prioritas())
+            // Kasus berat ditumpuk paling atas karena menghendaki telaah
+            // komite etik, jadi tidak bisa menunggu mendekati batas SLA.
+            ->sortByDesc(fn (Pengaduan $p): bool => $p->kasus_berat)
             ->take($jumlah)
             ->values();
+    }
+
+    /**
+     * True bila sebuah tiket layak masuk daftar butuh tindakan segera.
+     *
+     * Ada dua syarat: SLA-nya sudah tinggal dua hari kerja atau kurang
+     * (zona Mendek dan Terlambat memakai angka peringatan yang sama), atau
+     * tiketnya ditandai kasus berat. Kasus berat tetap masuk meski SLA-nya
+     * longgar karena penandaan itu berarti perlu telaah komite etik.
+     */
+    public static function mendesak(Pengaduan $pengaduan): bool
+    {
+        return $pengaduan->kasus_berat
+            || $pengaduan->zonaSla()->prioritas() >= ZonaSla::Mendek->prioritas();
     }
 
     /**
