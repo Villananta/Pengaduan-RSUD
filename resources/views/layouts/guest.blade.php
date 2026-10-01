@@ -1,5 +1,7 @@
 <!DOCTYPE html>
+
 <html lang="id" class="scroll-smooth">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,9 +12,10 @@
     <title>@yield('title', 'Buat Aduan') — Sistem Pengaduan RSUD Dr. Soetomo</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body class="font-sans bg-brand-light text-ink antialiased">
 
-    {{-- Header --}}
+    <!-- Header -->
     <header class="fixed inset-x-0 top-0 z-20 bg-white/90 shadow-[0_1px_8px_rgba(0,0,0,0.04)] backdrop-blur-md">
         <div class="flex h-20 w-full items-center justify-between px-8">
             <div class="flex items-center gap-2">
@@ -23,6 +26,8 @@
                 </div>
             </div>
 
+            {{-- Menu utama disimpan di array supaya penanda halaman aktif
+                 cukup dibaca dari route, bukan ditulis ulang tiap item. --}}
             @php
                 $menu = [
                     ['label' => 'Buat Aduan', 'url' => route('pengaduan.create'), 'aktif' => request()->routeIs('pengaduan.create', 'pengaduan.sukses')],
@@ -30,7 +35,9 @@
                     ['label' => 'Maklumat & Prosedur', 'url' => route('maklumat.index'), 'aktif' => request()->routeIs('maklumat.index')],
                 ];
             @endphp
+
             <nav class="flex items-center gap-1">
+
                 @foreach ($menu as $item)
                     <a
                         href="{{ $item['url'] }}"
@@ -41,6 +48,7 @@
                         ])
                     >{{ $item['label'] }}</a>
                 @endforeach
+
             </nav>
 
             {{-- <div class="flex items-center gap-2">
@@ -64,12 +72,18 @@
             </div> --}}
         </div>
     </header>
+    <!-- End of Header -->
 
+    <!-- Konten Halaman -->
     <main class="pt-20">
-        @yield('content')
-    </main>
 
-    {{-- Help / multi channel section --}}
+        @yield('content')
+
+    </main>
+    <!-- End of Konten Halaman -->
+
+    {{-- Kanal pengaduan alternatif masih disimpan sebagai catatan karena
+         tiap kanalexternal belum punya tujuan halaman. --}}
     {{-- <section class="w-full bg-brand-light px-8 py-10">
         <div class="flex w-full flex-col gap-6">
             <div class="flex flex-wrap items-end justify-between gap-8">
@@ -146,7 +160,7 @@
         </div>
     </section> --}}
 
-    {{-- Footer --}}
+    <!-- Footer -->
     <footer class="relative z-10 w-full bg-white/90 py-10 shadow-[0_1px_8px_rgba(0,0,0,0.02)]">
         <div class="flex w-full flex-col gap-10 px-8">
             <div class="grid grid-cols-4 gap-6">
@@ -212,14 +226,19 @@
             <div class="flex items-center justify-between gap-[260px] border-t border-brand-200/30 pt-4">
                 <p class="text-xs font-semibold tracking-[0.24px] text-ink-muted">© {{ now()->year }} RSUD Dr. Soetomo Surabaya. Seluruh hak cipta dilindungi — Sistem Aduan Publik Terintegrasi.</p>
                 <div class="flex items-center gap-4 whitespace-nowrap text-xs font-semibold tracking-[0.24px] text-ink-muted">
-                    <a href="#">Kebijakan Privasi</a>
-                    <a href="#">Syarat &amp; Ketentuan</a>
-                    <a href="#">FAQ Aduan</a>
+                    <!-- Tautan hukum belum punya halaman tujuan, jadi ditulis sebagai
+                     teks non-tautan supaya tidak ada jebakan klik kosong. -->
+                    <span class="cursor-not-allowed">Kebijakan Privasi</span>
+                    <span class="cursor-not-allowed">Syarat &amp; Ketentuan</span>
+                    <span class="cursor-not-allowed">FAQ Aduan</span>
                 </div>
             </div>
         </div>
     </footer>
+    <!-- End of Footer -->
 
     @stack('scripts')
+
 </body>
+
 </html>

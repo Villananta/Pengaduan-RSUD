@@ -3,6 +3,7 @@
 @section('title', 'Maklumat & Prosedur')
 
 @section('content')
+
 @php
     // Tahap SLA diambil dari config, sama seperti halaman lacak tiket.
     $spm = config('pengaduan.spm');
@@ -126,7 +127,7 @@
     ];
 @endphp
 
-{{-- 1. Banner ambient + ringkasan maklumat --}}
+<!-- Banner Ambient dan Ringkasan Maklumat -->
 <section class="relative isolate overflow-hidden bg-brand-section px-8 py-10">
     <span class="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-chat-accent/20 blur-2xl" aria-hidden="true"></span>
     <span class="pointer-events-none absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-brand-100/30 blur-xl" aria-hidden="true"></span>
@@ -147,7 +148,7 @@
             </div>
         </div>
 
-        {{-- Piagam Maklumat Resmi --}}
+        <!-- Piagam Maklumat Resmi -->
         <div class="relative isolate overflow-hidden rounded-xl bg-white p-8 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)]">
             <span class="absolute inset-y-0 left-0 w-2 bg-brand-800" aria-hidden="true"></span>
             <svg class="pointer-events-none absolute -right-12 -top-12 h-[240px] w-[240px] text-brand-800 opacity-[0.05]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -188,7 +189,7 @@
                     </ul>
                 </div>
 
-                {{-- Penandatanganan piagam oleh pimpinan rumah sakit --}}
+                <!-- Penandatanganan Piagam oleh Pimpinan Rumah Sakit -->
                 <div class="flex w-full shrink-0 flex-col items-center justify-center gap-2 rounded-xl bg-brand-section p-6 text-center lg:w-[420px]">
                     <img
                         src="{{ asset($piagam['pihak']['foto']) }}"
@@ -211,12 +212,15 @@
                         {{ $piagam['pihak']['periode'] }}
                     </span>
                 </div>
+                <!-- End of Penandatanganan Piagam -->
             </div>
         </div>
+        <!-- End of Piagam Maklumat Resmi -->
     </div>
 </section>
+<!-- End of Banner Ambient dan Ringkasan Maklumat -->
 
-{{-- 2. Landasan Hukum & Regulasi --}}
+<!-- Landasan Hukum dan Regulasi -->
 <section class="w-full px-8 py-10">
     <div class="flex w-full flex-col gap-6">
         <div class="flex flex-wrap items-end justify-between gap-8">
@@ -279,7 +283,7 @@
                 </article>
             @endforeach
 
-            {{-- Banner Pergub Jatim --}}
+            <!-- Banner Pergub Jatim -->
             <div class="relative isolate flex flex-col justify-between gap-6 overflow-hidden rounded-xl bg-brand-800 p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] md:col-span-2 lg:col-span-12 lg:flex-row lg:items-center">
                 <div class="flex items-center gap-4">
                     <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/10">
@@ -299,11 +303,13 @@
 
                 <span class="shrink-0 self-start rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold tracking-[0.24px] text-brand-250 lg:self-auto">Dokumen Regulasi</span>
             </div>
+            <!-- End of Banner Pergub Jatim -->
         </div>
     </div>
 </section>
+<!-- End of Landasan Hukum dan Regulasi -->
 
-{{-- 3. Hak & Kewajiban Pasien serta Pengadu --}}
+<!-- Hak dan Kewajiban Pasien serta Pengadu -->
 <section class="w-full bg-brand-50 px-8 py-10">
     <div class="flex w-full flex-col items-center gap-10">
         <div class="flex max-w-[672px] flex-col items-center text-center">
@@ -313,7 +319,7 @@
         </div>
 
         <div class="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-12">
-            {{-- Delapan hak --}}
+            <!-- Delapan Hak Pasien dan Pelapor -->
             <div class="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] lg:col-span-7">
                 <div class="flex flex-wrap items-center justify-between gap-3 pb-2">
                     <div class="flex items-center gap-3">
@@ -344,8 +350,9 @@
                     @endforeach
                 </div>
             </div>
+            <!-- End of Delapan Hak Pasien dan Pelapor -->
 
-            {{-- Lima kewajiban --}}
+            <!-- Lima Kewajiban Pengadu -->
             <div class="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] lg:col-span-5">
                 <div class="flex flex-wrap items-center justify-between gap-3 pb-2">
                     <div class="flex items-center gap-3">
@@ -376,11 +383,13 @@
                     @endforeach
                 </div>
             </div>
+            <!-- End of Lima Kewajiban Pengadu -->
         </div>
     </div>
 </section>
+<!-- End of Hak dan Kewajiban Pasien serta Pengadu -->
 
-{{-- 4. Standar Pelayanan Minimal (SPM) --}}
+<!-- Standar Pelayanan Minimal -->
 <section class="w-full px-8 py-10">
     <div class="flex w-full flex-col gap-6">
         <div class="flex flex-wrap items-end justify-between gap-8">
@@ -394,10 +403,13 @@
             </p>
         </div>
 
-        {{-- Empat kartu tahap --}}
+        <!-- Empat Kartu Tahap -->
         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
             @foreach ($spm as $tahap)
+
                 @php $warna = $warnaSpm[$tahap['warna']]; @endphp
+
                 <article class="relative isolate flex flex-col justify-between gap-4 overflow-hidden rounded-xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     <span @class(['absolute inset-x-0 top-0 h-1', $warna['bar']]) aria-hidden="true"></span>
 
@@ -436,9 +448,11 @@
                     </p>
                 </article>
             @endforeach
-        </div>
 
-        {{-- Visualisasi garis waktu SLA --}}
+        </div>
+        <!-- End of Empat Kartu Tahap -->
+
+        <!-- Visualisasi Garis Waktu SLA -->
         <div class="flex w-full flex-col gap-4 rounded-xl bg-brand-section p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
             <div class="flex flex-wrap items-center justify-between gap-6">
                 <div class="flex max-w-[579px] flex-col">
@@ -472,10 +486,12 @@
                 </div>
             </div>
         </div>
+        <!-- End of Visualisasi Garis Waktu SLA -->
     </div>
 </section>
+<!-- End of Standar Pelayanan Minimal -->
 
-{{-- 5. Unduh Dokumen SOP & Formulir Resmi --}}
+<!-- Unduh Dokumen SOP dan Formulir Resmi -->
 <section class="w-full px-8 pb-10">
     <div class="flex w-full flex-col gap-8 rounded-xl bg-white p-8 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)] lg:flex-row lg:items-start">
         <div class="flex flex-1 flex-col gap-3">
@@ -538,10 +554,11 @@
                             {{ $d['isi'] }}
                         </p>
 
-                        <a
-                            href="#"
+                        <!-- Berkas resmi belum diunggah, jadi tombolnya dibuat non-tautan
+                             supaya tidak menyesatkan pelapor yang mengekliknya. -->
+                        <span
                             @class([
-                                'flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]',
+                                'flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-not-allowed',
                                 'bg-brand-800' => $d['tombol'] === 'gelap',
                                 'bg-brand-100 text-brand-deep' => $d['tombol'] === 'terang',
                             ])
@@ -550,11 +567,13 @@
                                 <path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             {{ $d['aksi'] }}
-                        </a>
+                        </span>
                     </div>
                 </article>
             @endforeach
         </div>
     </div>
 </section>
+<!-- End of Unduh Dokumen SOP dan Formulir Resmi -->
+
 @endsection

@@ -5,6 +5,7 @@
 @section('title', 'Lacak Status Tiket')
 
 @section('content')
+
     @php
         // Tahap prosedur diambil dari config, daftar status memakai enum.
         $prosedur = config('pengaduan.prosedur');
@@ -12,8 +13,6 @@
         // Tahap yang sedang berjalan pada tiket yang dicari.
         $tahapSekarang = $tiket?->status->tahap();
     @endphp
-
-
 
     @if (session('sukses'))
         <div class="w-full bg-white px-8 pt-8">
@@ -31,7 +30,7 @@
         </div>
     @endif
 
-    {{-- Pencarian tiket: kode + NRM wajib agar data pribadi tidak terbuka --}}
+    <!-- Pencarian Tiket: kode dan NRM wajib agar data pribadi tidak terbuka -->
     <section class="w-full bg-brand-section px-8 py-10">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <nav class="flex items-center gap-2 text-xs text-ink-muted">
@@ -94,8 +93,9 @@
             </p>
         </div>
     </section>
+    <!-- End of Pencarian Tiket -->
 
-    {{-- Empat pilar status, hanya tampil bila kode tiket sudah dimasukkan --}}
+    <!-- Empat Pilar Status, hanya tampil bila kode tiket sudah dimasukkan -->
     @if ($tiket)
         <section class="w-full bg-brand-light px-8 py-4">
             <div class="flex flex-col gap-2">
@@ -150,16 +150,19 @@
             </div>
         </section>
     @endif
+    <!-- End of Empat Pilar Status -->
 
+    <!-- Isi Detail Tiket -->
     <section class="w-full px-8 pb-10 pt-6">
         <div class="grid grid-cols-1 gap-6 lg:grid-full">
             <div class="flex flex-col gap-6 lg:full-span">
                 @if ($tiket)
-                    {{-- Pemberitahuan sesuai tahap pengaduan --}}
+                    <!-- Pemberitahuan Sesuai Tahap Pengaduan -->
                     @php
                         $perluAksi = $tiket->status->perluAksi();
                         $tuntas = $tiket->status->selesai();
                     @endphp
+
                     <div @class([
                         'flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5',
                         'bg-alert-light' => $perluAksi,
@@ -227,8 +230,9 @@
                             Hubungi Call Center
                         </a>
                     </div>
+                    <!-- End of Pemberitahuan Sesuai Tahap Pengaduan -->
 
-                    {{-- Detail tiket --}}
+                    <!-- Detail Tiket -->
                     <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-brand-200/40 pb-4">
                             <div>
@@ -263,7 +267,7 @@
                             @endforeach
                         </div>
 
-                        {{-- Progres SLA --}}
+                        <!-- Progres SLA -->
                         <div class="mt-6 rounded-xl bg-brand-50 p-4">
                             <div class="flex flex-wrap items-center justify-between gap-2">
                                 <p class="text-xs font-semibold text-ink">Prosedur &amp; SLA 12 Hari Kerja</p>
@@ -289,8 +293,9 @@
                                 @endforeach
                             </div>
                         </div>
+                        <!-- End of Progres SLA -->
 
-                        {{-- Isi aduan --}}
+                        <!-- Isi Aduan -->
                         <div class="mt-6">
                             <p class="text-xs font-semibold uppercase tracking-[0.6px] text-ink-muted">Isi Pengaduan</p>
                             <p class="mt-2 text-[13px] leading-5 text-ink">{{ $tiket->deskripsi }}</p>
@@ -314,8 +319,9 @@
                             </div>
                         @endif
                     </div>
+                    <!-- End of Detail Tiket -->
 
-                    {{-- Riwayat tanggapan dua arah --}}
+                    <!-- Riwayat Tanggapan Dua Arah -->
                     <div class="flex flex-col gap-6 rounded-xl bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-2px_rgba(0,0,0,0.1)]">
                         <div class="flex flex-wrap items-start justify-between gap-4 pb-1">
                             <div class="flex items-start gap-2">
@@ -416,6 +422,7 @@
                             @endforelse
                         </div>
 
+                        <!-- Form Balasan Pelapor -->
                         <form method="POST" action="{{ route('pengaduan.pesan', ['kode' => $tiket->kode_tiket]) }}" enctype="multipart/form-data" class="flex flex-col gap-4 rounded-xl bg-brand-section p-4">
                             @csrf
 
@@ -488,7 +495,9 @@
                                 </button>
                             </div>
                         </form>
+                        <!-- End of Form Balasan Pelapor -->
 
+                        <!-- Catatan Disposisi Struktural Terbuka -->
                         <div class="flex flex-col gap-1 pt-1">
                             <p class="text-[11px] font-bold uppercase tracking-[0.55px] text-brand-600">Catatan Disposisi Struktural Terbuka</p>
 
@@ -522,7 +531,9 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- End of Catatan Disposisi Struktural Terbuka -->
                     </div>
+                    <!-- End of Riwayat Tanggapan Dua Arah -->
                 @else
                     {{-- Tiket hanya tampil bila kode dan NRM sama-sama cocok --}}
                     <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -541,11 +552,14 @@
                             @endif
                         </p>
                     </div>
+                    <!-- End of Tiket Tidak Cocok -->
                 @endif
             </div>
+            <!-- End of Kolom Detail Tiket -->
 
-            {{-- Panel pendukung --}}
-            
+            {{-- Panel pendukung masih kosong, tidak ada isi yang bisa ditampilkan. --}}
         </div>
     </section>
+    <!-- End of Isi Detail Tiket -->
+
 @endsection

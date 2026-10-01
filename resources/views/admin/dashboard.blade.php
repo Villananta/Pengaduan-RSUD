@@ -5,11 +5,9 @@
 @section('content')
     <div class="w-full px-margin py-space-lg flex flex-col gap-space-lg">
 
-       
-    
-
-        {{-- Baris statistik: empat tahap pengaduan. Kartu kepatuhan SLA dan
-             rata-rata waktu sengaja dimatikan sementara, isinya masih disusun. --}}
+        <!-- Baris Statistik -->
+        {{-- Kartu kepatuhan SLA dan rata-rata waktu sengaja dimatikan sementara,
+             isinya masih disusun. --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
             @foreach ($tahap as $item)
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md">
@@ -117,14 +115,16 @@
                 </div>
             </div> --}}
         </div>
+        <!-- End of Baris Statistik -->
 
-        {{-- Status tiket yang sedang ditangani unit layanan. --}}
+        <!-- Status Tiket di Unit Layanan -->
         <div class="w-full rounded-lg bg-surface-container-low p-space-md shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-xs mb-space-sm pb-space-xs">
                 <div class="flex items-center gap-space-xs">
                     <x-symbol nama="hub" class="text-secondary text-[20px]" />
                     <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Status Tiket di Unit Layanan</h2>
                 </div>
+
                 <span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs">
                     <span class="w-2 h-2 rounded-full bg-secondary animate-ping" aria-hidden="true"></span>
                     Sinkron SIMRS terpadu, pembaruan tiap 30 detik
@@ -139,6 +139,7 @@
                                 <span class="font-label-sm text-label-sm font-bold uppercase tracking-wider {{ $kartu['nada'] }}">{{ $kartu['eyebrow'] }}</span>
                                 <span class="font-title-sm text-title-sm text-on-surface font-semibold mt-0.5">{{ $kartu['judul'] }}</span>
                             </div>
+
                             <span class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $kartu['warnaIkon'] }}">
                                 <x-symbol :nama="$kartu['ikon']" class="text-[18px]" />
                             </span>
@@ -177,8 +178,9 @@
                 @endforeach
             </div>
         </div>
+        <!-- End of Status Tiket di Unit Layanan -->
 
-        {{-- Isi utama: daftar pengaduan butuh tindakan dan ringkasan beban unit. --}}
+        <!-- Isi Utama -->
         <div class="w-full grid grid-cols-1 lg:grid-full gap-space-lg">
             <div class="lg:col-span-8 flex flex-col gap-space-md">
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
@@ -195,7 +197,7 @@
 
                         <div class="flex items-center gap-space-sm shrink-0">
                             <div class="relative">
-                                <x-symbol nama="search" class="absolute left-3 top-2.5 text-[18px] text-outline" />
+                                <x-symbol nama="search" class="absolute left-3 top-2.5 text-outline text-[18px]" />
                                 <input
                                     type="text"
                                     placeholder="Cari nomor tiket, RM, kata kunci..."
@@ -203,6 +205,7 @@
                                     disabled
                                 >
                             </div>
+
                             <button
                                 type="button"
                                 class="px-3 py-1.5 rounded-sm border border-outline-variant bg-surface-container-low text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1"
@@ -215,6 +218,7 @@
 
                     <div class="flex flex-col gap-space-sm">
                         @forelse ($dashboard->perluTindakan as $pengaduan)
+
                             @php $tiket = $dashboard->kartuTiket($pengaduan); @endphp
 
                             <article class="p-space-md rounded-lg {{ $tiket['kartu'] }} flex flex-col gap-space-sm shadow-sm">
@@ -237,6 +241,7 @@
                                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
                                     <div class="flex flex-col max-w-xl">
                                         <h3 class="font-title-sm text-title-sm font-bold text-on-surface">{{ $tiket['subjek'] }}</h3>
+
                                         <div class="flex items-center gap-space-md text-on-surface-variant font-body-sm text-body-sm mt-1 flex-wrap">
                                             <span class="flex items-center gap-1">
                                                 <x-symbol nama="domain" class="text-[15px]" />
@@ -271,6 +276,7 @@
 
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-space-sm pt-space-xs text-on-surface-variant font-body-sm text-body-sm">
                         <span>{{ $dashboard->ringkasTindakan() }}</span>
+
                         <span class="text-secondary font-title-sm text-title-sm font-semibold flex items-center gap-space-xs">
                             Buka Seluruh Antrean Tiket Terpadu
                             <x-symbol nama="arrow_forward" class="text-[16px]" />
@@ -284,11 +290,13 @@
                             <span class="font-title-md text-title-md font-bold text-on-surface">Beban Resolusi Unit Terbanyak (Minggu Ini)</span>
                             <span class="font-body-sm text-body-sm text-on-surface-variant">Keseimbangan penyelesaian investigasi unit internal terhadap limit SLA</span>
                         </div>
+
                         <span class="px-space-xs py-0.5 rounded-xs bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold">Audit Terpadu</span>
                     </div>
 
                     <div class="w-full pt-space-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-sm">
                         @forelse ($dashboard->unitTerbebani as $unit)
+
                             @php $persen = $dashboard->kepatuhanUnit($unit); @endphp
 
                             <div class="p-space-sm rounded-sm bg-surface-container-low flex flex-col justify-between">
@@ -317,13 +325,13 @@
                 </div>
             </div>
 
-            {{-- Sidebar: siklus SLA, status koneksi SIMRS, dan instruksi direksi. --}}
+            <!-- Sidebar: siklus SLA, status koneksi SIMRS, dan instruksi direksi. -->
             {{-- <div class="lg:col-span-4 flex flex-col gap-space-md">
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
                     <div class="flex items-start justify-between gap-space-sm">
                         <div class="flex flex-col">
                             <span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Standar Kepatuhan Medis</span>
-                            <h3 class="font-title-md text-title-md font-bold text-on-surface mt-0.5">Siklus {{ $dashboard->hariKerja }} Hari Kerja RSUD</h3>
+                            <h3 class="font-title-md text-title-md text-on-surface font-bold mt-0.5">Siklus {{ $dashboard->hariKerja }} Hari Kerja RSUD</h3>
                         </div>
                         <span class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-label-sm">SOP</span>
                     </div>
@@ -359,7 +367,7 @@
                     <div class="flex items-center justify-between gap-space-sm">
                         <div class="flex items-center gap-space-xs">
                             <x-symbol nama="lan" class="text-secondary text-[20px]" />
-                            <h3 class="font-title-md text-title-md font-bold text-on-surface">Koneksi SIMRS &amp; Disposisi</h3>
+                            <h3 class="font-title-md text-title-md text-on-surface font-bold">Koneksi SIMRS &amp; Disposisi</h3>
                         </div>
                         <span class="px-space-xs py-0.5 rounded-xl bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true"></span>
@@ -407,6 +415,9 @@
                     </div>
                 </div>
             </div> --}}
+            <!-- End of Sidebar -->
         </div>
+        <!-- End of Isi Utama -->
+
     </div>
 @endsection

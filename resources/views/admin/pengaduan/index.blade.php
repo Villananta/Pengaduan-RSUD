@@ -9,6 +9,7 @@
 @use('Illuminate\Support\Str')
 
 @section('content')
+
     @php
         // Paginasi, angka ringkasan, dan jendela halaman dipecah di sini
         // supaya isi tabel tetap terbaca sebagai data, bukan perhitungan.
@@ -33,7 +34,7 @@
 
     <div class="w-full px-margin py-space-md flex flex-col gap-space-lg">
 
-        {{-- Strip konteks: posisi halaman, aturan status, dan metrik cepat. --}}
+        <!-- Strip Konteks: posisi halaman, aturan status, dan metrik cepat. -->
         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
             <div class="flex flex-col">
                 <div class="flex items-center gap-space-xs text-secondary font-label-md text-label-md uppercase tracking-wider">
@@ -90,8 +91,9 @@
                 </a>
             </div>
         </div>
+        <!-- End of Strip Konteks -->
 
-        {{-- Konsol filter: Lapis 1, Lapis 2, dan pencarian gabungan. --}}
+        <!-- Konsol Filter: Lapis 1, Lapis 2, dan pencarian gabungan. -->
         <div class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm">
                 <div class="flex items-center gap-2">
@@ -177,7 +179,9 @@
 
             <form method="GET" action="{{ route('admin.pengaduan.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
                 @foreach ($filterAktif as $nama => $nilai)
+
                     <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
+
                 @endforeach
 
                 <div class="md:col-span-5 relative flex items-center">
@@ -245,8 +249,9 @@
                 </div>
             </form>
         </div>
+        <!-- End of Konsol Filter -->
 
-        {{-- Tabel utama daftar pengaduan. --}}
+        <!-- Tabel Utama Daftar Pengaduan -->
         <div class="w-full bg-surface-container-lowest rounded-lg shadow-sm overflow-hidden flex flex-col">
             <div class="bg-surface-container px-space-md py-space-sm flex flex-wrap items-center justify-between gap-space-sm text-on-surface-variant font-label-sm text-label-sm">
                 <div class="flex items-center gap-space-md">
@@ -308,6 +313,7 @@
 
                     <tbody class="divide-y divide-outline-variant/20 text-body-sm text-on-surface">
                         @forelse ($tabel as $pengaduan)
+
                             @php $baris = $daftar->baris($pengaduan); @endphp
 
                             <tr @class([
@@ -457,12 +463,14 @@
                 </table>
             </div>
 
-            {{-- Footer tabel: ukuran halaman, ringkasan hasil, dan paginasi. --}}
+            <!-- Footer Tabel: ukuran halaman, ringkasan hasil, dan paginasi. -->
             <div class="bg-surface-container-lowest px-space-md py-space-sm flex flex-col md:flex-row items-center justify-between gap-space-md">
                 <div class="flex items-center gap-space-md text-body-sm text-on-surface-variant flex-wrap">
                     <form method="GET" action="{{ route('admin.pengaduan.index') }}" class="flex items-center gap-2">
                         @foreach ($filterAktif as $nama => $nilai)
+
                             <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
+
                         @endforeach
 
                         <label for="per_halaman">Baris per halaman:</label>
@@ -533,6 +541,8 @@
                     </nav>
                 @endif
             </div>
+            <!-- End of Footer Tabel -->
         </div>
+        <!-- End of Tabel Utama Daftar Pengaduan -->
     </div>
 @endsection

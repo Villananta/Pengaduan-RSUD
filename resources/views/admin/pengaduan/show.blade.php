@@ -3,6 +3,7 @@
 @section('title', 'Detail Tiket '.$detail->kode())
 
 @section('content')
+
     @php
         // Shorthand supaya template tidak mengulang nama variabel panjang
         // di setiap blok yang sama.
@@ -27,7 +28,7 @@
             </div>
         @endif
 
-        {{-- Remah roti: kembali ke daftar, kode tiket, dan posisi SLA singkat. --}}
+        <!-- Remah Roti: kembali ke daftar, kode tiket, dan posisi SLA singkat. -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
             <div class="flex flex-wrap items-center gap-space-sm text-label-md text-label-md text-on-surface-variant">
                 <a
@@ -52,7 +53,9 @@
             </div>
         </div>
 
-        {{-- Kartu identitas: data pengadu, unit terkait, dan penanda Lapis 2. --}}
+        <!-- End of Remah Roti -->
+
+        <!-- Kartu Identitas: data pengadu, unit terkait, dan penanda Lapis 2. -->
         <section class="w-full bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col lg:flex-row lg:items-start justify-between gap-space-lg">
             <div class="flex flex-col gap-space-sm min-w-0">
                 <div class="flex flex-wrap items-center gap-space-sm">
@@ -128,8 +131,9 @@
                 </div>
             </div>
         </section>
+        <!-- End of Kartu Identitas -->
 
-        {{-- Stepper empat tahap pengaduan Lapis 1 beserta posisi hari kerja. --}}
+        <!-- Stepper Empat Tahap Pengaduan beserta posisi hari kerja -->
         <section class="w-full bg-surface-container-low/40 rounded-lg p-space-md flex flex-col gap-space-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
                 <span class="font-label-sm text-label-sm uppercase tracking-wider font-bold text-on-surface-variant">
@@ -187,9 +191,11 @@
                 @endif
             </div>
         </section>
+        <!-- End of Stepper Empat Tahap Pengaduan -->
 
-        {{-- Penandaan kasus berat. Menyalakannya menambah hari kerja SLA,
-             jadi panel ini menampilkan berapa lama target ikut bergeser. --}}
+        <!-- Panel Kasus Berat -->
+        {{-- Menyalakannya menambah hari kerja SLA, jadi panel ini menampilkan
+             berapa lama target ikut bergeser. --}}
         <div @class([
             'w-full rounded-lg shadow-sm px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-sm',
             'bg-error-container/40 border border-error/30' => $sla['kasusBerat'],
@@ -242,14 +248,15 @@
                 </button>
             </form>
         </div>
+        <!-- End of Panel Kasus Berat -->
 
-        {{-- Kolom kerja: kiri kronologi dan formulasi, kanan panel keputusan. --}}
+        <!-- Kolom Kerja: kiri kronologi dan formulasi, kanan panel keputusan -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
 
-            {{-- Kolom Kiri: Kronologi Pengaduan --}}
+            <!-- Kolom Kiri: Kronologi Pengaduan -->
             <div class="lg:col-span-7 flex flex-col gap-space-lg">
 
-                {{-- Kartu 1: isi pengaduan dan berkas lampiran dari pelapor. --}}
+                <!-- Kartu 1: isi pengaduan dan berkas lampiran dari pelapor -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-sm border-b border-outline-variant/30">
                         <div class="flex items-center gap-space-sm">
@@ -329,8 +336,9 @@
                         <p class="text-body-sm text-on-surface-variant">Pelapor tidak melampirkan berkas pada pengaduan ini.</p>
                     @endif
                 </article>
+                <!-- End of Kartu 1 -->
 
-                {{-- Kartu 2: Panel formulasi jawaban resmi. --}}
+                <!-- Kartu 2: Panel formulasi jawaban resmi -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
                     <div class="flex items-center justify-between gap-space-sm pb-space-sm">
                         <div class="flex items-center gap-space-sm">
@@ -529,12 +537,14 @@
                         </div>
                     </div>
                 </article>
+                <!-- End of Kartu 2 -->
             </div>
+            <!-- End of Kolom Kiri -->
 
-            {{-- Kolom Kanan: Keputusan Penanganan, Percakapan, dan Audit --}}
+            <!-- Kolom Kanan: Keputusan Penanganan, Percakapan, dan Audit -->
             <div class="lg:col-span-5 flex flex-col gap-space-lg">
 
-                {{-- Kartu 3: Jalur penanganan dan status disposisi unit. --}}
+                <!-- Kartu 3: Jalur penanganan dan status disposisi unit -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
                     <div class="flex items-center justify-between gap-space-sm pb-space-xs border-b border-outline-variant/20">
                         <div class="flex items-center gap-2">
@@ -639,8 +649,9 @@
                         </span>
                     </div>
                 </article>
+                <!-- End of Kartu 3 -->
 
-                {{-- Kartu 4: percakapan pelapor dan kanal koordinasi unit. --}}
+                <!-- Kartu 4: percakapan pelapor dan kanal koordinasi unit -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm flex flex-col overflow-hidden">
                     <div class="flex items-center bg-surface-container-low p-1.5 gap-1.5">
                         <button
@@ -665,7 +676,7 @@
                         </button>
                     </div>
 
-                    {{-- Tab 1: percakapan pelapor dengan admin humas. --}}
+                    <!-- Tab 1: percakapan pelapor dengan admin humas -->
                     <div class="p-space-md flex flex-col gap-space-md" data-panel="pelapor">
                         <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
                             <span class="flex items-center gap-1">
@@ -713,7 +724,7 @@
                         </div>
                     </div>
 
-                    {{-- Tab 2: kanal disposisi ke unit, belum ada isinya. --}}
+                    <!-- Tab 2: kanal disposisi ke unit, belum ada isinya -->
                     <div class="hidden p-space-md flex flex-col gap-space-md" data-panel="unit">
                         <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
                             <span class="flex items-center gap-1 font-semibold text-on-surface">
@@ -731,9 +742,11 @@
                             dengan PIC unit di halaman ini.
                         </p>
                     </div>
+                    <!-- End of Tab 2 -->
                 </article>
+                <!-- End of Kartu 4 -->
 
-                {{-- Kartu 5: jejak audit pengaduan. --}}
+                <!-- Kartu 5: jejak audit pengaduan -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
                     <div class="flex items-center justify-between gap-space-sm pb-space-xs">
                         <div class="flex items-center gap-space-sm">
@@ -769,8 +782,11 @@
                         @endforeach
                     </div>
                 </article>
+                <!-- End of Kartu 5 -->
             </div>
+            <!-- End of Kolom Kanan -->
         </div>
+        <!-- End of Kolom Kerja -->
     </div>
 @endsection
 

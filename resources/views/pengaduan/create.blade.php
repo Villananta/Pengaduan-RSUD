@@ -5,7 +5,10 @@
 @section('title', 'Buat Aduan')
 
 @section('content')
+
 @php
+    // Class dasar dipegang di sini supaya tiap isian form konsisten
+    // tanpa harus mengulang rantai class yang panjang.
     $input = 'w-full rounded-lg bg-brand-light px-4 py-3.5 text-sm text-ink placeholder-placeholder outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-brand-800';
     $label = 'block text-sm font-semibold text-ink';
     $errorClass = 'mt-1.5 text-[11px] font-medium text-alert';
@@ -14,7 +17,8 @@
 
 <div class="flex min-h-[720px] flex-col">
 
-    {{-- Aside - Pemberitahuan Regulasi Pelayanan --}}
+    {{-- Aside Pemberitahuan Regulasi masih nonaktif karena tiap kanal
+         belum punya tujuan halaman, jadi tautannya kosong semua. --}}
     {{-- <div class="w-full bg-brand-100 px-8 py-2.5">
         <div class="flex w-full flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-2">
@@ -47,7 +51,7 @@
         </div>
     </div> --}}
 
-    {{-- Hero Section --}}
+    <!-- Hero Section -->
     <section class="w-full bg-gradient-to-b from-white via-brand-light to-brand-section px-8 pb-12 pt-8">
         <div class="flex w-full flex-col items-center">
 
@@ -105,15 +109,17 @@
             </div> --}}
         </div>
     </section>
+    <!-- End of Hero Section -->
 
-    {{-- Main Content: Asymmetric Split Grid --}}
+    <!-- Main Content: Asymmetric Split Grid -->
     <section class="w-full flex-1 bg-brand-light px-8 py-8">
         <div class="grid w-full grid-cols-12 items-start gap-6">
 
-            {{-- LEFT: Form 8 Kolom --}}
+            <!-- Kiri: Form 8 Kolom -->
             <div class="col-span-12 flex flex-full gap-6 lg:full-span-8">
 
-                {{-- Mandatory Legal Disclaimer Card --}}
+                {{-- Kartu Disclaimer Hukum masih nonaktif karena teksnya
+                     masih perlu ditinjau hukum. --}}
                 {{-- <div class="flex items-start gap-4 rounded-xl bg-brand-section p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100">
                         <svg class="h-[18px] w-[18px] text-brand-900" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -127,11 +133,11 @@
                     </div>
                 </div> --}}
 
-                {{-- Form Canvas Card --}}
+                <!-- Form Canvas Card -->
                 <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" id="form-aduan" class="flex flex-col gap-8 rounded-2xl bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     @csrf
 
-                    {{-- Form Header --}}
+                    <!-- Form Header -->
                     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-brand-200/40 pb-4">
                         <div>
                             <h2 class="text-2xl font-semibold leading-8 text-ink">Buat Aduan Baru</h2>
@@ -146,7 +152,7 @@
                         </span>
                     </div>
 
-                    {{-- STEP 1: Pilihan Kategori --}}
+                    <!-- Step 1: Pilihan Kategori -->
                     <div class="flex flex-col gap-3">
                         <div class="flex items-center gap-2">
                             <span class="{{ $stepBadge }}">1</span>
@@ -175,7 +181,7 @@
                         @enderror
                     </div>
 
-                    {{-- STEP 2: Identitas Pelapor --}}
+                    <!-- Step 2: Identitas Pelapor -->
                     <div class="flex flex-col gap-4">
                         <div class="flex items-center gap-2">
                             <span class="{{ $stepBadge }}">2</span>
@@ -229,7 +235,7 @@
                         </div>
                     </div>
 
-                    {{-- STEP 3: Detail Kejadian --}}
+                    <!-- Step 3: Detail Kejadian -->
                     <div class="flex flex-col gap-4">
                         <div class="flex items-center gap-2">
                             <span class="{{ $stepBadge }}">3</span>
@@ -273,7 +279,7 @@
                         </div>
                     </div>
 
-                    {{-- STEP 4: Unggah Lampiran --}}
+                    <!-- Step 4: Unggah Lampiran -->
                     <div class="flex flex-col gap-3">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
@@ -300,7 +306,7 @@
                         @error('lampiran.*')<p class="{{ $errorClass }}">{{ $message }}</p>@enderror
                     </div>
 
-                    {{-- STEP 5: Persetujuan & Aksi --}}
+                    <!-- Step 5: Persetujuan dan Aksi -->
                     <div class="flex flex-col gap-6 pt-4">
                         <label for="persetujuan" class="flex items-start gap-3">
                             <input id="persetujuan" type="checkbox" name="persetujuan" value="1" class="mt-1 h-[13px] w-[13px] shrink-0 rounded-sm accent-brand-800" {{ old('persetujuan') ? 'checked' : '' }} required>
@@ -321,13 +327,20 @@
                         </div>
                     </div>
                 </form>
+                <!-- End of Form Canvas Card -->
             </div>
+            <!-- End of Kiri: Form 8 Kolom -->
         </div>
     </section>
+    <!-- End of Main Content: Asymmetric Split Grid -->
 </div>
+<!-- End of Wrapper Form -->
+
 @endsection
 
+<!-- Deskripsi kategori dan pratinjau lampiran ditangani di sisi klien. -->
 @push('scripts')
+
 <script>
     const selectKategori = document.getElementById('kategori');
     const wrapDeskripsi = document.getElementById('kategori-deskripsi');
@@ -386,4 +399,5 @@
         });
     }
 </script>
+
 @endpush
