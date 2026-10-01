@@ -25,15 +25,18 @@ final class TindakLanjutPengaduan
     /**
      * Aksi A: kirim jawaban resmi lalu tutup tiket.
      *
-     * Balasan disimpan sebagai pesan berperan admin supaya langsung muncul
-     * di kronologi percakapan yang dibaca pelapor, lalu tahap tiket
-     * dipindahkan ke Selesai sehingga waktu penyelesaian ikut tercatat.
+     * Isi jawaban boleh null karena panel formulasi sekarang hanya
+     * menyediakan tombol, jadi admin bisa menutup tiket tanpa surat.
+     * Kalau ada isinya, balasan disimpan sebagai pesan berperan admin supaya
+     * langsung muncul di kronologi percakapan yang dibaca pelapor. Baik
+     * dengan maupun tanpa balasan, tahap tiket dipindahkan ke Selesai
+     * sehingga waktu penyelesaian ikut tercatat.
      *
      * @throws RuntimeException bila tahap sekarang tidak mengizinkan ditutup
      */
     public static function kirimJawabanResmi(
         Pengaduan $pengaduan,
-        string $isi,
+        ?string $isi = null,
         ?string $catatan = null,
         ?int $adminId = null,
     ): void {
@@ -44,10 +47,12 @@ final class TindakLanjutPengaduan
         }
 
         DB::transaction(function () use ($pengaduan, $isi, $catatan, $adminId): void {
-            $pengaduan->pesan()->create([
-                'peran' => 'admin',
-                'isi' => $isi,
-            ]);
+            if (filled($isi)) {
+                $pengaduan->pesan()->create([
+                    'peran' => 'admin',
+                    'isi' => $isi,
+                ]);
+            }
 
             $pengaduan->pindahTahap(StatusPengaduan::Selesai, $catatan, $adminId);
         });
@@ -89,6 +94,120 @@ final class TindakLanjutPengaduan
         $pengaduan->forceFill([
             'draf_jawaban' => filled($isi) ? $isi : null,
         ])->save();
+    }
+
+    /**
+     * Pindahkan tiket ke tahap yang dipilih admin dari tombol di bawah halaman.
+     *
+     * Ini jalur umum untuk tombol Proses, Selesaikan, dan Revisi. Semua
+     * perpindahan harus lewat sini supaya validasi tahap, pencatatan riwayat,
+     * dan pembuangan cache angka dashboard tidak tercecer di tiap endpoint.
+     *
+     * @throws RuntimeException bila tahap sekarang tidak mengizinkan tujuan itu
+     */
+    public static function pindahkanTahap(
+        Pengaduan $pengaduan,
+        StatusPengaduan $tujuan,
+        ?string $catatan = null,
+        ?int $adminId = null,
+    ): void {
+        $alasan = self::alasanPindah($pengaduan, $tujuan);
+
+        if ($alasan !== null) {
+            throw new RuntimeException($alasan);
+        }
+
+        DB::transaction(function () use ($pengaduan, $tujuan, $catatan, $adminId): void {
+            $pengaduan->pindahTahap($tujuan, $catatan, $adminId);
+        });
+
+        self::segarkanStatistik();
+    }
+
+    /**
+     * Tombol tahap mana yang boleh ditunjukkan pada tahap sekarang.
+     *
+     * Daftar ini sengaja lebih sempit daripada tujuanBerikutnya() pada enum.
+     * Enum masih mengizinkan reopening dari Selesai dan Revisi ke Diproses
+     * untuk keperluan internal, sedangkan di halaman ini admin hanya boleh
+     * majukan satu tahap atau menutup tiket.
+     *
+     * @return array<int, StatusPengaduan>
+     */
+    public static function tujuanTersedia(Pengaduan $pengaduan): array
+    {
+        return match ($pengaduan->status) {
+            StatusPengaduan::Diterima => [StatusPengaduan::Diproses],
+            StatusPengaduan::Diproses => [StatusPengaduan::Selesai, StatusPengaduan::Revisi],
+            StatusPengaduan::Revisi => [StatusPengaduan::Selesai],
+            StatusPengaduan::Selesai => [],
+        };
+    }
+
+    /** Kalimat hasil tindakan yang ditampilkan setelah tiket berhasil dipindahkan. */
+    public static function pesanTujuan(StatusPengaduan $tujuan): string
+    {
+        return match ($tujuan) {
+            StatusPengaduan::Diproses => 'Pengaduan masuk tahap Diproses dan menunggu penanganan unit.',
+            StatusPengaduan::Revisi => 'Pengaduan ditandai perlu revisi, pelapor diminta melengkapi data.',
+            StatusPengaduan::Selesai => 'Pengaduan ditandai selesai.',
+            default => 'Tahap pengaduan diperbarui.',
+        };
+    }
+
+    /**
+     * Label, ikon, dan warna tombol untuk satu tahap tujuan.
+     *
+     * Revisi sengaja memakai warna error supaya pilihan yang meminta data
+     * ulang tidak salah dikira sebagai tombol menutup tiket.
+     *
+     * @return array{label: string, ikon: string, warna: string}
+     */
+    public static function tombolTujuan(StatusPengaduan $tujuan): array
+    {
+        return match ($tujuan) {
+            StatusPengaduan::Diproses => [
+                'label' => 'Proses',
+                'ikon' => 'play_arrow',
+                'warna' => 'bg-primary text-on-primary',
+            ],
+            StatusPengaduan::Revisi => [
+                'label' => 'Revisi',
+                'ikon' => 'rate_review',
+                'warna' => 'bg-error text-white',
+            ],
+            StatusPengaduan::Selesai => [
+                'label' => 'Selesaikan',
+                'ikon' => 'check_circle',
+                'warna' => 'bg-primary text-on-primary',
+            ],
+            default => [
+                'label' => $tujuan->label(),
+                'ikon' => $tujuan->ikon(),
+                'warna' => 'bg-surface-container text-on-surface',
+            ],
+        };
+    }
+
+    /**
+     * Alasan kenapa suatu tujuan tidak boleh dipakai, atau null kalau sah.
+     *
+     * Satu-satunya sumber aturan adalah tujuanTersedia(), jadi tombol yang
+     * tampil di layar dan tombol yang diterima server tidak akan berbeda.
+     */
+    private static function alasanPindah(Pengaduan $pengaduan, StatusPengaduan $tujuan): ?string
+    {
+        if ($pengaduan->status === $tujuan) {
+            return 'Pengaduan sudah berada di tahap '.$tujuan->label().'.';
+        }
+
+        if (! in_array($tujuan, self::tujuanTersedia($pengaduan), true)) {
+            return $pengaduan->status->selesai()
+                ? 'Tiket ini sudah selesai sehingga tahapnya tidak bisa diubah lagi.'
+                : 'Tahap '.$pengaduan->status->label().' tidak punya tombol untuk pindah ke '.$tujuan->label().'.';
+        }
+
+        return null;
     }
 
     /** Nyalakan atau matikan penandaan kasus berat beserta jejak auditnya. */

@@ -107,12 +107,13 @@ class DetailPengaduanAdminTest extends TestCase
 
         $tampilan = $this->get(route('admin.pengaduan.show', 'ADUAN-AKSI-01'))
             ->assertOk()
-            ->assertSee('Panel Formulasi Jawaban Resmi Humas')
             ->assertSee('Keputusan Penanganan Pengaduan')
+            ->assertSee('Tahap Pengaduan:')
+            ->assertSee('Proses')
             ->getContent();
 
-        // Formulasi jawaban, disposisi unit, dan penandaan kasus berat belum
-        // punya endpoint, jadi tidak boleh muncul tautan palsu.
+        // Disposisi unit dan penandaan kasus berat belum punya endpoint,
+        // jadi tidak boleh muncul tautan palsu.
         $this->assertStringNotContainsString('href="#', $tampilan);
         $this->assertStringContainsString('cursor-not-allowed', $tampilan);
     }

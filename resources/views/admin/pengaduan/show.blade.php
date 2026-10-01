@@ -16,8 +16,8 @@
 
     <div class="w-full px-margin py-space-md flex flex-col gap-space-lg">
 
-        {{-- Hasil tindakan: muncul setelah kirim jawaban, kembalikan unit,
-             simpan draf, atau ubah penandaan kasus berat. --}}
+        {{-- Hasil tindakan: muncul setelah admin memindahkan tahap
+             pengaduan atau mengubah penandaan kasus berat. --}}
         @if (session('sukses'))
             <div
                 role="status"
@@ -250,7 +250,8 @@
         </div>
         <!-- End of Panel Kasus Berat -->
 
-        <!-- Kolom Kerja: kiri kronologi dan formulasi, kanan panel keputusan -->
+        <!-- Kolom Kerja: kiri kronologi dan formulasi, kanan keputusan,
+             bawahnya baris penuh buat panel percakapan -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
 
             <!-- Kolom Kiri: Kronologi Pengaduan -->
@@ -338,210 +339,10 @@
                 </article>
                 <!-- End of Kartu 1 -->
 
-                <!-- Kartu 2: Panel formulasi jawaban resmi -->
-                <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
-                    <div class="flex items-center justify-between gap-space-sm pb-space-sm">
-                        <div class="flex items-center gap-space-sm">
-                            <span class="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shrink-0">
-                                <x-symbol nama="rate_review" class="text-[22px]" />
-                            </span>
-                            <div>
-                                <h2 class="font-title-lg text-title-lg text-on-surface font-bold">Panel Formulasi Jawaban Resmi Humas</h2>
-                                <p class="font-body-sm text-body-sm text-on-surface-variant">
-                                    Rangka surat tanggapan resmi untuk ditinjau sebelum dikirim ke pelapor.
-                                </p>
-                            </div>
-                        </div>
-
-                        <span class="px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold">
-                            Kewenangan Humas
-                        </span>
-                    </div>
-
-                    {{-- Draf jawaban memakai form sendiri supaya admin bisa
-                         menyimpan pekerjaan setengah jadi tanpa ikut menutup
-                         tiket. --}}
-                    <form method="POST" action="{{ route('admin.pengaduan.draf', $kode) }}" class="flex flex-col gap-space-xs">
-                        @csrf
-
-                        <label for="drafJawaban" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
-                            Draf Tanggapan Resmi
-                        </label>
-                        <textarea
-                            id="drafJawaban"
-                            name="draf"
-                            rows="7"
-                            placeholder="Tuliskan narasi penjelasan resmi RSUD Dr. Soetomo untuk pelapor..."
-                            class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
-                        >{{ old('draf', $detail->draf()) }}</textarea>
-
-                        @error('draf')
-                            <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
-                        @enderror
-
-                        <div class="flex flex-wrap items-center justify-between gap-space-sm">
-                            <span class="font-label-sm text-label-sm text-outline">
-                                Draf disimpan di sisi admin dan belum pernah dikirim ke pelapor.
-                            </span>
-                            <button
-                                type="submit"
-                                class="shrink-0 px-space-md py-2 rounded-full bg-surface-container-highest text-on-surface font-label-md text-label-md font-bold flex items-center gap-1.5 transition-opacity hover:opacity-70"
-                            >
-                                <x-symbol nama="save" class="text-[18px]" />
-                                Simpan Draf
-                            </button>
-                        </div>
-                    </form>
-
-                    {{-- Dua pilihan tindak lanjut memakai dua form terpisah
-                         karena tujuannya berbeda: satu menutup tiket, satu lagi
-                         mengembalikannya ke unit yang ditugaskan. --}}
-                    <div class="pt-space-sm bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-md">
-                        <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
-                            Tentukan Keputusan Tindak Lanjut Pengaduan
-                        </span>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-
-                            {{-- Aksi A: kirim jawaban resmi dan tutup tiket.
-                                 Narasi jawaban ditulis ulang di sini supaya yang
-                                 terkirim ke pelapor bukan sekadar draf yang
-                                 kebetulan masih tertinggal. --}}
-                            <form
-                                method="POST"
-                                action="{{ route('admin.pengaduan.jawaban', $kode) }}"
-                                class="p-space-md rounded-lg bg-surface-container-lowest shadow-sm flex flex-col justify-between gap-space-sm"
-                            >
-                                @csrf
-
-                                <div class="flex items-start gap-space-sm">
-                                    <span class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
-                                        <x-symbol nama="verified" class="text-[18px]" />
-                                    </span>
-                                    <div>
-                                        <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Aksi A: Kirim Jawaban Resmi ke Pelapor</h3>
-                                        <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                                            Klarifikasi dianggap lengkap. Ubah status utama menjadi <strong>Selesai</strong> lalu kirim surat berkop.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-col gap-space-xs">
-                                    <label for="isiJawaban" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
-                                        Narasi Jawaban Resmi
-                                    </label>
-                                    <textarea
-                                        id="isiJawaban"
-                                        name="isi"
-                                        rows="5"
-                                        placeholder="Jawaban resmi yang akan dibaca pelapor beserta kronologi pengaduannya..."
-                                        class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
-                                    >{{ old('isi', $detail->draf()) }}</textarea>
-
-                                    @error('isi')
-                                        <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <div class="flex flex-col gap-space-xs">
-                                    <label for="catatanTutup" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
-                                        Catatan Penutupan
-                                    </label>
-                                    <input
-                                        id="catatanTutup"
-                                        type="text"
-                                        name="catatan"
-                                        value="{{ old('catatan') }}"
-                                        placeholder="Opsional, hanya untuk jejak audit internal."
-                                        @class([
-                                            'w-full p-space-sm rounded-lg bg-surface font-body-sm text-body-sm text-on-surface outline-none transition-all placeholder:text-outline border',
-                                            'border-error' => $errors->has('catatan'),
-                                            'border-outline-variant/40' => ! $errors->has('catatan'),
-                                        ])
-                                    >
-
-                                    @error('catatan')
-                                        <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    @disabled(! $tindakan['tutup'])
-                                    title="{{ $tindakan['alasanTutup'] ?? 'Kirim jawaban resmi lalu tutup tiket' }}"
-                                    class="w-full mt-space-xs py-2.5 px-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    <x-symbol nama="send" class="text-[18px]" />
-                                    Kirim &amp; Selesaikan Tiket
-                                </button>
-                            </form>
-
-                            {{-- Aksi B: kembalikan ke unit untuk klarifikasi ulang. --}}
-                            <form
-                                method="POST"
-                                action="{{ route('admin.pengaduan.kembalikan', $kode) }}"
-                                class="p-space-md rounded-lg bg-surface-container-lowest shadow-sm flex flex-col justify-between gap-space-sm"
-                            >
-                                @csrf
-
-                                <div class="flex items-start gap-space-sm">
-                                    <span class="w-8 h-8 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0">
-                                        <x-symbol nama="replay" class="text-[18px]" />
-                                    </span>
-                                    <div>
-                                        <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Aksi B: Kembalikan untuk Klarifikasi Ulang</h3>
-                                        <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                                            Jawaban unit belum lengkap. Kembalikan ke unit agar statusnya kembali
-                                            <strong>Sedang Investigasi</strong>.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div class="flex flex-col gap-space-xs">
-                                    <label for="catatanKembalikan" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
-                                        Alasan Dikembalikan ke Unit
-                                    </label>
-                                    <textarea
-                                        id="catatanKembalikan"
-                                        name="catatan"
-                                        rows="5"
-                                        placeholder="Contoh: hasil rontgen belum dilampirkan, mohon dilengkapi unit pemeriksa."
-                                        @class([
-                                            'w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none transition-all placeholder:text-outline border',
-                                            'border-error' => $errors->has('catatan'),
-                                            'border-outline-variant/40' => ! $errors->has('catatan'),
-                                        ])
-                                    >{{ old('catatan') }}</textarea>
-
-                                    @error('catatan')
-                                        <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
-                                    @enderror
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    @disabled(! $tindakan['kembalikan'])
-                                    title="{{ $tindakan['alasanKembalikan'] ?? 'Kembalikan tiket ke unit yang ditugaskan' }}"
-                                    class="w-full mt-space-xs py-2.5 px-space-md rounded-lg bg-surface-container-highest text-error font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity enabled:hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-70"
-                                >
-                                    <x-symbol nama="reply_all" class="text-[18px]" />
-                                    Kembalikan ke Unit
-                                </button>
-
-                                @unless ($tindakan['kembalikan'])
-                                    <span class="font-label-sm text-label-sm text-outline text-center">
-                                        {{ $tindakan['alasanKembalikan'] }}
-                                    </span>
-                                @endunless
-                            </form>
-                        </div>
-                    </div>
-                </article>
-                <!-- End of Kartu 2 -->
-            </div>
+                </div>
             <!-- End of Kolom Kiri -->
 
-            <!-- Kolom Kanan: Keputusan Penanganan, Percakapan, dan Audit -->
+            <!-- Kolom Kanan: Keputusan Penanganan Pengaduan -->
             <div class="lg:col-span-5 flex flex-col gap-space-lg">
 
                 <!-- Kartu 3: Jalur penanganan dan status disposisi unit -->
@@ -650,10 +451,13 @@
                     </div>
                 </article>
                 <!-- End of Kartu 3 -->
+            </div>
+            <!-- End of Kolom Kanan -->
 
-                <!-- Kartu 4: percakapan pelapor dan kanal koordinasi unit -->
-                <article class="bg-surface-container-lowest rounded-lg shadow-sm flex flex-col overflow-hidden">
-                    <div class="flex items-center bg-surface-container-low p-1.5 gap-1.5">
+            <!-- Kartu 4: percakapan pelapor dan kanal koordinasi unit, dibuat
+                 selebar body supaya jadi tempat utama mengetik balasan -->
+            <article class="lg:col-span-12 bg-surface-container-lowest rounded-lg shadow-sm flex flex-col overflow-hidden">
+<div class="flex items-center bg-surface-container-low p-1.5 gap-1.5">
                         <button
                             type="button"
                             data-tab="pelapor"
@@ -743,48 +547,56 @@
                         </p>
                     </div>
                     <!-- End of Tab 2 -->
-                </article>
-                <!-- End of Kartu 4 -->
+            </article>
+            <!-- End of Kartu 4 -->
 
-                <!-- Kartu 5: jejak audit pengaduan -->
-                <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
-                    <div class="flex items-center justify-between gap-space-sm pb-space-xs">
-                        <div class="flex items-center gap-space-sm">
-                            <x-symbol nama="history" class="text-outline text-[22px]" />
-                            <h2 class="font-title-md text-title-md text-on-surface font-bold">Log Audit &amp; Kronologi</h2>
+            {{-- Panel tahap: satu tombol untuk Diterima, dua tombol untuk
+                 Diproses, satu tombol untuk Revisi, dan catatan saja kalau
+                 tiketnya sudah selesai. --}}
+            <div class="lg:col-span-12 bg-surface-container-lowest rounded-lg shadow-sm p-space-md">
+                <div class="flex flex-wrap items-center justify-between gap-space-md">
+                    <div class="flex items-center gap-space-sm">
+                        <span class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+                            <x-symbol :nama="$tiket->status->ikon()" class="text-[20px]" />
+                        </span>
+                        <div>
+                            <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                Tahap Pengaduan: {{ $tiket->status->label() }}
+                            </span>
+                            <p class="font-body-sm text-body-sm text-on-surface">{{ $tiket->status->subStatus() }}</p>
                         </div>
-                        <span class="font-label-sm text-label-sm text-on-surface-variant">Jejak Internal</span>
                     </div>
 
-                    <div class="relative pl-6 flex flex-col gap-space-md before:content-[''] before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-outline-variant/50">
-                        @foreach ($detail->audit as $entri)
-                            <div class="relative flex flex-col gap-1">
-                                <span class="absolute -left-6 top-1 w-3.5 h-3.5 rounded-full bg-surface-tint ring-4 ring-surface-container-lowest" aria-hidden="true"></span>
+                    <div class="flex flex-wrap items-center gap-space-sm">
+                        @forelse ($detail->tujuanTersedia() as $tujuan)
+                            @php
+                                $tombol = $detail->tombolTujuan($tujuan);
+                            @endphp
 
-                                <div class="flex flex-wrap items-center gap-space-xs">
-                                    <span class="px-2 py-0.5 rounded-full {{ $entri['nada'] }} font-label-sm text-label-sm font-bold flex items-center gap-1">
-                                        <x-symbol :nama="$entri['ikon']" class="text-[14px]" />
-                                        {{ $entri['sumber'] }}
-                                    </span>
-                                    <span class="font-label-sm text-label-sm text-on-surface-variant">{{ $entri['waktu'] }}</span>
-                                </div>
+                            <form method="POST" action="{{ route('admin.pengaduan.tahap', $kode) }}">
+                                @csrf
+                                <input type="hidden" name="tujuan" value="{{ $tujuan->value }}">
 
-                                <p class="font-body-sm text-body-sm text-on-surface font-medium">{{ $entri['kalimat'] }}</p>
-
-                                @if ($entri['catatan'])
-                                    <p class="font-body-sm text-body-sm text-on-surface-variant bg-surface-container-low rounded-sm px-2 py-1">
-                                        {{ $entri['catatan'] }}
-                                    </p>
-                                @endif
-
-                                <span class="font-label-sm text-label-sm text-on-surface-variant">Aktor: {{ $entri['aktor'] }}</span>
-                            </div>
-                        @endforeach
+                                <button
+                                    type="submit"
+                                    class="py-2.5 px-space-lg rounded-lg {{ $tombol['warna'] }} font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                                >
+                                    <x-symbol :nama="$tombol['ikon']" class="text-[18px]" />
+                                    {{ $tombol['label'] }}
+                                </button>
+                            </form>
+                        @empty
+                            <span class="font-body-sm text-body-sm text-on-surface-variant">
+                                {{ $tindakan['alasanTutup'] }}
+                            </span>
+                        @endforelse
                     </div>
-                </article>
-                <!-- End of Kartu 5 -->
+                </div>
+
+                @error('tujuan')
+                    <span class="mt-space-sm block font-label-sm text-label-sm text-error">{{ $message }}</span>
+                @enderror
             </div>
-            <!-- End of Kolom Kanan -->
         </div>
         <!-- End of Kolom Kerja -->
     </div>

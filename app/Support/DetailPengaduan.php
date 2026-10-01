@@ -110,6 +110,30 @@ final class DetailPengaduan
     }
 
     /**
+     * Tahap yang boleh dipilih admin dari tombol di bawah halaman.
+     *
+     * Diambil dari aturan yang sama dengan pemindahan tahap supaya tombol
+     * yang tampil di layar tidak mungkin lebih banyak daripada yang diizinkan
+     * server.
+     *
+     * @return array<int, StatusPengaduan>
+     */
+    public function tujuanTersedia(): array
+    {
+        return TindakLanjutPengaduan::tujuanTersedia($this->pengaduan);
+    }
+
+    /**
+     * Label, ikon, dan warna tombol untuk satu tahap tujuan.
+     *
+     * @return array{label: string, ikon: string, warna: string}
+     */
+    public function tombolTujuan(StatusPengaduan $tujuan): array
+    {
+        return TindakLanjutPengaduan::tombolTujuan($tujuan);
+    }
+
+    /**
      * Stepper empat tahap pengaduan.
      *
      * Waktu pada tiap pilar diambil dari baris riwayat saat tiket pertama

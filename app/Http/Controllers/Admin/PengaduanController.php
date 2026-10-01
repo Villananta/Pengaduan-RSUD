@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\StatusPengaduan;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaduan;
 use App\Support\DaftarPengaduan;
@@ -9,8 +10,10 @@ use App\Support\DetailPengaduan;
 use App\Support\TindakLanjutPengaduan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use RuntimeException;
 
 class PengaduanController extends Controller
 {
@@ -61,11 +64,13 @@ class PengaduanController extends Controller
     {
         $pengaduan = $this->cariTiket($kode);
 
+        // Isi jawaban boleh dikosongkan karena panel formulasi sekarang hanya
+        // menyediakan tombol. Kalau diisi, panjangnya tetap dijaga supaya
+        // pelapor tidak menerima potongan kalimat yang tidak berarti.
         $validated = $request->validate([
-            'isi' => ['required', 'string', 'min:10', 'max:5000'],
+            'isi' => ['nullable', 'string', 'min:10', 'max:5000'],
             'catatan' => ['nullable', 'string', 'max:500'],
         ], [
-            'isi.required' => 'Tuliskan jawaban resmi sebelum mengirimnya ke pelapor.',
             'isi.min' => 'Jawaban resmi minimal 10 karakter agar pelapor mendapat penjelasan yang berarti.',
             'isi.max' => 'Jawaban resmi maksimal 5000 karakter.',
             'catatan.max' => 'Catatan internal maksimal 500 karakter.',
@@ -83,11 +88,11 @@ class PengaduanController extends Controller
 
         TindakLanjutPengaduan::kirimJawabanResmi(
             $pengaduan,
-            $validated['isi'],
+            $validated['isi'] ?? null,
             $validated['catatan'] ?? null,
         );
 
-        return $this->kembali($pengaduan, 'Jawaban resmi terkirim ke pelapor dan tiket ditandai selesai.');
+        return $this->kembali($pengaduan, 'Tiket ditandai selesai.');
     }
 
     /** Aksi B: kembalikan tiket ke unit untuk klarifikasi ulang. */
@@ -114,6 +119,45 @@ class PengaduanController extends Controller
         TindakLanjutPengaduan::kembalikanKeUnit($pengaduan, $validated['catatan'] ?? null);
 
         return $this->kembali($pengaduan, 'Tiket dikembalikan ke unit untuk klarifikasi ulang.');
+    }
+
+    /**
+     * Tombol tahap pada panel bawah: Proses, Selesaikan, atau Revisi.
+     *
+     * Semua tombol dikirim ke endpoint yang sama dan Bedanya hanya nilai
+     * tujuan, supaya aturan perpindahan tahap tidak tercecer di tiga
+     * controller method yang berbeda.
+     */
+    public function pindahTahap(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'tujuan' => ['required', Rule::enum(StatusPengaduan::class)],
+            'catatan' => ['nullable', 'string', 'max:500'],
+        ], [
+            'tujuan.required' => 'Pilih tahap tujuan lebih dulu.',
+            'tujuan.enum' => 'Tahap tujuan tidak dikenal.',
+            'catatan.max' => 'Catatan untuk unit maksimal 500 karakter.',
+        ]);
+
+        $tujuan = StatusPengaduan::from($validated['tujuan']);
+
+        try {
+            TindakLanjutPengaduan::pindahkanTahap(
+                $pengaduan,
+                $tujuan,
+                $validated['catatan'] ?? null,
+            );
+        } catch (RuntimeException $alasan) {
+            // Alasan penolakan ditulis dengan nama field yang dipakai template,
+            // supaya pesan salahnya muncul di panel yang sama dengan tombolnya.
+            throw ValidationException::withMessages([
+                'tujuan' => $alasan->getMessage(),
+            ]);
+        }
+
+        return $this->kembali($pengaduan, TindakLanjutPengaduan::pesanTujuan($tujuan));
     }
 
     /** Nyalakan atau matikan penandaan kasus berat beserta ekstensi SLA-nya. */
