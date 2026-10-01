@@ -5,9 +5,9 @@ namespace App\Support;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-
 
 final class Dashboard
 {
@@ -15,7 +15,7 @@ final class Dashboard
      * @param  array<string, int>  $perTahap
      * @param  array{unit: int, humas: int}  $disposisi
      * @param  array{bulan_ini: int, selisih: int}  $selesaiBulan
-     * @param  Collection<int, Pengaduan>  $perluTindakan
+     * @param  LengthAwarePaginator<int, Pengaduan>  $perluTindakan
      * @param  Collection<int, MasterUnit>  $unitTerbebani
      * @param  array{lewat: Collection<int, array<string, mixed>>, telaah: int, total_lewat: int}  $kritis
      * @param  Collection<int, MasterUnit>  $statusKoneksi
@@ -28,7 +28,7 @@ final class Dashboard
         public readonly array $disposisi,
         public readonly array $selesaiBulan,
         public readonly int $aktif,
-        public readonly Collection $perluTindakan,
+        public readonly LengthAwarePaginator $perluTindakan,
         public readonly Collection $unitTerbebani,
         public readonly int $puncakBeban,
         public readonly array $kritis,
@@ -257,8 +257,15 @@ final class Dashboard
     /** Kalimat ringkasan pada footer daftar pengaduan butuh tindakan. */
     public function ringkasTindakan(): string
     {
-        return 'Menampilkan '.count($this->perluTindakan)
-            .' dari '.$this->aktif.' pengaduan aktif, sisa 2 hari kerja atau kurang menuju batas SLA';
+        return 'Menampilkan '.$this->perluTindakan->total()
+            .' pengaduan butuh tindakan dari '.$this->aktif
+            .' pengaduan aktif, sisa 2 hari kerja atau kurang menuju batas SLA';
+    }
+
+    /** Jumlah tiket yang tampil pada halaman saat ini. */
+    public function jumlahTindakan(): int
+    {
+        return $this->perluTindakan->count();
     }
 
     /**
@@ -350,10 +357,17 @@ final class Dashboard
     /**
      * Tombol aksi yang sesuai dengan kondisi tiket.
      *
-     * Tombol sengaja belum diarahkan ke halaman lain karena tiap fitur
-     * pada konsol admin akan punya desain dan alurnya sendiri.
+     * Hanya "Tinjau Jawaban & Racik Balasan" yang sudah punya halaman, jadi
+     * hanya dia yang membawa url. Nudge masih berupa tombol nonaktif karena
+     * alurnya belum dibangun, dan kita tidak boleh membuat tautan palsu.
      *
-     * @return array<int, array{label: string, ikon: string, nada: string}>
+     * Tombol eskalasi sengaja tidak dipakai lagi. Eskalasi ke Wadir dan
+     * Komite Medis adalah tindakan ke atasan yang harus punya catatan dan
+     * notifikasi, sedangkan di aplikasi ini belum ada salah satu pun.
+     * Menampilkan tombol yang menggoda tapi tidak mengerjakan apa pun hanya
+     * membuat admin percaya tiket sudah naik ke pimpinan.
+     *
+     * @return array<int, array{label: string, ikon: string, nada: string, url: ?string}>
      */
     private function tombolTiket(bool $lewat, bool $sudahDibalas, Pengaduan $pengaduan): array
     {
@@ -361,18 +375,18 @@ final class Dashboard
             'label' => $lewat ? 'Follow Up Unit (Nudge)' : 'Follow Up Unit (Nudge Manual)',
             'ikon' => 'notifications_active',
             'nada' => 'px-space-md py-2 rounded-sm bg-surface-container-high text-on-surface font-semibold',
+            'url' => null,
         ];
 
         $tinjau = [
             'label' => 'Tinjau Jawaban & Racik Balasan',
             'ikon' => 'rate_review',
             'nada' => 'px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-bold shadow-sm',
+            'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
         ];
 
         if ($sudahDibalas) {
-            return $lewat
-                ? [$this->tombolEskalasi(), $tinjau]
-                : [$tinjau];
+            return [$tinjau];
         }
 
         if ($pengaduan->status === StatusPengaduan::Diterima) {
@@ -380,22 +394,11 @@ final class Dashboard
                 'label' => 'Tentukan Penanganan',
                 'ikon' => 'forward_to_inbox',
                 'nada' => 'px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-bold shadow-sm ring-2 ring-secondary/20',
+                'url' => null,
             ]];
         }
 
-        return $lewat
-            ? [$this->tombolEskalasi(), $nudge]
-            : [$nudge];
-    }
-
-    /** @return array{label: string, ikon: string, nada: string} */
-    private function tombolEskalasi(): array
-    {
-        return [
-            'label' => 'Eskalasi Segera',
-            'ikon' => 'crisis_alert',
-            'nada' => 'px-space-md py-2 rounded-sm bg-error text-on-error font-bold shadow-sm',
-        ];
+        return [$nudge];
     }
 
     /**

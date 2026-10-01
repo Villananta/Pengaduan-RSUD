@@ -3,6 +3,20 @@
 @section('title', 'Beranda Utama')
 
 @section('content')
+
+    @php
+        // Antrean tiket dipaginasikan, jadi jendela halaman dihitung di
+        // sini supaya template utama tetap hanya menampilkan data.
+        $tindakan = $dashboard->perluTindakan;
+        $antrean = $tindakan->getCollection();
+
+        $halamanSekarang = $tindakan->currentPage();
+        $halamanTerakhir = $tindakan->lastPage();
+        $halamanMulai = max(1, $halamanSekarang - 2);
+        $halamanAkhir = min($halamanTerakhir, $halamanMulai + 4);
+        $halamanMulai = max(1, $halamanAkhir - 4);
+    @endphp
+
     <div class="w-full px-margin py-space-lg flex flex-col gap-space-lg">
 
         <!-- Baris Statistik -->
@@ -217,7 +231,7 @@
                     </div>
 
                     <div class="flex flex-col gap-space-sm">
-                        @forelse ($dashboard->perluTindakan as $pengaduan)
+                        @forelse ($antrean as $pengaduan)
 
                             @php $tiket = $dashboard->kartuTiket($pengaduan); @endphp
 
@@ -259,10 +273,20 @@
 
                                     <div class="flex items-center gap-space-xs shrink-0 w-full sm:w-auto justify-end">
                                         @foreach ($tiket['tombol'] as $tombol)
-                                            <button type="button" class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs">
-                                                <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
-                                                {{ $tombol['label'] }}
-                                            </button>
+                                            @if ($tombol['url'])
+                                                <a
+                                                    href="{{ $tombol['url'] }}"
+                                                    class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs"
+                                                >
+                                                    <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                                    {{ $tombol['label'] }}
+                                                </a>
+                                            @else
+                                                <button type="button" class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs">
+                                                    <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                                    {{ $tombol['label'] }}
+                                                </button>
+                                            @endif
                                         @endforeach
                                     </div>
                                 </div>
@@ -274,14 +298,55 @@
                         @endforelse
                     </div>
 
+                    <!-- Footer Antrean: ringkasan hasil dan navigasi halaman. -->
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-space-sm pt-space-xs text-on-surface-variant font-body-sm text-body-sm">
                         <span>{{ $dashboard->ringkasTindakan() }}</span>
 
-                        <span class="text-secondary font-title-sm text-title-sm font-semibold flex items-center gap-space-xs">
-                            Buka Seluruh Antrean Tiket Terpadu
-                            <x-symbol nama="arrow_forward" class="text-[16px]" />
-                        </span>
+                        @if ($halamanTerakhir > 1)
+                            <nav class="flex items-center gap-1" aria-label="Navigasi halaman antrean tiket">
+                                @if ($tindakan->onFirstPage())
+                                    <span class="p-1.5 rounded-sm bg-surface-container text-outline opacity-40" aria-hidden="true">
+                                        <x-symbol nama="first_page" class="text-[20px]" />
+                                    </span>
+                                    <span class="p-1.5 rounded-sm bg-surface-container text-outline opacity-40" aria-hidden="true">
+                                        <x-symbol nama="chevron_left" class="text-[20px]" />
+                                    </span>
+                                @else
+                                    <a href="{{ $tindakan->url(1) }}" class="p-1.5 rounded-sm bg-surface-container text-outline hover:text-on-surface transition-colors" aria-label="Halaman pertama">
+                                        <x-symbol nama="first_page" class="text-[20px]" />
+                                    </a>
+                                    <a href="{{ $tindakan->previousPageUrl() }}" class="p-1.5 rounded-sm bg-surface-container text-outline hover:text-on-surface transition-colors" rel="prev" aria-label="Halaman sebelumnya">
+                                        <x-symbol nama="chevron_left" class="text-[20px]" />
+                                    </a>
+                                @endif
+
+                                @for ($halaman = $halamanMulai; $halaman <= $halamanAkhir; $halaman++)
+                                    @if ($halaman === $halamanSekarang)
+                                        <span
+                                            class="w-8 h-8 rounded-sm bg-primary-container text-on-primary font-label-md text-label-md font-bold flex items-center justify-center"
+                                            aria-current="page"
+                                        >{{ $halaman }}</span>
+                                    @else
+                                        <a
+                                            href="{{ $tindakan->url($halaman) }}"
+                                            class="w-8 h-8 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-medium flex items-center justify-center transition-colors"
+                                        >{{ $halaman }}</a>
+                                    @endif
+                                @endfor
+
+                                @if ($tindakan->hasMorePages())
+                                    <span class="px-1 text-outline" aria-hidden="true">...</span>
+                                    <a href="{{ $tindakan->nextPageUrl() }}" class="p-1.5 rounded-sm bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors" rel="next" aria-label="Halaman berikutnya">
+                                        <x-symbol nama="chevron_right" class="text-[20px]" />
+                                    </a>
+                                    <a href="{{ $tindakan->url($halamanTerakhir) }}" class="p-1.5 rounded-sm bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors" aria-label="Halaman terakhir">
+                                        <x-symbol nama="last_page" class="text-[20px]" />
+                                    </a>
+                                @endif
+                            </nav>
+                        @endif
                     </div>
+                    <!-- End of Footer Antrean -->
                 </div>
 
                 <div class="w-full rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-sm">

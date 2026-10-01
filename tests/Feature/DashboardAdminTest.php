@@ -215,6 +215,50 @@ class DashboardAdminTest extends TestCase
         $this->assertArrayNotHasKey($bedah->id, $kepatuhan);
     }
 
+    public function test_tombol_tinjau_jawaban_mengarah_ke_detail_pengaduannya(): void
+    {
+        // Tombol tinjau muncul kalau admin sudah pernah membalas di kolom chat,
+        // dan tombol itu harus membawa admin ke halaman detail tiket tersebut.
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-TINJAU-1',
+            'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+        ]);
+
+        $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => 'Jawaban unit sudah saya terima, saya racik balasan untuk pelapor.',
+        ]);
+
+        $tampilan = $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Tinjau Jawaban & Racik Balasan')
+            ->getContent();
+
+        $this->assertStringContainsString(
+            'href="'.route('admin.pengaduan.show', 'ADUAN-TINJAU-1').'"',
+            $tampilan,
+        );
+    }
+
+    public function test_tombol_nudge_tidak_membawa_tautan_palsu(): void
+    {
+        // Nudge belum punya alur, jadi harus tetap tombol biasa tanpa href
+        // sama sekali. Tidak ada tombol eskalasi karena eskalasi ke atasan
+        // belum punya catatan maupun notifikasi di aplikasi ini.
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-NUDGE-1',
+            'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+        ]);
+
+        $tampilan = $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Follow Up Unit (Nudge)', $tampilan);
+        $this->assertStringNotContainsString('Eskalasi Segera', $tampilan);
+        $this->assertStringNotContainsString('href="#', $tampilan);
+    }
+
     public function test_daftar_butuh_tindakan_segera_hanya_menampilkan_tiket_mendek_dan_kasus_berat(): void
     {
         // Sisa 1 hari kerja menuju target 12 hari kerja.
@@ -278,6 +322,57 @@ class DashboardAdminTest extends TestCase
         ]);
 
         $this->assertCount(0, StatistikDashboard::perluTindakan(10));
+    }
+
+    public function test_antrean_tiket_dipaginasikan(): void
+    {
+        // Enam tiket mendesak, empat per halaman, jadi admin perlu
+        // berpindah halaman untuk melihat dua sisanya.
+        foreach (range(1, 6) as $urut) {
+            Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+                'kode_tiket' => 'ADUAN-ANTRE-'.$urut,
+                'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+            ]);
+        }
+
+        $antrean = StatistikDashboard::perluTindakan(4);
+
+        $this->assertSame(6, $antrean->total());
+        $this->assertCount(4, $antrean->getCollection());
+        $this->assertSame(2, $antrean->lastPage());
+
+        $kedua = StatistikDashboard::perluTindakan(4, 2);
+
+        $this->assertCount(2, $kedua->getCollection());
+        $this->assertSame(2, $kedua->currentPage());
+    }
+
+    public function test_halaman_antrean_melebihi_jumlah_tidak_menampilkan_kartu(): void
+    {
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-ANTRE-SATU',
+            'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+        ]);
+
+        $tampilan = $this->get(route('admin.dashboard', ['halaman_tindakan' => 9]))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString('ADUAN-ANTRE-SATU', $tampilan);
+    }
+
+    public function test_kalimat_buka_seluruh_antrean_tidak_lagi_muncul(): void
+    {
+        // Tautan ke daftar pengaduan lengkap sudah diganti navigasi
+        // halaman, jadi kalimat ajakan tersebut tidak boleh tampil lagi.
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-ANTRE-LAMA',
+            'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+        ]);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Buka Seluruh Antrean Tiket Terpadu');
     }
 
     public function test_data_dashboard_aman_disimpan_di_cache(): void

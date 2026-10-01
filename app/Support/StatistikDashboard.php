@@ -6,6 +6,7 @@ use App\Enums\StatusPengaduan;
 use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -155,11 +156,16 @@ final class StatistikDashboard
      * saja tidak perlu membanjiri antrean, karena daftar ini dipakai untuk
      * memutuskan tiket mana yang harus ditangani lebih dulu.
      *
-     * @return Collection<int, Pengaduan>
+     * Urutan disusun di dalam memori karena zona SLA dihitung dengan
+     * diffInWeekdays yang tidak bisa diterjemahkan ke SQL, jadi paginasi
+     * dilakukan di atas hasil akhir, bukan di query.
+     *
+     * @param  int  $perHalaman  Jumlah kartu per halaman.
+     * @param  int|null  $halaman  Halaman yang diminta, null berarti ambil dari query.
      */
-    public static function perluTindakan(int $jumlah = 4)
+    public static function perluTindakan(int $perHalaman = 4, ?int $halaman = null): LengthAwarePaginator
     {
-        return Pengaduan::query()
+        $daftar = Pengaduan::query()
             ->aktif()
             ->with('masterUnit')
             ->withExists(['pesan as sudah_dibalas' => fn ($q) => $q->where('peran', 'admin')])
@@ -170,8 +176,23 @@ final class StatistikDashboard
             // Kasus berat ditumpuk paling atas karena menghendaki telaah
             // komite etik, jadi tidak bisa menunggu mendekati batas SLA.
             ->sortByDesc(fn (Pengaduan $p): bool => $p->kasus_berat)
-            ->take($jumlah)
             ->values();
+
+        $halaman ??= LengthAwarePaginator::resolveCurrentPage('halaman_tindakan');
+
+        return new LengthAwarePaginator(
+            $daftar->forPage($halaman, $perHalaman)->values(),
+            $daftar->count(),
+            $perHalaman,
+            $halaman,
+            [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'pageName' => 'halaman_tindakan',
+                // Parameter lain pada query ikut dibawa supaya tautan
+                // halaman tidak menghilangkan filter yang sedang aktif.
+                'query' => request()->except('halaman_tindakan'),
+            ],
+        );
     }
 
     /**

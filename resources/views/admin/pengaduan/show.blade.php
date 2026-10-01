@@ -113,20 +113,25 @@
             </div>
 
             {{-- Penanda Lapis 2: unit yang ditugaskan dan kondisi koneksinya. --}}
+
             <div class="flex items-center gap-space-sm bg-surface-container-low p-space-sm rounded-lg shrink-0">
                 <span class="w-10 h-10 rounded-lg {{ $unit['tertaut'] ? 'bg-secondary text-on-secondary' : 'bg-surface-container-highest text-outline' }} flex items-center justify-center shrink-0">
                     <x-symbol :nama="$unit['tertaut'] ? 'domain' : 'support_agent'" class="text-[22px]" />
                 </span>
+
                 <div class="flex flex-col">
                     <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">
                         Status Lapis 2 &bull; Unit Terkait
                     </span>
+
                     <div class="flex items-center gap-1.5">
                         @if ($unit['tertaut'])
                             <span class="w-2 h-2 rounded-full {{ $unit['terhubung'] ? 'bg-secondary' : 'bg-error' }}" aria-hidden="true"></span>
                         @endif
+
                         <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $unit['status'] }}</span>
                     </div>
+
                     <span class="font-label-sm text-label-sm text-on-surface-variant">{{ $unit['keterangan'] }}</span>
                 </div>
             </div>
@@ -184,6 +189,7 @@
 
             <div class="flex items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant">
                 <x-symbol :nama="$sla['lewatUnit'] ? 'crisis_alert' : 'verified'" class="text-[16px] {{ $sla['lewatUnit'] ? 'text-error' : 'text-secondary' }}" />
+
                 @if ($sla['lewatUnit'])
                     Investigasi unit sudah melewati batas {{ $sla['hariInvestigasi'] }} hari kerja, tiket masuk eskalasi.
                 @else
@@ -193,11 +199,12 @@
         </section>
         <!-- End of Stepper Empat Tahap Pengaduan -->
 
-        <!-- Panel Kasus Berat -->
+        <!-- Panel Kasus Berat: penandaan yang menggeser target SLA. -->
         {{-- Menyalakannya menambah hari kerja SLA, jadi panel ini menampilkan
              berapa lama target ikut bergeser. --}}
+
         <div @class([
-            'w-full rounded-lg shadow-sm px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-sm',
+            'w-full rounded-lg shadow-sm px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md',
             'bg-error-container/40 border border-error/30' => $sla['kasusBerat'],
             'bg-surface-container-lowest' => ! $sla['kasusBerat'],
         ])>
@@ -209,6 +216,7 @@
                 ])>
                     <x-symbol nama="emergency" class="text-[20px]" />
                 </span>
+
                 <div>
                     <h2 class="font-title-md text-title-md text-on-surface font-bold">
                         @if ($sla['kasusBerat'])
@@ -217,10 +225,12 @@
                             Tandai sebagai Kasus Berat
                         @endif
                     </h2>
+
                     <p class="font-body-sm text-body-sm text-on-surface-variant">
                         Kasus berat menambah {{ $sla['tambahanHariKerja'] }} hari kerja pada target penyelesaian,
                         jadi standar {{ $sla['hariKerja'] }} hari kerja menjadi
                         <strong>{{ $sla['totalHariKerja'] }} hari kerja</strong>.
+
                         @if ($sla['kasusBeratAt'])
                             Ditandai sejak {{ $sla['kasusBeratAt'] }} WIB.
                         @endif
@@ -230,15 +240,17 @@
 
             {{-- Satu form untuk dua arah: tombol mengirim nilai aktif yang
                  kebalikan dari penandaan sekarang. --}}
+
             <form method="POST" action="{{ route('admin.pengaduan.kasus-berat', $kode) }}" class="shrink-0">
                 @csrf
+
                 <input type="hidden" name="aktif" value="{{ $sla['kasusBerat'] ? 0 : 1 }}">
 
                 <button
                     type="submit"
                     aria-pressed="{{ $sla['kasusBerat'] ? 'true' : 'false' }}"
                     @class([
-                        'px-space-md py-2 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 transition-colors',
+                        'px-space-lg py-2.5 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 transition-colors',
                         'bg-surface-container text-on-surface-variant hover:bg-surface-container-highest' => $sla['kasusBerat'],
                         'bg-error text-on-error hover:opacity-90' => ! $sla['kasusBerat'],
                     ])
@@ -264,6 +276,7 @@
                             <x-symbol nama="description" class="text-secondary text-[22px]" />
                             <div>
                                 <h2 class="font-title-lg text-title-lg text-on-surface font-bold">Kronologi Pengaduan Pelapor</h2>
+
                                 <p class="font-body-sm text-body-sm text-on-surface-variant">
                                     Isi persis seperti dikirim pelapor melalui portal publik, belum melalui telaah humas.
                                 </p>
@@ -300,6 +313,7 @@
                     </div>
 
                     {{-- Berkas lampiran. Gambar bisa dibuka, berkas lain hanya nama. --}}
+
                     @if (count($detail->lampiran) > 0)
                         <div class="flex flex-col gap-space-xs">
                             <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
@@ -338,8 +352,7 @@
                     @endif
                 </article>
                 <!-- End of Kartu 1 -->
-
-                </div>
+            </div>
             <!-- End of Kolom Kiri -->
 
             <!-- Kolom Kanan: Keputusan Penanganan Pengaduan -->
@@ -354,6 +367,7 @@
                             </span>
                             <div>
                                 <h2 class="font-title-md text-title-md text-on-surface font-bold">Keputusan Penanganan Pengaduan</h2>
+
                                 <p class="font-body-sm text-body-sm text-on-surface-variant">Pilih jalur investigasi Lapis 2 atau penanganan langsung</p>
                             </div>
                         </div>
@@ -365,12 +379,13 @@
 
                     {{-- Dua jalur penanganan. Jalur tanpa unit teknis sengaja
                          dinonaktifkan supaya tidak ada pilihan yang bohong. --}}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-surface-container-low p-1.5 rounded-lg" role="tablist">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm bg-surface-container-low p-space-xs rounded-lg" role="tablist">
                         <button
                             type="button"
                             disabled
                             @class([
-                                'py-2 px-space-sm rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 cursor-not-allowed',
+                                'py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 cursor-not-allowed',
                                 'bg-surface-container-lowest text-secondary shadow-sm ring-1 ring-secondary/30' => $unit['tertaut'],
                                 'text-on-surface-variant opacity-60' => ! $unit['tertaut'],
                             ])
@@ -384,7 +399,7 @@
                             disabled
                             title="Penanganan langsung humas belum punya alur pengesahan"
                             @class([
-                                'py-2 px-space-sm rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 cursor-not-allowed',
+                                'py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 cursor-not-allowed',
                                 'bg-surface-container-lowest text-secondary shadow-sm ring-1 ring-secondary/30' => ! $unit['tertaut'],
                                 'text-on-surface-variant opacity-60' => $unit['tertaut'],
                             ])
@@ -395,7 +410,8 @@
                     </div>
 
                     {{-- Ringkasan unit yang sudah ditugaskan. --}}
-                    <div class="p-space-sm rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col gap-2">
+
+                    <div class="p-space-sm rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col gap-space-sm">
                         <div class="flex items-center justify-between gap-space-sm">
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full {{ $unit['tertaut'] ? ($unit['terhubung'] ? 'bg-secondary' : 'bg-error') : 'bg-outline' }}" aria-hidden="true"></span>
@@ -411,7 +427,7 @@
                             @endif
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-on-surface font-body-sm text-body-sm pt-1 border-t border-outline-variant/20">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm text-on-surface font-body-sm text-body-sm pt-1 border-t border-outline-variant/20">
                             <div>
                                 <span class="text-on-surface-variant text-[11px] block">Unit Tujuan</span>
                                 <strong>{{ $unit['nama'] }}</strong>
@@ -425,8 +441,9 @@
                         </div>
                     </div>
 
-                    {{-- Daftar master unit. Formulir disposisi belum punya
-                         endpoint, jadi pilihan unit ditampilkan nonaktif. --}}
+                    {{-- Daftar master unit. Formulir disposisi belum punya endpoint,
+                         jadi pilihan unit ditampilkan nonaktif. --}}
+
                     <div class="flex flex-col gap-1 pt-1 border-t border-outline-variant/30">
                         <label for="pilihanUnit" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center justify-between gap-space-sm">
                             <span>Pilih Instalasi / Unit Tujuan (Master Data)</span>
@@ -436,7 +453,7 @@
                         <select
                             id="pilihanUnit"
                             disabled
-                            class="w-full py-2 px-space-sm rounded-lg bg-surface-container-low font-body-sm text-body-sm text-on-surface border border-outline-variant opacity-70 cursor-not-allowed"
+                            class="w-full py-2.5 px-space-md rounded-lg bg-surface-container-low font-body-sm text-body-sm text-on-surface border border-outline-variant opacity-70 cursor-not-allowed"
                         >
                             @foreach ($detail->pilihanUnit as $pilihan)
                                 <option value="{{ $pilihan->kode }}" @selected($tiket->master_unit_id === $pilihan->id)>
@@ -457,173 +474,180 @@
             <!-- Kartu 4: percakapan pelapor dan kanal koordinasi unit, dibuat
                  selebar body supaya jadi tempat utama mengetik balasan -->
             <article class="lg:col-span-12 bg-surface-container-lowest rounded-lg shadow-sm flex flex-col overflow-hidden">
-<div class="flex items-center bg-surface-container-low p-1.5 gap-1.5">
-                        <button
-                            type="button"
-                            data-tab="pelapor"
-                            class="flex-1 py-2 px-space-sm rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 bg-surface-container-lowest text-on-surface shadow-sm"
-                        >
-                            <x-symbol nama="chat" class="text-[18px] text-secondary" />
-                            Percakapan Pelapor
-                            @if (count($detail->percakapan) > 0)
-                                <span class="w-2 h-2 rounded-full bg-secondary" aria-hidden="true"></span>
-                            @endif
-                        </button>
 
-                        <button
-                            type="button"
-                            data-tab="unit"
-                            class="flex-1 py-2 px-space-sm rounded-lg font-title-sm text-title-sm font-semibold text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5"
-                        >
-                            <x-symbol nama="sync_alt" class="text-[18px]" />
-                            Koordinasi Unit
-                        </button>
+                <!-- Tab Kanal: penanda kanal aktif dan judul dua kanal di bawahnya. -->
+                <div class="flex items-center bg-surface-container-low p-space-xs gap-space-sm">
+                    <button
+                        type="button"
+                        data-tab="pelapor"
+                        class="flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 bg-surface-container-lowest text-on-surface shadow-sm"
+                    >
+                        <x-symbol nama="chat" class="text-[18px] text-secondary" />
+                        Percakapan Pelapor
+
+                        @if (count($detail->percakapan) > 0)
+                            <span class="w-2 h-2 rounded-full bg-secondary" aria-hidden="true"></span>
+                        @endif
+                    </button>
+
+                    <button
+                        type="button"
+                        data-tab="unit"
+                        class="flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-semibold text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5"
+                    >
+                        <x-symbol nama="sync_alt" class="text-[18px]" />
+                        Koordinasi Unit
+                    </button>
+                </div>
+                <!-- End of Tab Kanal -->
+
+                <!-- Tab 1: percakapan pelapor dengan admin humas -->
+                <div class="p-space-md flex flex-col gap-space-md" data-panel="pelapor">
+
+                    <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
+                        <span class="flex items-center gap-1">
+                            <x-symbol nama="smartphone" class="text-[16px] text-secondary" />
+                            Kanal Balasan Pelapor
+                        </span>
+                        <span class="text-secondary font-bold">{{ count($detail->percakapan) }} Pesan</span>
                     </div>
 
-                    <!-- Tab 1: percakapan pelapor dengan admin humas -->
-                    <div class="p-space-md flex flex-col gap-space-md" data-panel="pelapor">
-                        <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
-                            <span class="flex items-center gap-1">
-                                <x-symbol nama="smartphone" class="text-[16px] text-secondary" />
-                                Kanal Balasan Pelapor
-                            </span>
-                            <span class="text-secondary font-bold">{{ count($detail->percakapan) }} Pesan</span>
-                        </div>
-
-                        <div class="flex flex-col gap-space-sm max-h-[360px] overflow-y-auto pr-1">
-                            @forelse ($detail->percakapan as $pesan)
-                                <div @class([
-                                    'flex flex-col max-w-[85%]',
-                                    'items-start self-start' => ! $pesan['dariAdmin'],
-                                    'items-end self-end' => $pesan['dariAdmin'],
+                    <div class="flex flex-col gap-space-sm max-h-[360px] overflow-y-auto pr-1">
+                        @forelse ($detail->percakapan as $pesan)
+                            <div @class([
+                                'flex flex-col max-w-[85%]',
+                                'items-start self-start' => ! $pesan['dariAdmin'],
+                                'items-end self-end' => $pesan['dariAdmin'],
+                            ])>
+                                <span @class([
+                                    'font-label-sm text-label-sm text-on-surface-variant mb-0.5',
+                                    'ml-1' => ! $pesan['dariAdmin'],
+                                    'mr-1' => $pesan['dariAdmin'],
                                 ])>
-                                    <span @class([
-                                        'font-label-sm text-label-sm text-on-surface-variant mb-0.5',
-                                        'ml-1' => ! $pesan['dariAdmin'],
-                                        'mr-1' => $pesan['dariAdmin'],
-                                    ])>
-                                        {{ $pesan['dariAdmin'] ? 'Admin Humas' : $tiket->nama_lengkap }} &bull; {{ $pesan['waktu'] }}
-                                    </span>
-
-                                    <div @class([
-                                        'p-space-sm rounded-lg font-body-sm text-body-sm',
-                                        'rounded-tl-xs bg-surface-container text-on-surface' => ! $pesan['dariAdmin'],
-                                        'rounded-tr-xs bg-primary text-on-primary' => $pesan['dariAdmin'],
-                                    ])>
-                                        {{ $pesan['isi'] }}
-                                    </div>
-
-                                    @if ($pesan['lampiran'])
-                                        <span class="mt-1 font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
-                                            <x-symbol :nama="$pesan['lampiran']['gambar'] ? 'image' : 'attach_file'" class="text-[14px]" />
-                                            {{ $pesan['lampiran']['nama'] }}
-                                        </span>
-                                    @endif
-                                </div>
-                            @empty
-                                <p class="text-body-sm text-on-surface-variant">
-                                    Belum ada pesan tambahan dari pelapor maupun balasan admin humas.
-                                </p>
-                            @endforelse
-                        </div>
-
-                        <!-- Form Balasan Admin: kolom chat yang sama dengan
-                             halaman lacak pelapor, jadi keduanya tinggal
-                             dibaca sebagai percakapan satu arah dua. -->
-                        <form
-                            method="POST"
-                            action="{{ route('admin.pengaduan.balas', $kode) }}"
-                            enctype="multipart/form-data"
-                            class="flex flex-col gap-space-sm bg-surface-container-low p-space-md rounded-lg"
-                        >
-                            @csrf
-
-                            <div class="flex flex-col gap-space-xs">
-                                <label for="isiBalasan" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
-                                    Tulis Balasan untuk Pelapor
-                                </label>
-                                <textarea
-                                    id="isiBalasan"
-                                    name="isi"
-                                    rows="3"
-                                    placeholder="Tuliskan tanggapan atau informasi yang perlu disampaikan ke pelapor..."
-                                    class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
-                                >{{ old('isi') }}</textarea>
-
-                                @error('isi')
-                                    <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
-                                @enderror
-                            </div>
-
-                            <div class="flex flex-wrap items-center justify-between gap-space-sm">
-                                <label class="flex items-center gap-2 px-space-sm py-2 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold cursor-pointer">
-                                    <x-symbol nama="attach_file" class="text-[16px]" />
-                                    <span>Lampiran</span>
-                                    <input
-                                        type="file"
-                                        name="lampiran"
-                                        accept=".jpg,.jpeg,.png,.pdf"
-                                        class="sr-only"
-                                        onchange="this.parentNode.querySelector('span').textContent = this.files[0] ? this.files[0].name : 'Lampiran'"
-                                    >
-                                </label>
-
-                                <span class="font-label-sm text-label-sm text-on-surface-variant">
-                                    JPG, PNG, atau PDF maksimal 4 MB.
+                                    {{ $pesan['dariAdmin'] ? 'Admin Humas' : $tiket->nama_lengkap }} &bull; {{ $pesan['waktu'] }}
                                 </span>
-                            </div>
 
-                            @error('lampiran')
+                                <div @class([
+                                    'p-space-sm rounded-lg font-body-sm text-body-sm',
+                                    'rounded-tl-xs bg-surface-container text-on-surface' => ! $pesan['dariAdmin'],
+                                    'rounded-tr-xs bg-primary text-on-primary' => $pesan['dariAdmin'],
+                                ])>
+                                    {{ $pesan['isi'] }}
+                                </div>
+
+                                @if ($pesan['lampiran'])
+                                    <span class="mt-1 font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+                                        <x-symbol :nama="$pesan['lampiran']['gambar'] ? 'image' : 'attach_file'" class="text-[14px]" />
+                                        {{ $pesan['lampiran']['nama'] }}
+                                    </span>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-body-sm text-on-surface-variant">
+                                Belum ada pesan tambahan dari pelapor maupun balasan admin humas.
+                            </p>
+                        @endforelse
+                    </div>
+
+                    {{-- Form Balasan Admin: kolom chat yang sama dengan halaman
+                         lacak pelapor, jadi keduanya tinggal dibaca sebagai
+                         percakapan satu arah dua. --}}
+                    <form
+                        method="POST"
+                        action="{{ route('admin.pengaduan.balas', $kode) }}"
+                        enctype="multipart/form-data"
+                        class="flex flex-col gap-space-sm bg-surface-container-low p-space-md rounded-lg"
+                    >
+                        @csrf
+
+                        <div class="flex flex-col gap-space-xs">
+                            <label for="isiBalasan" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                Tulis Balasan untuk Pelapor
+                            </label>
+
+                            <textarea
+                                id="isiBalasan"
+                                name="isi"
+                                rows="3"
+                                placeholder="Tuliskan tanggapan atau informasi yang perlu disampaikan ke pelapor..."
+                                class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
+                            >{{ old('isi') }}</textarea>
+
+                            @error('isi')
                                 <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
                             @enderror
+                        </div>
 
-                            <div class="flex flex-wrap items-center justify-between gap-space-sm">
-                                <span class="font-label-sm text-label-sm text-on-surface-variant">
-                                    Balasan ini muncul di halaman lacak tiket milik pelapor.
-                                </span>
-
-                                <button
-                                    type="submit"
-                                    class="py-2.5 px-space-lg rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                        <div class="flex flex-wrap items-center justify-between gap-space-md">
+                            <label class="flex items-center gap-2 px-space-md py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold cursor-pointer">
+                                <x-symbol nama="attach_file" class="text-[16px]" />
+                                <span>Lampiran</span>
+                                <input
+                                    type="file"
+                                    name="lampiran"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    class="sr-only"
+                                    onchange="this.parentNode.querySelector('span').textContent = this.files[0] ? this.files[0].name : 'Lampiran'"
                                 >
-                                    <x-symbol nama="send" class="text-[18px]" />
-                                    Kirim Balasan
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                            </label>
 
-                    <!-- Tab 2: kanal disposisi ke unit, belum ada isinya -->
-                    <div class="hidden p-space-md flex flex-col gap-space-md" data-panel="unit">
-                        <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
-                            <span class="flex items-center gap-1 font-semibold text-on-surface">
-                                <x-symbol nama="forum" class="text-[16px] text-secondary" />
-                                Kanal Disposisi SIMRS: Humas &harr; Unit
-                            </span>
-                            <span class="text-primary font-bold">
-                                {{ $unit['tertaut'] && $unit['terhubung'] ? 'Sinkron Real-Time' : 'Belum Tersambung' }}
+                            <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                JPG, PNG, atau PDF maksimal 4 MB.
                             </span>
                         </div>
 
-                        <p class="text-body-sm text-on-surface-variant leading-relaxed">
-                            Balasan unit tercatat sebagai pesan dengan peran admin pada tab percakapan pelapor. Kanal
-                            disposisi dua arah yang terpisah belum dibangun, jadi tidak ada ruang obrolan khusus
-                            dengan PIC unit di halaman ini.
-                        </p>
+                        @error('lampiran')
+                            <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                        @enderror
+
+                        <div class="flex flex-wrap items-center justify-between gap-space-md">
+                            <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                Balasan ini muncul di halaman lacak tiket milik pelapor.
+                            </span>
+
+                            <button
+                                type="submit"
+                                class="py-3 px-space-xl rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                            >
+                                <x-symbol nama="send" class="text-[18px]" />
+                                Kirim Balasan
+                            </button>
+                        </div>
+                    </form>
+                    <!-- End of Form Balasan Admin -->
+                </div>
+                <!-- End of Tab 1 -->
+
+                <!-- Tab 2: kanal disposisi ke unit, belum ada isinya -->
+                <div class="hidden p-space-md flex flex-col gap-space-md" data-panel="unit">
+                    <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
+                        <span class="flex items-center gap-1 font-semibold text-on-surface">
+                            <x-symbol nama="forum" class="text-[16px] text-secondary" />
+                            Kanal Disposisi SIMRS: Humas &harr; Unit
+                        </span>
+                        <span class="text-primary font-bold">
+                            {{ $unit['tertaut'] && $unit['terhubung'] ? 'Sinkron Real-Time' : 'Belum Tersambung' }}
+                        </span>
                     </div>
-                    <!-- End of Tab 2 -->
+
+                    <p class="text-body-sm text-on-surface-variant leading-relaxed">
+                        Balasan unit tercatat sebagai pesan dengan peran admin pada tab percakapan pelapor. Kanal
+                        disposisi dua arah yang terpisah belum dibangun, jadi tidak ada ruang obrolan khusus
+                        dengan PIC unit di halaman ini.
+                    </p>
+                </div>
+                <!-- End of Tab 2 -->
             </article>
             <!-- End of Kartu 4 -->
 
-            {{-- Panel tahap: satu tombol untuk Diterima, dua tombol untuk
-                 Diproses, satu tombol untuk Revisi, dan catatan saja kalau
-                 tiketnya sudah selesai. --}}
+            <!-- Panel Tahap: status berjalan di kiri, tombol tujuan di kanan. -->
             <div class="lg:col-span-12 bg-surface-container-lowest rounded-lg shadow-sm p-space-md">
                 <div class="flex flex-wrap items-center justify-between gap-space-md">
                     <div class="flex items-center gap-space-sm">
                         <span class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
                             <x-symbol :nama="$tiket->status->ikon()" class="text-[20px]" />
                         </span>
+
                         <div>
                             <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
                                 Tahap Pengaduan: {{ $tiket->status->label() }}
@@ -632,11 +656,13 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-space-sm">
+                    {{-- Satu tombol untuk Diterima, dua tombol untuk Diproses,
+                         satu tombol untuk Revisi, dan catatan saja kalau
+                         tiketnya sudah selesai. --}}
+                    <div class="flex flex-wrap items-center gap-space-md">
                         @forelse ($detail->tujuanTersedia() as $tujuan)
-                            @php
-                                $tombol = $detail->tombolTujuan($tujuan);
-                            @endphp
+
+                            @php $tombol = $detail->tombolTujuan($tujuan); @endphp
 
                             <form method="POST" action="{{ route('admin.pengaduan.tahap', $kode) }}">
                                 @csrf
@@ -644,7 +670,7 @@
 
                                 <button
                                     type="submit"
-                                    class="py-2.5 px-space-lg rounded-lg {{ $tombol['warna'] }} font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                                    class="py-3 px-space-xl rounded-lg {{ $tombol['warna'] }} font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                                 >
                                     <x-symbol :nama="$tombol['ikon']" class="text-[18px]" />
                                     {{ $tombol['label'] }}
@@ -662,6 +688,7 @@
                     <span class="mt-space-sm block font-label-sm text-label-sm text-error">{{ $message }}</span>
                 @enderror
             </div>
+            <!-- End of Panel Tahap -->
         </div>
         <!-- End of Kolom Kerja -->
     </div>
@@ -682,8 +709,8 @@
                         const dipilih = lain === tombolTab;
 
                         lain.className = dipilih
-                            ? 'flex-1 py-2 px-space-sm rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 bg-surface-container-lowest text-on-surface shadow-sm'
-                            : 'flex-1 py-2 px-space-sm rounded-lg font-title-sm text-title-sm font-semibold text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5';
+                            ? 'flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 bg-surface-container-lowest text-on-surface shadow-sm'
+                            : 'flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-semibold text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5';
                     });
 
                     panel.forEach(function (isi) {
