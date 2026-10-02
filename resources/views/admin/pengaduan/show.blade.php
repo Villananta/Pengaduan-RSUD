@@ -207,7 +207,7 @@
             'w-full rounded-lg shadow-sm px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md',
             'bg-error-container/40 border border-error/30' => $sla['kasusBerat'],
             'bg-surface-container-lowest' => ! $sla['kasusBerat'],
-        ]) style="margin: 10px;">
+        ])>
             <div class="flex items-start gap-space-sm">
                 <span @class([
                     'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
