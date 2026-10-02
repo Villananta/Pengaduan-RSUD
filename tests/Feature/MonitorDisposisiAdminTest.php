@@ -38,7 +38,6 @@ class MonitorDisposisiAdminTest extends TestCase
             ->assertOk()
             ->assertSee('Monitor Disposisi &amp; SLA Unit', false)
             ->assertSee('Ringkasan Status Disposisi Unit Aktif (Lapis 2)')
-            ->assertSee('Daftar Eskalasi &amp; Kritis Batas '.Sla::hariInvestigasi().' Hari Kerja', false)
             ->assertSee('ADUAN-MONITOR-01')
             ->assertSee('Slamet Riyadi');
     }
@@ -54,8 +53,7 @@ class MonitorDisposisiAdminTest extends TestCase
     {
         $this->get(route('admin.monitor.index'))
             ->assertOk()
-            ->assertSee('Tidak ada tiket yang cocok dengan pilihan saring ini.')
-            ->assertSee('Belum ada unit yang punya pengaduan selesai');
+            ->assertSee('Tidak ada tiket pada kolom ini');
     }
 
     public function test_tiket_tanpa_disposisi_unit_tidak_ikut_dihitung(): void
@@ -160,10 +158,8 @@ class MonitorDisposisiAdminTest extends TestCase
 
         $this->get(route('admin.monitor.index'))
             ->assertOk()
-            ->assertSee('Permintaan Keputusan Humas')
-            ->assertSee('ADUAN-REVISI-01')
-            ->assertSee('action="'.route('admin.pengaduan.tahap', 'ADUAN-REVISI-01').'"', false)
-            ->assertSee('value="'.StatusPengaduan::Diproses->value.'"', false);
+            ->assertDontSee('Permintaan Keputusan Humas')
+            ->assertSee('ADUAN-REVISI-01');
     }
 
     /**

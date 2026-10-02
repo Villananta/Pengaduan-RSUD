@@ -61,6 +61,7 @@ final class DaftarUnit
      * @param  array<int, float>  $kepatuhan  Persentase SLA per unit, indeks master_unit_id.
      * @param  array<int, int>  $lewat  Tiket yang lewat batas investigasi, indeks master_unit_id.
      * @param  array<string, string|null>  $saring  Nilai saring aktif per kunci.
+     * @param  int  $totalSemua  Jumlah seluruh unit terdaftar di database.
      */
     public function __construct(
         public readonly LengthAwarePaginator $unit,
@@ -69,6 +70,7 @@ final class DaftarUnit
         public readonly array $kepatuhan,
         public readonly array $lewat,
         public readonly array $saring,
+        public readonly int $totalSemua,
     ) {}
 
     /** Susun halaman master unit dari parameter query. */
@@ -93,6 +95,7 @@ final class DaftarUnit
             kepatuhan: $kepatuhan,
             lewat: $lewat,
             saring: $saring,
+            totalSemua: MasterUnit::query()->count(),
         );
     }
 

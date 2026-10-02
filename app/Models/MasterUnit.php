@@ -48,6 +48,19 @@ class MasterUnit extends Model
         'disposisi' => DisposisiUnit::class,
     ];
 
+    /**
+     * Gunakan kolom kode sebagai kunci rute publik.
+     *
+     * Kode unitlah yang dikenal petugas karena kode itu yang selalu
+     * tampil di layar. Dengan menjadikannya route key, binding implicit
+     * Laravel bisa langsung mencari berdasarkan kode tanpa perlu
+     * pencarian manual di controller.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'kode';
+    }
+
     // Unit yang masih boleh dipilih sebagai tujuan disposisi pengaduan.
     public function scopeAktif(Builder $q): Builder
     {

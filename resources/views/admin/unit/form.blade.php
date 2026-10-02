@@ -109,7 +109,8 @@
                             placeholder="Contoh: IFP-01"
                             maxlength="10"
                             required
-                            class="w-full py-2.5 px-space-md rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline font-body-md text-body-md uppercase focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                            @disabled($unit !== null)
+                            class="w-full py-2.5 px-space-md rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline font-body-md text-body-md uppercase focus:outline-none focus:ring-2 focus:ring-secondary/40 {{ $unit ? 'opacity-70 cursor-not-allowed' : '' }}"
                         >
                         <span class="font-label-sm text-label-sm text-outline">
                             Kode tidak bisa diubah setelah unit dibuat. Huruf kapital, angka, dan tanda hubung saja.

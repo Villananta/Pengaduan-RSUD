@@ -145,7 +145,7 @@
                 </div>
 
                 <span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-space-sm py-1 rounded-xl">
-                    Menampilkan {{ number_format($daftar->unit->total(), 0, ',', '.') }} dari {{ number_format($daftar->unit->total(), 0, ',', '.') }} unit
+                    Menampilkan {{ number_format($daftar->unit->total(), 0, ',', '.') }} unit (dari {{ number_format($daftar->totalSemua, 0, ',', '.') }} terdaftar)
                 </span>
             </div>
 

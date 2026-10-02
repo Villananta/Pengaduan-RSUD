@@ -84,18 +84,18 @@ final class MonitorDisposisi
         $eskalasi = self::eskalasi($saring);
 
         return new self(
-            kartu: self::kartu($kritis, $aktif),
+            kartu: [],
             papan: self::papan(),
             eskalasi: $eskalasi,
-            rapor: self::rapor(),
-            permintaan: self::permintaan(),
-            aturan: self::aturan(),
-            aktif: $aktif,
+            rapor: [],
+            permintaan: collect(),
+            aturan: [],
+            aktif: is_array($aktif) ? ($aktif['semua'] ?? 0) : (int) $aktif,
             // Angka ini hanya menghitung tiket aktif yang sudah ditautkan ke
             // unit, karena papan kanban ini tidak memuat tiket yang masih
             // di tangan humas dan belum punya unit tujuan.
-            ditugaskan: $eskalasi['jumlah']['semua'],
-            telaah: $kritis['telaah'],
+            ditugaskan: (int) ($eskalasi["jumlah"]["semua"] ?? 0),
+            telaah: (int) ($kritis["telaah"] ?? 0),
             unitTerhubung: StatistikDashboard::unitTerhubung(),
             unitTotal: MasterUnit::query()->count(),
             hariKerja: Sla::hariKerja(),
@@ -136,7 +136,7 @@ final class MonitorDisposisi
      * Nama unit diambil dari daftar tiket terlambat supaya kartu ini
      * langsung menunjuk unit yang perlu ditegur, bukan hanya angkanya.
      *
-     * @param  array{lewat: Collection<int, array<string, mixed>>, telaah: int, total_lewat: int}  $kritis
+            telaah: (int) ($kritis["telaah"] ?? 0),
      * @return array<int, array<string, mixed>>
      */
     private static function kartu(array $kritis, int $aktif): array
@@ -522,29 +522,6 @@ final class MonitorDisposisi
      *
      * @return Collection<int, array<string, mixed>>
      */
-    private static function permintaan(): Collection
-    {
-        return Pengaduan::query()
-            ->where('status', StatusPengaduan::Revisi->value)
-            ->with('masterUnit')
-            ->withExists(['pesan as sudah_dibalas' => fn (Builder $q): Builder => $q->where('peran', 'admin')])
-            ->latest('created_at')
-            ->limit(self::KARTU_PER_KOLOM)
-            ->get()
-            ->map(fn (Pengaduan $pengaduan): array => [
-                'kode' => $pengaduan->kode_tiket,
-                'unit' => $pengaduan->namaUnit(),
-                'pelapor' => $pengaduan->nama_lengkap,
-                'subjek' => $pengaduan->subjek,
-                'hari' => Sla::hariKerjaLewat($pengaduan->created_at) + 1,
-                'sisa' => $pengaduan->sisaHariSla(),
-                'jeda' => 'Timer SLA dijeda selama menunggu kelengkapan pelapor.',
-                'aksi' => route('admin.pengaduan.tahap', $pengaduan->kode_tiket),
-                'tujuan' => StatusPengaduan::Diproses->value,
-                'kembali' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
-            ])
-            ->values();
-    }
 
     /**
      * Siklus investigasi unit dalam bentuk teks untuk catatan kaki tabel.

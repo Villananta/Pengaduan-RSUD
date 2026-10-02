@@ -50,15 +50,14 @@ class UnitController extends Controller
     }
 
     /** Formulir ubah unit yang sudah ada. */
-    public function edit(string $kode): View
+    public function edit(MasterUnit $unit): View
     {
-        return view('admin.unit.form', $this->isiFormulir($this->cariUnit($kode)));
+        return view('admin.unit.form', $this->isiFormulir($unit));
     }
 
     /** Simpan perubahan unit dari formulir ubah. */
-    public function update(Request $request, string $kode): RedirectResponse
+    public function update(Request $request, MasterUnit $unit): RedirectResponse
     {
-        $unit = $this->cariUnit($kode);
         $data = $request->validate(PemeliharaanUnit::aturan($unit));
 
         PemeliharaanUnit::simpan($data, $unit);
@@ -74,10 +73,8 @@ class UnitController extends Controller
      * Unit nonaktif tidak dihapus supaya tiket lama yang sudah ditugaskan ke
      * unit itu tetap punya nama yang bisa dibaca.
      */
-    public function status(string $kode): RedirectResponse
+    public function status(MasterUnit $unit): RedirectResponse
     {
-        $unit = $this->cariUnit($kode);
-
         PemeliharaanUnit::alihStatus($unit);
 
         return back()->with(
@@ -95,13 +92,6 @@ class UnitController extends Controller
      * setiap layar. Kalau kodenya tidak ada, jawabannya 404 supaya tautan
      * lama yang sudah kedaluwarsa tidak terlihat seperti halaman kosong.
      */
-    private function cariUnit(string $kode): MasterUnit
-    {
-        return MasterUnit::query()
-            ->where('kode', $kode)
-            ->firstOrFail();
-    }
-
     /**
      * Isi bersama untuk formulir tambah dan ubah.
      *
