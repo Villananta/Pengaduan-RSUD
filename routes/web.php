@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\MonitorController as AdminMonitorController;
 use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
+use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +39,7 @@ Route::get('/buat-aduan/sukses/{kode}', [PengaduanController::class, 'sukses'])-
 // tanpa mengubah nama rute yang sudah dipakai template.
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/monitor', [AdminMonitorController::class, 'index'])->name('monitor.index');
     Route::get('/pengaduan', [AdminPengaduanController::class, 'index'])->name('pengaduan.index');
     Route::get('/pengaduan/{kode}', [AdminPengaduanController::class, 'show'])->name('pengaduan.show');
 
@@ -46,4 +49,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])->name('pengaduan.jawaban');
     Route::post('/pengaduan/{kode}/kembalikan', [AdminPengaduanController::class, 'kembalikan'])->name('pengaduan.kembalikan');
     Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])->name('pengaduan.kasus-berat');
+
+    // Master data unit. Kode unit dipakai sebagai parameter rute karena
+    // kode itulah yang dikenal petugas, bukan id angka yang tidak pernah
+    // tampil di layar.
+    Route::get('/unit', [AdminUnitController::class, 'index'])->name('unit.index');
+    Route::get('/unit/tambah', [AdminUnitController::class, 'create'])->name('unit.create');
+    Route::post('/unit', [AdminUnitController::class, 'store'])->name('unit.store');
+    Route::get('/unit/{unit}/ubah', [AdminUnitController::class, 'edit'])->name('unit.edit');
+    Route::post('/unit/{unit}/perbarui', [AdminUnitController::class, 'update'])->name('unit.update');
+    Route::post('/unit/{unit}/status', [AdminUnitController::class, 'status'])->name('unit.status');
 });

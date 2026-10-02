@@ -34,9 +34,9 @@ class DashboardAdminTest extends TestCase
 
     public function test_menu_yang_desainnya_belum_ada_tidak_ditautkan(): void
     {
-        // Detail Pengaduan sudah jadi bagian dari aplikasi, jadi tidak lagi
-        // masuk daftar menu yang belum dibangun.
-        $menu = ['Monitor Disposisi &amp; SLA', 'Master Data Unit'];
+        // Semua menu konsol admin sudah punya halaman sendiri, jadi tidak
+        // ada lagi menu mati yang boleh ditampilkan sebagai tautan.
+        $menu = [];
 
         $tampilan = $this->get(route('admin.dashboard'))
             ->assertOk()

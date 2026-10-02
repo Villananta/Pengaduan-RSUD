@@ -25,24 +25,25 @@
          * Navigasi konsol admin.
          *
          * Item dibedakan menjadi tiga bentuk supaya tidak ada menu yang
-         * ditampilkan lebih enabled daripada kenyataannya:
+         * ditampilkan lebih aktif daripada kenyataannya:
          *
-         * - 'route'  : punya halaman sendiri, jadi benar-benar tautan.
-         * - 'pola'   : fiturnya sudah jadi tetapi tidak punya halaman indeks.
-         *   Detail Pengaduan hanya bisa dibuka per tiket dari daftar pengaduan,
-         *   jadi menunya tidak punya tujuan untuk diklik.
-         * - kosong   : fiturnya belum dibangun, tampil sebagai menu mati.
+         * - 'route' : punya halaman sendiri, jadi benar-benar tautan.
+         * - 'pola'  : pola route untuk menandai menu sebagai aktif. Dipakai
+         *   sendiri oleh Detail Pengaduan yang tidak punya halaman indeks,
+         *   dan dipakai berdampingan dengan 'route' kalau satu menu punya
+         *   beberapa halaman, misalnya master unit dan form ubahnya.
+         * - kosong  : fiturnya belum dibangun, tampil sebagai menu mati.
          *
-         * Penanda aktif diambil dari route yang sedang dibuka, sehingga Detail
-         * Pengaduan tetap ditandai aktif meskipun tidak punya tautan.
+         * Kalau 'route' dan 'pola' ada bersamaan, tautannya tetap dari
+         * 'route' sementara penanda aktifnya mengikuti 'pola'.
          */
         $beranda = 'admin.dashboard';
         $navigasi = [
             ['label' => 'Beranda Utama', 'route' => $beranda],
             ['label' => 'Daftar Pengaduan', 'route' => 'admin.pengaduan.index'],
             ['label' => 'Detail Pengaduan', 'route' => null, 'pola' => 'admin.pengaduan.show'],
-            ['label' => 'Monitor Disposisi & SLA', 'route' => null],
-            ['label' => 'Master Data Unit', 'route' => null],
+            ['label' => 'Monitor Disposisi & SLA', 'route' => 'admin.monitor.index'],
+            ['label' => 'Master Data Unit', 'route' => 'admin.unit.index', 'pola' => 'admin.unit.*'],
         ];
     @endphp
 
@@ -103,7 +104,7 @@
             <nav class="flex items-center h-full gap-space-md" aria-label="Navigasi konsol admin">
                 @foreach ($navigasi as $item)
                     @php
-                        $penanda = $item['route'] ?? $item['pola'] ?? null;
+                        $penanda = $item['pola'] ?? $item['route'] ?? null;
                         $aktif = $penanda !== null && request()->routeIs($penanda);
                     @endphp
 

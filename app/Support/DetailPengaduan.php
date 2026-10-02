@@ -75,7 +75,10 @@ final class DetailPengaduan
             lampiran: self::lampiran($pengaduan),
             percakapan: self::percakapan($pengaduan),
             audit: self::audit($pengaduan),
-            pilihanUnit: MasterUnit::query()->orderBy('kode')->get(),
+            // Unit nonaktif tidak ditawarkan lagi karena admin sudah sengaja
+            // mematikannya dari halaman master unit. Menawarkannya di sini membuat
+            // sakelar aktif di master data tidak punya efek apa pun.
+            pilihanUnit: MasterUnit::query()->aktif()->orderBy('kode')->get(),
         );
     }
 

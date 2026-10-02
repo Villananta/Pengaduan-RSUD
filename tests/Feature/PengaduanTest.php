@@ -157,7 +157,7 @@ class PengaduanTest extends TestCase
             ->assertOk()
             ->assertSee('Lacak Status Pengaduan')
             ->assertSee('Lengkapi Kode Tiket dan NRM')
-            ->assertDontSee('Alur Prosedur 12 Hari Kerja');
+            ->assertDontSee('Prosedur & SLA 12 Hari Kerja');
     }
 
     public function test_rincian_tiket_hanya_terbuka_bila_nrm_cocok(): void
@@ -198,7 +198,7 @@ class PengaduanTest extends TestCase
             ->assertSee('Siti Aminah')
             ->assertSee('Keterlambatan Penyerahan Obat Resep')
             ->assertSee('Perlu Revisi')
-            ->assertSee('Alur Prosedur 12 Hari Kerja')
+            ->assertSee('Prosedur & SLA 12 Hari Kerja')
             ->assertSee('Tindakan Diperlukan: Unggah Bukti Tambahan');
     }
 
@@ -240,7 +240,7 @@ class PengaduanTest extends TestCase
             ->assertSee('Keterlambatan Penyerahan Obat Resep')
             ->assertSee('Perlu Revisi')
             ->assertSee('Status Pengaduan')
-            ->assertSee('Alur Prosedur 12 Hari Kerja')
+            ->assertSee('Prosedur & SLA 12 Hari Kerja')
             ->assertSee('Tindakan Diperlukan: Unggah Bukti Tambahan')
             ->assertSee('Siti Aminah');
     }
