@@ -48,6 +48,13 @@ class PengaduanController extends Controller
 
         $pengaduan->forceFill(['lampiran' => $lampiran])->save();
 
+        // Pesan pembuka otomatis agar pelapor langsung melihatnya di halaman lacak.
+        // Pesan ini berasal dari Tim Humas & Pengaduan sebagai balasan resmi pertama.
+        $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => "Terima kasih telah menyampaikan pengaduan kepada kami. Laporan Anda telah kami terima dengan nomor tiket {$pengaduan->kode_tiket} pada {$pengaduan->created_at->translatedFormat('d F Y, H:i')} WIB.\n\nTim Humas & Pengaduan RSUD Dr. Soetomo akan menindaklanjuti laporan ini sesuai prosedur yang berlaku, dengan estimasi penyelesaian maksimal 5 hari kerja. Kami akan menginformasikan perkembangan penanganan melalui kontak yang telah Anda daftarkan.\n\nMohon simpan nomor tiket ini sebagai referensi jika Anda ingin menanyakan status laporan.\n\nTerima kasih atas kepercayaan Anda kepada RSUD Dr. Soetomo.",
+        ]);
+
         StatistikDashboard::lupaCache();
         StatistikPengaduan::lupaCache();
 

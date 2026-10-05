@@ -266,7 +266,7 @@
                             </div>
 
                             <div class="sm:col-span-2">
-                                <label for="subjek" class="{{ $label }}">Judul Pengaduan *</label>
+                                <label for="subjek" class="{{ $label }}">Ringkasan Inti Masalah (Subjek) *</label>
                                 <input id="subjek" type="text" name="subjek" value="{{ old('subjek') }}" placeholder="Contoh: Keterlambatan Pengambilan Resep Obat Kronis lebih dari 4 Jam" class="{{ $input }} mt-1.5" required>
                                 @error('subjek')<p class="{{ $errorClass }}">{{ $message }}</p>@enderror
                             </div>

@@ -11,7 +11,7 @@ enum KategoriPengaduan: string
     public function label(): string
     {
         return match ($this) {
-            self::Fasilitas => 'Bangunan',
+            self::Fasilitas => 'Fasilitas & Pelayanan',
             self::Medis => 'Pelayanan Medis',
         };
     }
@@ -31,14 +31,5 @@ enum KategoriPengaduan: string
             self::Fasilitas => 'Antrean pendaftaran, kebersihan toilet/ruangan, AC, parkir, fasilitas lift, rambu petunjuk arah, kasir, dll.',
             self::Medis => 'Tindakan dokter/perawat, komunikasi DPJP, keterlambatan visitasi, dispensing obat farmasi, edukasi terapi medis.',
         };
-    }
-
-    // Kunci ikon yang dipakai pada form pengajuan.
-    public function ikon(): string
-    {
-        return match ($this) {
-            self::Fasilitas => 'bangunan',
-            self::Medis => 'medis',
-        };
-    }
+    }  
 }

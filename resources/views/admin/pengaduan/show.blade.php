@@ -100,10 +100,7 @@
                         <span>Kejadian {{ $tiket->waktu_kejadian->format('d M Y') }}</span>
                     </span>
                     <span aria-hidden="true">&bull;</span>
-                    <span class="flex items-center gap-1">
-                        <x-symbol :nama="$tiket->kategori->ikon()" class="text-[16px] text-outline" />
                         <span>{{ $tiket->kategori->label() }}</span>
-                    </span>
                     <span aria-hidden="true">&bull;</span>
                     <span class="flex items-center gap-1">
                         <x-symbol nama="call" class="text-[16px] text-outline" />
@@ -644,10 +641,6 @@
             <div class="lg:col-span-12 bg-surface-container-lowest rounded-lg shadow-sm p-space-md">
                 <div class="flex flex-wrap items-center justify-between gap-space-md">
                     <div class="flex items-center gap-space-sm">
-                        <span class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
-                            <x-symbol :nama="$tiket->status->ikon()" class="text-[20px]" />
-                        </span>
-
                         <div>
                             <span class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
                                 Tahap Pengaduan: {{ $tiket->status->label() }}

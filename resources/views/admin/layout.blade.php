@@ -18,7 +18,7 @@
 
 </head>
 
-<body class="bg-surface font-body-md text-on-surface min-h-screen flex flex-col">
+<body class="bg-surface font-body-md text-on-surface min-h-screen">
 
     @php
         /*

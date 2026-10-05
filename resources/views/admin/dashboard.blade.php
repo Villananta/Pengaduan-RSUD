@@ -131,6 +131,43 @@
         </div>
         <!-- End of Baris Statistik -->
 
+        <!-- Banner Kepatuhan SLA -->
+        @if ($dashboard->kritis['total_lewat'] > 0)
+            <!-- Peringatan Kritis -->
+            <div class="w-full rounded-lg bg-error-container/25 border border-error/40 p-space-md shadow-sm">
+                <div class="flex items-start gap-space-sm">
+                    <span class="w-10 h-10 rounded-full bg-error text-on-error flex items-center justify-center shrink-0 mt-0.5">
+                        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">warning</span>
+                    </span>
+                    <div class="flex flex-col gap-space-xs">
+                        <h2 class="font-title-lg text-title-lg font-bold text-on-error-container">Peringatan Kritis Kepatuhan SLA</h2>
+                        <p class="font-body-sm text-body-sm text-on-error-container/80">
+                            Terdapat tiket yang melampaui batas investigasi unit ({{ $dashboard->kritis['total_lewat'] }} tiket).
+                            Periksa daftar pengaduan butuh tindakan segera.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <!-- End of Peringatan Kritis -->
+        @else
+            <!-- SLA Aman -->
+            <div class="w-full rounded-lg bg-secondary-container/30 border border-secondary/40 p-space-md shadow-sm">
+                <div class="flex items-start gap-space-sm">
+                    <span class="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0 mt-0.5">
+                        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">check_circle</span>
+                    </span>
+                    <div class="flex flex-col">
+                        <h2 class="font-title-lg text-title-lg font-bold text-on-secondary-container">Semua Dalam Batas</h2>
+                        <p class="font-body-sm text-body-sm text-on-secondary-container/80">
+                            Seluruh tiket dalam batas SLA investigasi unit.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <!-- End of SLA Aman -->
+        @endif
+        <!-- End of Banner Kepatuhan SLA -->
+
         <!-- Status Tiket di Unit Layanan -->
         <div class="w-full rounded-lg bg-surface-container-low p-space-md shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-xs mb-space-sm pb-space-xs">

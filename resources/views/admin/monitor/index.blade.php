@@ -202,11 +202,5 @@
         </div>
         <!-- End of Papan Disposisi -->
 
-        <!-- Panel Permintaan Keputusan: tiket yang menunggu langkah humas. -->
-        <div class="w-full rounded-lg bg-surface-container-lowest p-space-lg shadow-sm flex flex-col gap-space-md">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
-                <div class="flex items-center gap-space-xs">
-                    <x-symbol nama="contact_support" class="text-primary-container text-[24px]" />
-    </div>
 
 @endsection
