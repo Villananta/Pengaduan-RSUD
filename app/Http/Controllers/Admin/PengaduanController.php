@@ -2,11 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\KanalPengaduan;
+use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaduan;
 use App\Support\DaftarPengaduan;
 use App\Support\DetailPengaduan;
+use App\Support\PengaduanMasuk;
+use App\Support\Sla;
+use App\Support\StatistikDashboard;
+use App\Support\StatistikPengaduan;
 use App\Support\TindakLanjutPengaduan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +34,65 @@ class PengaduanController extends Controller
         return view('admin.pengaduan.index', [
             'daftar' => DaftarPengaduan::dariRequest($request),
         ]);
+    }
+
+    /**
+     * Formulir pencatatan aduan yang masuk di luar portal.
+     *
+     * Keluhan telepon, SMS, atau yang diterima di loket tetap harus punya
+     * tiket resmi, sebab tanpa nomor tiket keluhan itu tidak bisa dilacak
+     * pelapor maupun ditagih ke unit. Isiannya sengaja sama dengan
+     * formulir pelapor supaya standar datanya tidak berbeda antar kanal.
+     */
+    public function create(): View
+    {
+        return view('admin.pengaduan.form', [
+            'kategori' => KategoriPengaduan::cases(),
+            'kanal' => KanalPengaduan::cases(),
+            'units' => config('pengaduan.units'),
+            'hariKerja' => Sla::hariKerja(),
+            'hariInvestigasi' => Sla::hariInvestigasi(),
+        ]);
+    }
+
+    /**
+     * Simpan aduan yang dicatat admin, lalu buka tiketnya.
+     *
+     * Pengalihan langsung ke workspace tiket supaya admin bisa langsung
+     * memeriksa hasil pencatatan dan lanjut memberi balasan resmi, tanpa
+     * harus mencari kode tiket yang baru dibuat di daftar.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate(
+            PengaduanMasuk::aturan([
+                'kanal' => ['required', Rule::enum(KanalPengaduan::class)],
+            ]),
+            PengaduanMasuk::pesanValidasi([
+                'kanal.required' => 'Pilih kanal penerimaan aduan lebih dulu.',
+                'kanal.enum' => 'Kanal penerimaan aduan tidak dikenal.',
+                'persetujuan.accepted' => 'Isi pernyataan bahwa data pelapor sudah dikonfirmasi langsung, termasuk persetujuan pengolahan datanya.',
+            ]),
+        );
+
+        $kanal = KanalPengaduan::from($validated['kanal']);
+
+        $pengaduan = PengaduanMasuk::simpan($validated, $request->file('lampiran', []) ?? []);
+
+        // Pesan pembuka tetap dibuat supaya tiket ini bisa dibaca pelapor
+        // lewat halaman lacak begitu kode tiket dan NRM-nya diberikan.
+        $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => PengaduanMasuk::pesanPembuka($pengaduan, $kanal, $request->user()?->name),
+        ]);
+
+        StatistikDashboard::lupaCache();
+        StatistikPengaduan::lupaCache();
+
+        return $this->kembali(
+            $pengaduan,
+            'Aduan '.$kanal->label().' tersimpan dengan nomor tiket '.$pengaduan->kode_tiket.'. Sampaikan nomor ini ke pelapor.',
+        );
     }
 
     /**

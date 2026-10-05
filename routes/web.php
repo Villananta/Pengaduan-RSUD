@@ -41,6 +41,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/monitor', [AdminMonitorController::class, 'index'])->name('monitor.index');
     Route::get('/pengaduan', [AdminPengaduanController::class, 'index'])->name('pengaduan.index');
+
+    // Formulir pencatatan aduan yang masuk lewat telepon, SMS, atau loket.
+    //
+    // Rute ini wajib didaftarkan sebelum /pengaduan/{kode} supaya kata
+    // "buat" tidak tertangkap sebagai kode tiket yang tidak ada.
+    Route::get('/pengaduan/buat', [AdminPengaduanController::class, 'create'])->name('pengaduan.create');
+    Route::post('/pengaduan/buat', [AdminPengaduanController::class, 'store'])->name('pengaduan.store');
+
     Route::get('/pengaduan/{kode}', [AdminPengaduanController::class, 'show'])->name('pengaduan.show');
 
     Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])->name('pengaduan.balas');
