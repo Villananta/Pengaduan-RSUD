@@ -71,102 +71,10 @@
                 </div>
             @endforeach
 
-            {{-- Kartu kepatuhan SLA dan rata-rata waktu. Keduanya sengaja
-                 disimpan tanpa dihapus karena angkanya akan dipakai lagi. --}}
-            {{-- <div class="rounded-lg bg-primary-container text-on-primary p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden">
-                <div class="absolute -right-4 -top-4 w-24 h-24 rounded-xl bg-secondary/30 blur-xl pointer-events-none" aria-hidden="true"></div>
-
-                <div class="relative z-10 flex items-center justify-between">
-                    <span class="font-label-md text-label-md text-on-primary-container font-semibold uppercase tracking-wider">Kepatuhan SLA {{ $dashboard->hariKerja }} Hari</span>
-                    <x-symbol nama="verified" class="text-[20px] text-primary-fixed" />
-                </div>
-
-                <div class="mt-space-md relative z-10">
-                    <div class="flex items-baseline gap-space-xs">
-                        <div class="font-display-lg text-display-lg font-bold leading-none">
-                            {{ $dashboard->kepatuhan === null ? '—' : number_format($dashboard->kepatuhan, 1, ',', '.') }}
-                        </div>
-                        @if ($dashboard->kepatuhan !== null)
-                            <span class="font-title-lg text-title-lg text-primary-fixed">%</span>
-                        @endif
-                    </div>
-
-                    <div class="w-full bg-surface-container-lowest/20 rounded-full h-1.5 mt-space-xs overflow-hidden">
-                        <div class="bg-secondary-container h-full rounded-full" style="width: {{ min(100, $dashboard->kepatuhan ?? 0) }}%"></div>
-                    </div>
-
-                    <span class="font-body-sm text-body-sm text-on-primary-container mt-1 block">
-                        Standar Kemenkes &ge; {{ $dashboard->standarKepatuhan }}%
-                    </span>
-                </div>
-            </div>
-
-            <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md">
-                <div class="flex items-center justify-between gap-space-sm">
-                    <span class="font-label-md text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">Rata-rata Waktu</span>
-                    <span class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-primary-container">
-                        <x-symbol nama="speed" class="text-[18px]" />
-                    </span>
-                </div>
-
-                <div>
-                    <div class="flex items-baseline gap-space-xs">
-                        <div class="font-display-lg text-display-lg font-bold leading-none">
-                            {{ $dashboard->rataRata === null ? '—' : number_format($dashboard->rataRata, 1, ',', '.') }}
-                        </div>
-                        <span class="font-title-md text-title-md text-on-surface-variant font-semibold">Hari Kerja</span>
-                    </div>
-
-                    @if ($dashboard->persenLebihCepat() === null)
-                        <p class="text-on-surface-variant font-body-sm text-body-sm mt-space-xs">Belum ada pengaduan selesai</p>
-                    @else
-                        <div class="flex items-center gap-space-xs mt-space-xs text-secondary font-body-sm text-body-sm">
-                            <x-symbol nama="check_circle" class="text-[16px]" />
-                            <span class="font-semibold">{{ $dashboard->persenLebihCepat() }}% lebih cepat</span>
-                            <span>dari limit {{ $dashboard->hariKerja }} hari</span>
-                        </div>
-                    @endif
-                </div>
-            </div> --}}
+          
+         
         </div>
         <!-- End of Baris Statistik -->
-
-        <!-- Banner Kepatuhan SLA -->
-        @if ($dashboard->kritis['total_lewat'] > 0)
-            <!-- Peringatan Kritis -->
-            <div class="w-full rounded-lg bg-error-container/25 border border-error/40 p-space-md shadow-sm">
-                <div class="flex items-start gap-space-sm">
-                    <span class="w-10 h-10 rounded-full bg-error text-on-error flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">warning</span>
-                    </span>
-                    <div class="flex flex-col gap-space-xs">
-                        <h2 class="font-title-lg text-title-lg font-bold text-on-error-container">Peringatan Kritis Kepatuhan SLA</h2>
-                        <p class="font-body-sm text-body-sm text-on-error-container/80">
-                            Terdapat tiket yang melampaui batas investigasi unit ({{ $dashboard->kritis['total_lewat'] }} tiket).
-                            Periksa daftar pengaduan butuh tindakan segera.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <!-- End of Peringatan Kritis -->
-        @else
-            <!-- SLA Aman -->
-            <div class="w-full rounded-lg bg-secondary-container/30 border border-secondary/40 p-space-md shadow-sm">
-                <div class="flex items-start gap-space-sm">
-                    <span class="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="material-symbols-outlined text-[22px]" aria-hidden="true">check_circle</span>
-                    </span>
-                    <div class="flex flex-col">
-                        <h2 class="font-title-lg text-title-lg font-bold text-on-secondary-container">Semua Dalam Batas</h2>
-                        <p class="font-body-sm text-body-sm text-on-secondary-container/80">
-                            Seluruh tiket dalam batas SLA investigasi unit.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            <!-- End of SLA Aman -->
-        @endif
-        <!-- End of Banner Kepatuhan SLA -->
 
         <!-- Status Tiket di Unit Layanan -->
         <div class="w-full rounded-lg bg-surface-container-low p-space-md shadow-sm">

@@ -17,40 +17,6 @@
 
 <div class="flex min-h-[720px] flex-col">
 
-    {{-- Aside Pemberitahuan Regulasi masih nonaktif karena tiap kanal
-         belum punya tujuan halaman, jadi tautannya kosong semua. --}}
-    {{-- <div class="w-full bg-brand-100 px-8 py-2.5">
-        <div class="flex w-full flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-2">
-                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-brand-800">
-                    <svg class="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
-                        <path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        <circle cx="12" cy="7.5" r=".1" fill="currentColor"/>
-                    </svg>
-                </span>
-                <p class="text-[11px] font-semibold tracking-[0.33px] text-brand-800">Pengaduan Terdaftar</p>
-                <p class="text-[11px] font-medium tracking-[0.33px] text-brand-900">Registrasi Resmi Sesuai Regulasi</p>
-                <span class="text-[11px] text-brand-600">·</span>
-                <p class="text-[11px] font-medium tracking-[0.33px] text-brand-600">Sesuai UU Pelayanan Publik &amp; PP 53/2014</p>
-            </div>
-            <div class="flex items-center gap-4 text-[11px]">
-                <a href="#" class="flex items-center gap-1.5 font-medium text-ink-muted">
-                    <svg class="h-2.5 w-2.5 text-alert" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M10.5 8.25V10a1 1 0 0 1-1.09 1A12.02 12.02 0 0 1 1 2.59 1 1 0 0 1 2 1.5h1.75a1 1 0 0 1 1 .85c.06.46.16.9.31 1.33a1 1 0 0 1-.23 1.05l-.74.74a9.6 9.6 0 0 0 4.43 4.43l.74-.74a1 1 0 0 1 1.05-.23c.43.15.87.25 1.33.31a1 1 0 0 1 .85 1z" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Call Center (031) 1500995
-                </a>
-                <a href="#" class="flex items-center gap-1.5 font-medium text-ink-muted">
-                    <svg class="h-3 w-3 text-brand-800" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M17.41 2H6.6A4.6 4.6 0 0 0 2 6.6v4.72a4.6 4.6 0 0 0 2.17 3.92 6.37 6.37 0 0 0 1.68 1.55v2.13a1.6 1.6 0 0 0 2.42 1.36l2.15-1.28a4.6 4.6 0 0 0 .45.02 4.6 4.6 0 0 0 4.6-4.6V6.6A4.6 4.6 0 0 0 17.41 2Zm1.41 10.88A2.53 2.53 0 0 1 16.3 15.4c-.52.12-1.64.3-3.27-.63a11.42 11.42 0 0 1-4.3-4.24c-.87-1.51-.66-2.9-.62-3.18.04-.28.16-.55.28-.79.16-.31.35-.58.6-.8A.87.87 0 0 1 9.86 5.4c.27.05.5.02.72.59.22.57.77 1.88.84 2.02.07.14.1.3 0 .49-.1.19-.15.3-.3.47l-.18.2c-.1.11-.2.24-.08.45.84 1.5 1.77 2.44 3.15 3.17.12.07.27.03.37-.06l.43-.5c.08-.1.18-.17.32-.2.13-.03.27 0 .37.08.28.18.87.85 1.03 1.05.16.2.25.35.18.57Z"/>
-                    </svg>
-                    WhatsApp Resmi Humas
-                </a>
-            </div>
-        </div>
-    </div> --}}
-
     <!-- Hero Section -->
     <section class="w-full bg-gradient-to-b from-white via-brand-light to-brand-section px-8 pb-12 pt-8">
         <div class="flex w-full flex-col items-center">
@@ -71,42 +37,6 @@
             <div class="flex max-w-[672px] flex-col items-center pb-8">
                 <p class="text-center text-base leading-[26px] text-ink-muted">Setiap masukan yang Anda sampaikan melalui kanal ini menjadi bagian dari evaluasi mutu layanan. Data pribadi Anda dilindungi dan hanya digunakan untuk keperluan investigasi.</p>
             </div>
-
-            {{-- <div class="grid w-full max-w-[768px] grid-cols-3 gap-3 pb-8">
-                @php
-                    $badges = [
-                        ['label' => 'Terjamin Amanah', 'sub' => 'Data dilindungi kebijakan privasi', 'ikon' => 'shield'],
-                        ['label' => 'Dikonfirmasi Resmi', 'sub' => 'Kode tiket terverifikasi sistem', 'ikon' => 'check'],
-                        ['label' => 'Tertangani Tuntas', 'sub' => 'SLA internal maks 12 hari kerja', 'ikon' => 'clock'],
-                    ];
-                @endphp
-                @foreach ($badges as $b)
-                    <div class="flex h-[96px] items-center justify-center gap-2.5 rounded-xl bg-white px-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50">
-                            @if ($b['ikon'] === 'shield')
-                                <svg class="h-4 w-4 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 3 4.5 6v5c0 4.5 3 9 7.5 10.5C16.5 20 19.5 15.5 19.5 11V6L12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            @elseif ($b['ikon'] === 'check')
-                                <svg class="h-4 w-4 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
-                                    <path d="m8.5 12 2.5 2.5 4.5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            @else
-                                <svg class="h-4 w-4 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
-                                    <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            @endif
-                        </span>
-                        <span class="min-w-0">
-                            <p class="text-base font-semibold leading-[22px] text-ink">{{ $b['label'] }}</p>
-                            <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $b['sub'] }}</p>
-                        </span>
-                    </div>
-                @endforeach
-            </div> --}}
         </div>
     </section>
     <!-- End of Hero Section -->
@@ -117,21 +47,6 @@
 
             <!-- Kiri: Form 8 Kolom -->
             <div class="col-span-12 flex flex-full gap-6 lg:full-span-8">
-
-                {{-- Kartu Disclaimer Hukum masih nonaktif karena teksnya
-                     masih perlu ditinjau hukum. --}}
-                {{-- <div class="flex items-start gap-4 rounded-xl bg-brand-section p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100">
-                        <svg class="h-[18px] w-[18px] text-brand-900" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M12 8v4m0 3.5v.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                        </svg>
-                    </span>
-                    <div>
-                        <h2 class="text-base font-semibold text-ink">Implikasi Hukum &amp; Etika Pelaporan</h2>
-                        <p class="mt-1 text-[13px] leading-[21px] text-ink-muted">Seluruh aduan yang Anda sampaikan terikat pada ketentuan perlindungan data dan UU Pelayanan Publik. Penyampaian informasi yang tidak benar dapat menghambat proses verifikasi; setiap pelapor bertanggung jawab atas kebenaran keterangan yang diberikan. Tim verifikator akan menghubungi Anda maksimal 1x24 jam kerja untuk konfirmasi data.</p>
-                    </div>
-                </div> --}}
 
                 <!-- Form Canvas Card -->
                 <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" id="form-aduan" class="flex flex-col gap-8 rounded-2xl bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
