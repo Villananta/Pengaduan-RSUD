@@ -32,7 +32,7 @@
                 $menu = [
                     ['label' => 'Buat Aduan', 'url' => route('pengaduan.create'), 'aktif' => request()->routeIs('pengaduan.create', 'pengaduan.sukses')],
                     ['label' => 'Cek Status Tiket', 'url' => route('pengaduan.lacak'), 'aktif' => request()->routeIs('pengaduan.lacak')],
-                    ['label' => 'Maklumat & Prosedur', 'url' => route('maklumat.index'), 'aktif' => request()->routeIs('maklumat.index')],
+                    ['label' => 'Prosedur Pengaduan', 'url' => route('maklumat.index'), 'aktif' => request()->routeIs('maklumat.index')],
                 ];
             @endphp
 

@@ -11,7 +11,7 @@ enum KategoriPengaduan: string
     public function label(): string
     {
         return match ($this) {
-            self::Fasilitas => 'Fasilitas & Pelayanan',
+            self::Fasilitas => 'Bangunan',
             self::Medis => 'Pelayanan Medis',
         };
     }
