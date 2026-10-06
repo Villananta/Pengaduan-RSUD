@@ -9,7 +9,7 @@
 @php
     // Class dasar dipegang di sini supaya tiap isian form konsisten
     // tanpa harus mengulang rantai class yang panjang.
-    $input = 'w-full rounded-lg bg-brand-light px-4 py-3.5 text-sm text-ink placeholder-placeholder outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-brand-800';
+    $input = 'w-full rounded-xl bg-brand-light px-4 py-3.5 text-sm text-ink placeholder-placeholder outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-brand-800';
     $label = 'block text-sm font-semibold text-ink';
     $errorClass = 'mt-1.5 text-[11px] font-medium text-alert';
     $stepBadge = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-800 text-[11px] font-bold text-white';
@@ -128,9 +128,9 @@
 
                             <div>
                                 <label for="no_wa" class="{{ $label }}">Nomor WhatsApp Aktif *</label>
-                                <div class="mt-1.5 flex items-center gap-0 rounded-lg bg-brand-light ring-1 ring-transparent focus-within:ring-2 focus-within:ring-brand-800">
+                                <div class="mt-1.5 flex items-center gap-0 rounded-xl bg-brand-light ring-1 ring-transparent focus-within:ring-2 focus-within:ring-brand-800">
                                     <span class="border-r border-brand-200 px-3 text-xs font-semibold text-ink-muted">+62</span>
-                                    <input id="no_wa" type="tel" name="no_wa" value="{{ old('no_wa') }}" placeholder="812-3456-7890" class="w-full rounded-r-lg bg-brand-light px-3 py-3.5 text-sm text-ink placeholder-placeholder outline-none" required>
+                                    <input id="no_wa" type="tel" name="no_wa" value="{{ old('no_wa') }}" placeholder="812-3456-7890" class="w-full rounded-r-xl bg-brand-light px-3 py-3.5 text-sm text-ink placeholder-placeholder outline-none" required>
                                 </div>
                                 <p class="mt-1 text-[11px] font-medium tracking-[0.33px] text-ink-muted">Pemberitahuan progress tiket akan dikirimkan otomatis via WA.</p>
                                 @error('no_wa')<p class="{{ $errorClass }}">{{ $message }}</p>@enderror
@@ -232,8 +232,8 @@
                         @error('persetujuan')<p class="{{ $errorClass }}">{{ $message }}</p>@enderror
 
                         <div class="flex items-center justify-end gap-3 pt-2">
-                            <a href="{{ route('pengaduan.create') }}" class="flex items-center justify-center rounded-lg px-6 py-3 text-sm font-semibold text-ink-muted transition hover:bg-brand-50">Batalkan</a>
-                            <button type="submit" class="flex items-center gap-2 rounded-lg bg-brand-800 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-brand-700">
+                            <a href="{{ route('pengaduan.create') }}" class="flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-ink-muted transition hover:bg-brand-50">Batalkan</a>
+                            <button type="submit" class="flex items-center gap-2 rounded-full bg-brand-800 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-brand-700">
                                 <svg class="h-3 w-4 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>

@@ -10,6 +10,12 @@ use Carbon\CarbonInterface;
  *
  * Semua angka SLA pada halaman publik berasal dari sini, bukan dari
  * teks hardcoded, sehingga batas waktu dan tampilan selalu konsisten.
+ *
+ * Konvensinya inklusif: hari kerja tiket masuk adalah hari ke-1. Jadi
+ * standar 12 hari kerja berakhir pada hari kerja ke-12, bukan pada
+ * hari ke-13. Semua angka turunan memakai Sla::hariKe() supaya nomor
+ * hari, sisa hari, dan tanggal target tidak pernah berbeda satu hari
+ * antar halaman.
  */
 final class Sla
 {
@@ -60,6 +66,19 @@ final class Sla
     }
 
     /**
+     * Nomor hari kerja yang sedang berjalan, dihitung inklusif.
+     *
+     * Tiket yang baru masuk pada hari kerja ini sudah berstatus hari ke-1,
+     * belum hari ke-0. Angka inilah yang dipakai semua tampilan "Hari ke-N",
+     * dan sisa hari kerja diturunkan dari angka yang sama supaya
+     * "hari ke-N" ditambah "sisa M hari kerja" selalu sama dengan standar.
+     */
+    public static function hariKe(CarbonInterface $mulai, ?CarbonInterface $sekarang = null): int
+    {
+        return self::hariKerjaLewat($mulai, $sekarang) + 1;
+    }
+
+    /**
      * True bila investigasi unit sudah melewati batas hari kerja.
      *
      * Dipakai untuk banner peringatan konsol admin, sehingga ambang yang
@@ -76,21 +95,33 @@ final class Sla
      * Tiket kasus berat memakai total hari kerja yang lebih panjang. Tanpa
      * parameter ini setiap pemanggilan harus ingat ikut meneruskan penandanya,
      * dan target tiket yang sama bisa berbeda antara daftar dan detail.
+     *
+     * Karena hari masuk dihitung sebagai hari ke-1, tanggal target jatuh di
+     * hari kerja ke-(total), yaitu total dikurangi satu dari nomor minggu
+     * kerja yang ditambahkan. Menambah sebanyak total akan memberi satu hari
+     * kerja lebih banyak dari standar yang dijanjikan.
      */
     public static function target(CarbonInterface $mulai, bool $kasusBerat = false): CarbonInterface
     {
-        return $mulai->copy()->addWeekdays(self::totalHariKerja($kasusBerat));
+        return $mulai->copy()->addWeekdays(self::totalHariKerja($kasusBerat) - 1);
     }
 
-    /** Jumlah hari kerja yang tersisa dari $sekarang menuju target. */
+    /**
+     * Jumlah hari kerja tersisa menuju target, nol bila sudah lewat.
+     *
+     * Dihitung dari nomor hari yang sedang berjalan, bukan dari selisih
+     * tanggal ke tanggal target. Kalau lewat tanggal target, selisih tanggal
+     * akan menghasilkan angka negatif atau satu, sehingga tiket yang sudah
+     * terlambat masih terbaca punya sisa satu hari.
+     */
     public static function sisaHariKerja(
         CarbonInterface $mulai,
         ?CarbonInterface $sekarang = null,
         bool $kasusBerat = false,
     ): int {
-        $target = self::target($mulai, $kasusBerat);
+        $total = self::totalHariKerja($kasusBerat);
 
-        return max(0, ($sekarang ?? now())->diffInWeekdays($target, false));
+        return max(0, $total - self::hariKe($mulai, $sekarang));
     }
 
     /**
@@ -98,26 +129,30 @@ final class Sla
      *
      * Pengaduan yang sudah selesai dinilai dari waktu penyelesaiannya,
      * sedangkan pengaduan yang masih berjalan dinilai dari posisi hari ini.
+     * Keduanya memakai ambang yang sama: tepat waktu selama hari ke yang
+     * sedang berjalan belum melewati hari kerja terakhir standar.
      */
     public static function zona(
         CarbonInterface $mulai,
         ?CarbonInterface $selesai = null,
         bool $kasusBerat = false,
     ): ZonaSla {
-        $target = self::target($mulai, $kasusBerat);
+        $total = self::totalHariKerja($kasusBerat);
         $peringatan = (int) config('pengaduan.sla.peringatan_hari_kerja', 2);
 
         if ($selesai !== null) {
-            return $selesai->lessThanOrEqualTo($target) ? ZonaSla::TepatWaktu : ZonaSla::Terlambat;
+            return self::hariKerjaLewat($mulai, $selesai) < $total
+                ? ZonaSla::TepatWaktu
+                : ZonaSla::Terlambat;
         }
 
-        $sisa = self::sisaHariKerja($mulai, null, $kasusBerat);
+        $hariKe = self::hariKe($mulai);
 
-        if ($sisa === 0) {
+        if ($hariKe > $total) {
             return ZonaSla::Terlambat;
         }
 
-        return $sisa <= $peringatan ? ZonaSla::Mendek : ZonaSla::TepatWaktu;
+        return $total - $hariKe < $peringatan ? ZonaSla::Mendek : ZonaSla::TepatWaktu;
     }
 
     /** Persentase progres tahap terhadap total hari kerja SLA. */

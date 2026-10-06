@@ -81,8 +81,9 @@ class PengaduanController extends Controller
 
         // Pesan pembuka tetap dibuat supaya tiket ini bisa dibaca pelapor
         // lewat halaman lacak begitu kode tiket dan NRM-nya diberikan.
+        // Perannya 'pembuka' supaya tidak terhitung sebagai balasan unit.
         $pengaduan->pesan()->create([
-            'peran' => 'admin',
+            'peran' => 'pembuka',
             'isi' => PengaduanMasuk::pesanPembuka($pengaduan, $kanal, $request->user()?->name),
         ]);
 

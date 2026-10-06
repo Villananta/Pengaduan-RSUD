@@ -513,21 +513,21 @@
                         @forelse ($detail->percakapan as $pesan)
                             <div @class([
                                 'flex flex-col max-w-[85%]',
-                                'items-start self-start' => ! $pesan['dariAdmin'],
-                                'items-end self-end' => $pesan['dariAdmin'],
+                                'items-start self-start' => ! $pesan['dariHumas'],
+                                'items-end self-end' => $pesan['dariHumas'],
                             ])>
                                 <span @class([
                                     'font-label-sm text-label-sm text-on-surface-variant mb-0.5',
-                                    'ml-1' => ! $pesan['dariAdmin'],
-                                    'mr-1' => $pesan['dariAdmin'],
+                                    'ml-1' => ! $pesan['dariHumas'],
+                                    'mr-1' => $pesan['dariHumas'],
                                 ])>
-                                    {{ $pesan['dariAdmin'] ? 'Admin Humas' : $tiket->nama_lengkap }} &bull; {{ $pesan['waktu'] }}
+                                    {{ $pesan['dariHumas'] ? 'Admin Humas' : $tiket->nama_lengkap }} &bull; {{ $pesan['waktu'] }}
                                 </span>
 
                                 <div @class([
                                     'p-space-sm rounded-lg font-body-sm text-body-sm',
-                                    'rounded-tl-xs bg-surface-container text-on-surface' => ! $pesan['dariAdmin'],
-                                    'rounded-tr-xs bg-primary text-on-primary' => $pesan['dariAdmin'],
+                                    'rounded-tl-xs bg-surface-container text-on-surface' => ! $pesan['dariHumas'],
+                                    'rounded-tr-xs bg-primary text-on-primary' => $pesan['dariHumas'],
                                 ])>
                                     {{ $pesan['isi'] }}
                                 </div>

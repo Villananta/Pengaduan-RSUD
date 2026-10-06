@@ -96,7 +96,11 @@ class InputAduanAdminTest extends TestCase
         $pengaduan = Pengaduan::first();
         $pesan = $pengaduan->pesan()->first();
 
-        $this->assertSame('admin', $pesan->peran);
+        // Perannya 'pembuka' supaya sapaan otomatis ini tidak terhitung
+        // sebagai balasan unit di daftar pengaduan, monitor, dan dashboard.
+        $this->assertSame('pembuka', $pesan->peran);
+        $this->assertFalse($pesan->dariAdmin());
+        $this->assertTrue($pesan->dariHumas());
         $this->assertStringContainsString('diterima melalui telepon', $pesan->isi);
         $this->assertStringContainsString($pengaduan->kode_tiket, $pesan->isi);
     }

@@ -24,6 +24,24 @@ use Illuminate\Validation\Rule;
 final class PemeliharaanUnit
 {
     /**
+     * Samakan kode unit dengan bentuk yang akan ditulis ke database.
+     *
+     * Kode harus dinormalkan sebelum aturan keunikan dijalankan, bukan
+     * sesudahnya. Kalau urutannya dibalik, kode huruf kecil seperti "ifp-01"
+     * lolos pemeriksaan keunikan karena belum ada baris huruf kecil, lalu
+     * diubah menjadi "IFP-01" dan menabrak index unik. Adminnya mendapat
+     * galat 500 dari database, bukan pesan validasi yang bisa diperbaiki.
+     *
+     * Metode ini sengaja ada terpisah dari simpan() supaya controller bisa
+     * memanggilnya pada request sebelum validate(), dan supaya pemanggil lain
+     * seperti seeder bisa memakai bentuk kode yang sama.
+     */
+    public static function normalisasiKode(?string $kode): ?string
+    {
+        return $kode === null ? null : Str::upper(trim($kode));
+    }
+
+    /**
      * Aturan validasi untuk tambah dan ubah unit.
      *
      * Kolom kontak sengaja boleh kosong. Unit yang baru terdaftar sering
@@ -64,7 +82,7 @@ final class PemeliharaanUnit
      */
     public static function simpan(array $data, ?MasterUnit $unit = null): MasterUnit
     {
-        $data['kode'] = Str::upper(trim($data['kode']));
+        $data['kode'] = self::normalisasiKode($data['kode']);
         $data['aktif'] = (bool) $data['aktif'];
 
         // Kolom kontak dikosongkan jadi null, bukan string kosong, supaya

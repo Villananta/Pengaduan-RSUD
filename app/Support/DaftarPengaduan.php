@@ -96,7 +96,13 @@ final class DaftarPengaduan
             ->when($status !== null, fn (Builder $q): Builder => $q->where('status', $status->value))
             ->when($investigasi !== null, fn (Builder $q): Builder => $investigasi->terapkan($q))
             ->with('masterUnit')
-            ->withCount('pesan')
+            // Hanya balasan unit yang dihitung untuk kalimat "N balasan unit
+            // masuk". Pesan pembuka otomatis dan balasannya pelapor ikut
+            // tersimpan di tabel pesan, tapi keduanya bukan jawaban unit,
+            // sehingga kalau ikut dihitung angkanya selalu lebih besar
+            // daripada kenyataan. Setiap tiket baru punya satu pesan pembuka,
+            // jadi tanpa penyaring ini minimal selalu kelebihan satu.
+            ->withCount(['pesan as pesan_count' => fn (Builder $q): Builder => $q->where('peran', 'admin')])
             ->withExists(['pesan as sudah_dibalas' => fn (Builder $q): Builder => $q->where('peran', 'admin')])
             // Tiket yang belum ditutup didahulukan, lalu yang terbaru.
             ->orderByRaw('case when status = ? then 1 else 0 end', [StatusPengaduan::Selesai->value])
@@ -281,7 +287,7 @@ final class DaftarPengaduan
     {
         $selesai = $pengaduan->status->selesai();
         $jeda = $pengaduan->status->perluAksi();
-        $hariKe = Sla::hariKerjaLewat($pengaduan->created_at) + 1;
+        $hariKe = Sla::hariKe($pengaduan->created_at);
         $lamaSelesai = $this->hariKerjaSelesai($pengaduan);
         $zona = $pengaduan->zonaSla();
 

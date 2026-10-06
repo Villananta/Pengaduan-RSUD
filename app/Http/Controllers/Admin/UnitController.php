@@ -40,7 +40,7 @@ class UnitController extends Controller
     /** Simpan unit baru dari formulir tambah. */
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate(PemeliharaanUnit::aturan());
+        $data = $this->validasi($request);
 
         $unit = PemeliharaanUnit::simpan($data);
 
@@ -58,7 +58,7 @@ class UnitController extends Controller
     /** Simpan perubahan unit dari formulir ubah. */
     public function update(Request $request, MasterUnit $unit): RedirectResponse
     {
-        $data = $request->validate(PemeliharaanUnit::aturan($unit));
+        $data = $this->validasi($request, $unit);
 
         PemeliharaanUnit::simpan($data, $unit);
 
@@ -83,6 +83,24 @@ class UnitController extends Controller
                 ? $unit->namaLengkap().' sudah diaktifkan kembali.'
                 : $unit->namaLengkap().' dinonaktifkan dan tidak bisa dipilih lagi.',
         );
+    }
+
+    /**
+     * Validasi formulir unit dengan kode yang sudah diseragamkan.
+     *
+     * Kode unit dinormalkan lebih dulu supaya pemeriksaan keunikan membaca
+     * nilai yang sama persis dengan yang akan ditulis ke database. Kalau
+     * tidak, kode huruf kecil lolos validasi lalu ditolak database.
+     *
+     * @return array<string, mixed>
+     */
+    private function validasi(Request $request, ?MasterUnit $unit = null): array
+    {
+        $request->merge([
+            'kode' => PemeliharaanUnit::normalisasiKode($request->input('kode')),
+        ]);
+
+        return $request->validate(PemeliharaanUnit::aturan($unit));
     }
 
     /**

@@ -38,9 +38,9 @@
 
         <!-- Langkah Berikutnya -->
         <div class="mt-6 flex w-full flex-col gap-2">
-            <a href="{{ route('pengaduan.lacak') }}" class="rounded-lg bg-brand-800 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-brand-700">Lacak Pengaduan Saya</a>
-            <a href="{{ route('pengaduan.create') }}" class="rounded-lg bg-brand-100 px-8 py-3.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-50">Sampaikan Aduan Lainnya</a>
-            <a href="{{ url('/') }}" class="rounded-lg px-8 py-3.5 text-sm font-semibold text-ink-muted transition hover:bg-brand-50">Kembali ke Beranda</a>
+            <a href="{{ route('pengaduan.lacak') }}" class="rounded-full bg-brand-800 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-brand-700">Lacak Pengaduan Saya</a>
+            <a href="{{ route('pengaduan.create') }}" class="rounded-full bg-brand-100 px-8 py-3.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-50">Sampaikan Aduan Lainnya</a>
+            <a href="{{ url('/') }}" class="rounded-full px-8 py-3.5 text-sm font-semibold text-ink-muted transition hover:bg-brand-50">Kembali ke Beranda</a>
         </div>
         <!-- End of Langkah Berikutnya -->
     </div>

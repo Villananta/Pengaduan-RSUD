@@ -8,31 +8,53 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 
     /*
-     * Palet halaman publik. Tetap dipakai apa adanya supaya tidak
-     * berubah bentuk halaman yang sudah Jadi.
+     * Palet halaman publik.
+     *
+     * Identitas baru: hijau hutan #0F7A3C sebagai warna merek, hijau muda
+     * mint #D7F5E3 untuk kartu dan panel, putih untuk bidang konten, dan
+     * emas #D4AF37 khusus untuk lencana penghargaan. Nama token sengaja
+     * tidak diganti supaya seluruh class di template tetap terpakai tanpa
+     * harus disentuh satu per satu.
      */
-    --color-brand-950: #0f1f08;
-    --color-brand-900: #111f0c;
-    --color-brand-800: #26500f;
-    --color-brand-700: #3d6926;
-    --color-brand-600: #53634b;
-    --color-brand-500: #596951;
-    --color-brand-300: #a8b89c;
-    --color-brand-250: #a2d584;
-    --color-brand-200: #c2c9b9;
-    --color-brand-150: #b3e795;
-    --color-brand-100: #d6e8ca;
-    --color-brand-50: #eaf0df;
-    --color-brand-light: #f6fcea;
-    --color-brand-section: #f0f6e5;
-    --color-brand-deep: #3c4b35;
+    --color-brand-950: #073b1f;
+    --color-brand-900: #0a4a27;
+    /*
+     * brand-800 adalah hijau merek: tombol, ikon, dan tautan. brand-700
+     * sengaja dibuat lebih terang karena dipakai sebagai keadaan hover,
+     * dan brand-600 adalah versi yang tetap terbaca sebagai teks kecil.
+     */
+    --color-brand-800: #0f7a3c;
+    --color-brand-700: #158a4a;
+    --color-brand-600: #146c3e;
+    --color-brand-500: #17804c;
+    --color-brand-300: #86dcab;
+    --color-brand-250: #a9e7c2;
+    --color-brand-200: #c3efd5;
+    --color-brand-150: #d7f5e3;
+    --color-brand-100: #e3f9ec;
+    --color-brand-50: #effaf4;
+    --color-brand-light: #f7fcf9;
+    --color-brand-section: #e3f9ec;
+    --color-brand-deep: #0a4a27;
 
-    --color-chat-admin: #e5ead9;
-    --color-chat-accent: #bdf19e;
+    /*
+     * Emas dipakai terbatas untuk hal yang bernilai penghargaan: piagam,
+     * medali, dan badge standar. Kalau dipakai untuk isi biasa, emas
+     * kehilangan maknanya sebagai penanda pencapaian.
+     */
+    --color-gold-50: #fdf8e7;
+    --color-gold-100: #f5d876;
+    --color-gold-300: #e9c861;
+    --color-gold-500: #d4af37;
+    --color-gold-700: #8a6a12;
+    --color-gold-800: #6b5310;
 
-    --color-ink: #181d13;
-    --color-ink-muted: #42493d;
-    --color-placeholder: #73796c;
+    --color-chat-admin: #e3f9ec;
+    --color-chat-accent: #8ee7b4;
+
+    --color-ink: #1a1a2e;
+    --color-ink-muted: #6b7280;
+    --color-placeholder: #9ca3af;
 
     --color-alert: #ba1a1a;
     --color-alert-dark: #93000a;
@@ -43,7 +65,10 @@
 
     /*
      * Palet konsol admin, mengikuti Material 3 (scheme green) supaya
-     * nama kelas pada template sama persis dengan design.
+     * nama kelas pada template sama persis dengan design. Nama token
+     * dipertahankan, hanya nilainya yang diganti ke identitas baru:
+     * hijau hutan untuk aksi, mint untuk kontainer, navy untuk teks,
+     * abu-abu untuk garis, dan emas untuk penanda SLA.
      *
      * Catatan radius: design memakai rounded (0.125rem), rounded-lg
      * (0.25rem), rounded-xl (0.5rem), dan rounded-full (0.75rem).
@@ -54,56 +79,56 @@
      */
 
     /* Surface */
-    --color-background: #f9f9ff;
-    --color-on-background: #111c2d;
-    --color-surface: #f9f9ff;
-    --color-on-surface: #111c2d;
-    --color-surface-variant: #d8e3fb;
-    --color-on-surface-variant: #414942;
-    --color-surface-dim: #cfdaf2;
-    --color-surface-bright: #f9f9ff;
+    --color-background: #f7fbf9;
+    --color-on-background: #1a1a2e;
+    --color-surface: #f7fbf9;
+    --color-on-surface: #1a1a2e;
+    --color-surface-variant: #e2ede7;
+    --color-on-surface-variant: #6b7280;
+    --color-surface-dim: #e0e9e4;
+    --color-surface-bright: #f9fcfa;
     --color-surface-container-lowest: #ffffff;
-    --color-surface-container-low: #f0f3ff;
-    --color-surface-container: #e7eeff;
-    --color-surface-container-high: #dee8ff;
-    --color-surface-container-highest: #d8e3fb;
-    --color-surface-tint: #37684c;
-    --color-inverse-surface: #263143;
-    --color-inverse-on-surface: #ecf1ff;
-    --color-outline: #717972;
-    --color-outline-variant: #c0c9c0;
+    --color-surface-container-low: #f2f8f5;
+    --color-surface-container: #ecf4ef;
+    --color-surface-container-high: #e4efe9;
+    --color-surface-container-highest: #dceae2;
+    --color-surface-tint: #0f7a3c;
+    --color-inverse-surface: #1a1a2e;
+    --color-inverse-on-surface: #f1f5f3;
+    --color-outline: #6b7280;
+    --color-outline-variant: #d3ddd6;
     --color-scrim: #000000;
 
     /* Primary */
-    --color-primary: #002011;
+    --color-primary: #0f7a3c;
     --color-on-primary: #ffffff;
-    --color-primary-container: #003820;
-    --color-on-primary-container: #70a383;
-    --color-inverse-primary: #9ed2b0;
-    --color-primary-fixed: #b9efcb;
-    --color-primary-fixed-dim: #9ed2b0;
-    --color-on-primary-fixed: #002111;
-    --color-on-primary-fixed-variant: #1e5036;
+    --color-primary-container: #146c3e;
+    --color-on-primary-container: #cff3e0;
+    --color-inverse-primary: #a5e8c4;
+    --color-primary-fixed: #c7f2dc;
+    --color-primary-fixed-dim: #a5e0c4;
+    --color-on-primary-fixed: #06331c;
+    --color-on-primary-fixed-variant: #0a4a27;
 
     /* Secondary */
-    --color-secondary: #016d30;
+    --color-secondary: #146c3e;
     --color-on-secondary: #ffffff;
-    --color-secondary-container: #98f4a7;
-    --color-on-secondary-container: #0c7234;
-    --color-secondary-fixed: #9bf7aa;
-    --color-secondary-fixed-dim: #7fda90;
+    --color-secondary-container: #d7f5e3;
+    --color-on-secondary-container: #0a4a27;
+    --color-secondary-fixed: #c7f2dc;
+    --color-secondary-fixed-dim: #a5e0c4;
     --color-on-secondary-fixed: #00210a;
-    --color-on-secondary-fixed-variant: #005323;
+    --color-on-secondary-fixed-variant: #0a4a27;
 
-    /* Tertiary */
-    --color-tertiary: #2a1700;
+    /* Tertiary: dipakai sebagai aksen emas pada badge dan penanda peringatan. */
+    --color-tertiary: #8a6a12;
     --color-on-tertiary: #ffffff;
-    --color-tertiary-container: #462a00;
-    --color-on-tertiary-container: #d48700;
-    --color-tertiary-fixed: #ffddb8;
-    --color-tertiary-fixed-dim: #ffb95f;
-    --color-on-tertiary-fixed: #2a1700;
-    --color-on-tertiary-fixed-variant: #653e00;
+    --color-tertiary-container: #f5d876;
+    --color-on-tertiary-container: #6b5310;
+    --color-tertiary-fixed: #f5d876;
+    --color-tertiary-fixed-dim: #e9c861;
+    --color-on-tertiary-fixed: #3a2d00;
+    --color-on-tertiary-fixed-variant: #57430a;
 
     /* Error */
     --color-error: #ba1a1a;
@@ -210,4 +235,13 @@
 
 [x-cloak] {
     display: none !important;
+}
+
+/*
+ * Mode kontras tinggi dipasang dari tombol aksesibilitas pada halaman
+ * publik. Dipakai filter, bukan ganti token warna, supaya tabel warna
+ * yang sudah dihitung kontrasnya tidak perlu ditulis ulang.
+ */
+html.kontras-tinggi {
+    filter: contrast(1.3);
 }

@@ -84,18 +84,22 @@ final class MonitorDisposisi
         $eskalasi = self::eskalasi($saring);
 
         return new self(
-            kartu: [],
+            kartu: self::kartu($kritis, $aktif),
             papan: self::papan(),
             eskalasi: $eskalasi,
+            // Rapor per unit dan catatan kaki siklus sudah dihitung di
+            // rapor() dan aturan(), tapi belum ada markup yang membacanya.
+            // Keduanya sengaja dikosongkan supaya halaman ini tidak
+            // menjalankan query yang hasilnya tidak pernah tampil.
             rapor: [],
             permintaan: collect(),
             aturan: [],
-            aktif: is_array($aktif) ? ($aktif['semua'] ?? 0) : (int) $aktif,
+            aktif: $aktif,
             // Angka ini hanya menghitung tiket aktif yang sudah ditautkan ke
             // unit, karena papan kanban ini tidak memuat tiket yang masih
             // di tangan humas dan belum punya unit tujuan.
-            ditugaskan: (int) ($eskalasi["jumlah"]["semua"] ?? 0),
-            telaah: (int) ($kritis["telaah"] ?? 0),
+            ditugaskan: (int) ($eskalasi['jumlah']['semua'] ?? 0),
+            telaah: (int) ($kritis['telaah'] ?? 0),
             unitTerhubung: StatistikDashboard::unitTerhubung(),
             unitTotal: MasterUnit::query()->count(),
             hariKerja: Sla::hariKerja(),
@@ -131,12 +135,15 @@ final class MonitorDisposisi
     }
 
     /**
-     * Kalimat singkat untuk kartu tiket yang lewat batas.
+     * Empat kartu angka di atas papan kanban.
      *
-     * Nama unit diambil dari daftar tiket terlambat supaya kartu ini
-     * langsung menunjuk unit yang perlu ditegur, bukan hanya angkanya.
+     * Angka diambil dari StatistikDashboard supaya kartu ini sama dengan
+     * yang terlihat di beranda. Nama unit yang disebut pada kartu tiket lewat
+     * batas diambil dari daftar tiket terlambat supaya kartu itu langsung
+     * menunjuk unit yang perlu ditegur, bukan hanya angkanya.
      *
-            telaah: (int) ($kritis["telaah"] ?? 0),
+     * @param  array<string, mixed>  $kritis  Hasil StatistikDashboard::ringkasanKritis().
+     * @param  int  $aktif  Jumlah pengaduan yang masih berjalan, untuk menghitung porsi tiap kartu.
      * @return array<int, array<string, mixed>>
      */
     private static function kartu(array $kritis, int $aktif): array
@@ -221,11 +228,22 @@ final class MonitorDisposisi
     /**
      * Empat kolom kanban status disposisi unit.
      *
-     * Kolom pertama dan kedua sengaja dipisah dari status investigasi yang
-     * sama: tiket pada tahap Diterima belum pernah ditelusuri unit,
-     * sedangkan yang sudah Diproses atau Revisi sedang ditelusuri. Kedua
-     * kelompok tetap dihitung sebagai satu status di tab Lapis 2 pada
-     * daftar pengaduan supaya angka di sana tidak berubah.
+     * Keempat kolom harus saling lepas dan mencakup semua tiket yang sudah
+     * ditugaskan. Kalau tidak, satu tiket bisa muncul di dua kolom atau hilang
+     * dari papan, sehingga angka di monitor dan di halaman lain tidak sama.
+     * Pembagiannya berurutan dari lifecycle tiket:
+     *
+     * 1. Sudah selesai, apa pun isi pesannya, masuk Jawaban di Humas. Tiket
+     *    bisa ditutup tanpa balasan apa pun karena tombol Selesaikan memang
+     *    tidak memaksa pesan.
+     * 2. Masih Diterima dan belum ada balasan, masuk Belum Dibuka Unit.
+     * 3. Sudah ada balasan unit, masuk Menunggu Racikan. Syarat ini yang
+     *    mencegah tiket Diterima muncul di kolom pertama sekaligus ketiga.
+     * 4. Sisanya sudah ditelusuri unit tapi belum menjawab, masuk Sedang
+     *    Investigasi.
+     *
+     * WithExists di bawah tetap dipakai untuk menandai kartu mana yang sudah
+     * dibaca PIC, bukan untuk menghitung kolom.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -255,9 +273,9 @@ final class MonitorDisposisi
                 'latar' => 'bg-error-container/40',
                 'nadaJudul' => 'text-on-error-container',
                 'nadaAngka' => 'bg-error text-on-error',
-                'syarat' => fn (): Builder => $dasar()
-                    ->aktif()
-                    ->where('status', StatusPengaduan::Diterima->value),
+                'syarat' => fn (): Builder => $belumDibalas(
+                    $dasar()->aktif()->where('status', StatusPengaduan::Diterima->value)
+                ),
             ],
             [
                 'kunci' => 'sedang_investigasi',
@@ -295,9 +313,7 @@ final class MonitorDisposisi
                 'latar' => 'bg-surface-container-high',
                 'nadaJudul' => 'text-on-surface',
                 'nadaAngka' => 'bg-primary-container text-on-primary',
-                'syarat' => fn (): Builder => $dasar()
-                    ->selesai()
-                    ->whereHas('pesan', fn (Builder $p): Builder => $p->where('peran', 'admin')),
+                'syarat' => fn (): Builder => $dasar()->selesai(),
             ],
         ];
 
@@ -340,10 +356,10 @@ final class MonitorDisposisi
             'pelapor' => $pengaduan->nama_lengkap,
             'subjek' => $pengaduan->subjek,
             'kasus_berat' => (bool) $pengaduan->kasus_berat,
-            'hari' => Sla::hariKerjaLewat($pengaduan->created_at) + 1,
+            'hari' => Sla::hariKe($pengaduan->created_at),
             'posisi' => $lewat
-                ? 'Hari ke-'.(Sla::hariKerjaLewat($pengaduan->created_at) + 1).' Lewat Batas Unit'
-                : 'Hari ke-'.(Sla::hariKerjaLewat($pengaduan->created_at) + 1).' dari '.Sla::hariKerja().' hari kerja',
+                ? 'Hari ke-'.Sla::hariKe($pengaduan->created_at).' Lewat Batas Unit'
+                : 'Hari ke-'.Sla::hariKe($pengaduan->created_at).' dari '.Sla::hariKerja().' hari kerja',
             'nadaPosisi' => $lewat ? 'bg-error-container text-on-error-container' : 'bg-surface-container text-on-surface',
             'nadaGaris' => $lewat ? 'bg-error' : 'bg-outline-variant',
             'catatan' => StatusInvestigasi::dariPengaduan($pengaduan, $sudahDibalas)->ringkas(),
@@ -423,7 +439,7 @@ final class MonitorDisposisi
     private static function barisEskalasi(Pengaduan $pengaduan): array
     {
         $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
-        $hariKe = Sla::hariKerjaLewat($pengaduan->created_at) + 1;
+        $hariKe = Sla::hariKe($pengaduan->created_at);
         $sisa = $pengaduan->sisaHariSla();
 
         return [
@@ -510,18 +526,6 @@ final class MonitorDisposisi
             ->values()
             ->all();
     }
-
-    /**
-     * Tiket yang benar menunggu keputusan humas.
-     *
-     * Yang ditampilkan hanya tiket bertahap Perlu Revisi karena di situ
-     * humas yang harus melangkah, bukan unit. Tombol kembalikan ke
-     * Diproses memakai endpoint tahap yang sudah ada, sedangkan
-     * pengiriman dokumen ke unit masih berupa tombol nonaktif karena
-     * kanal disposisi ke unit belum diisi.
-     *
-     * @return Collection<int, array<string, mixed>>
-     */
 
     /**
      * Siklus investigasi unit dalam bentuk teks untuk catatan kaki tabel.

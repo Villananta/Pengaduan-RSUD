@@ -43,9 +43,11 @@ class PengaduanController extends Controller
         $pengaduan = PengaduanMasuk::simpan($validated, $request->file('lampiran', []) ?? []);
 
         // Pesan pembuka otomatis agar pelapor langsung melihatnya di halaman lacak.
-        // Pesan ini berasal dari Tim Humas & Pengaduan sebagai balasan resmi pertama.
+        // Perannya 'pembuka', bukan 'admin', karena ini sapaan otomatis dan bukan
+        // balasan unit. Kalau berperan 'admin', setiap tiket baru akan langsung
+        // terbaca sudah terjawab di daftar pengaduan, monitor, dan dashboard.
         $pengaduan->pesan()->create([
-            'peran' => 'admin',
+            'peran' => 'pembuka',
             'isi' => PengaduanMasuk::pesanPembuka($pengaduan),
         ]);
 

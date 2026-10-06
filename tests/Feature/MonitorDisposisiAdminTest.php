@@ -2,13 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
-use App\Support\Sla;
+use App\Support\MonitorDisposisi;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class MonitorDisposisiAdminTest extends TestCase
@@ -160,6 +163,114 @@ class MonitorDisposisiAdminTest extends TestCase
             ->assertOk()
             ->assertDontSee('Permintaan Keputusan Humas')
             ->assertSee('ADUAN-REVISI-01');
+    }
+
+    public function test_empat_kartu_metrik_diisi_dan_terbaca(): void
+    {
+        $monitor = MonitorDisposisi::dariRequest(Request::create('/admin/monitor'));
+
+        $this->assertCount(4, $monitor->kartu);
+
+        $this->assertSame(
+            [
+                'Kepatuhan SLA Pengaduan',
+                'Tiket Lewat Batas Investigasi',
+                'Menunggu Racikan Humas',
+                'Rata-rata Penyelesaian',
+            ],
+            array_column($monitor->kartu, 'label'),
+        );
+
+        // Templat mengloop kartu ini, jadi halaman harus benar-benar
+        // menampilkan keempatnya.
+        $this->get(route('admin.monitor.index'))
+            ->assertOk()
+            ->assertSee('Kepatuhan SLA Pengaduan')
+            ->assertSee('Tiket Lewat Batas Investigasi')
+            ->assertSee('Menunggu Racikan Humas')
+            ->assertSee('Rata-rata Penyelesaian');
+    }
+
+    /**
+     * Jumlah tiket pada tiap kolom papan disposisi.
+     *
+     * Dipakai untuk memastikan keempat kolom saling lepas dan mencakup
+     * semua tiket yang sudah ditugaskan. Kalau tidak, satu tiket bisa
+     * muncul di dua kolom atau hilang dari papan.
+     *
+     * @return Collection<string, int>
+     */
+    private function kolomPapan(): Collection
+    {
+        $papan = (new \ReflectionMethod(MonitorDisposisi::class, 'papan'))->invoke(null);
+
+        return collect($papan)->pluck('total', 'kunci');
+    }
+
+    /** Satu tiket di unit tujuan dengan tahap dan ada-tidaknya balasan unit. */
+    private function tiketUnit(MasterUnit $unit, StatusPengaduan $status, bool $dibalas): Pengaduan
+    {
+        $pengaduan = Pengaduan::factory()->status($status)->create([
+            'master_unit_id' => $unit->id,
+            'unit' => $unit->nama,
+        ]);
+
+        if ($dibalas) {
+            $pengaduan->pesan()->create([
+                'peran' => 'admin',
+                'isi' => 'Klarifikasi dari PIC unit.',
+            ]);
+        }
+
+        return $pengaduan;
+    }
+
+    public function test_kolom_papan_saling_lepas_dan_mencakup_semua_tiket(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        // Seluruh kombinasi tahap dan ada-tidaknya balasan unit, supaya
+        // ada tiket yang harus di tiap kolom dan ada yang terbuang dari
+        // semua kolom kalau syaratnya salah.
+        $tiket = [
+            $this->tiketUnit($unit, StatusPengaduan::Diterima, false),
+            $this->tiketUnit($unit, StatusPengaduan::Diterima, true),
+            $this->tiketUnit($unit, StatusPengaduan::Diproses, false),
+            $this->tiketUnit($unit, StatusPengaduan::Diproses, true),
+            $this->tiketUnit($unit, StatusPengaduan::Selesai, false),
+        ];
+
+        $kolom = $this->kolomPapan();
+
+        $this->assertSame(1, $kolom['belum_dibuka'], 'Diterima tanpa balasan unit.');
+        $this->assertSame(2, $kolom['menunggu_racikan'], 'Sudah dibalas unit, tahap apa pun.');
+        $this->assertSame(1, $kolom['sedang_investigasi'], 'Diproses tanpa balasan unit.');
+        $this->assertSame(1, $kolom['jawaban_unit'], 'Selesai tanpa pesan tetap tampil.');
+
+        $this->assertSame(count($tiket), $kolom->sum());
+    }
+
+    public function test_kolom_papan_sejalan_dengan_status_investigasi_lapis_dua(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $this->tiketUnit($unit, StatusPengaduan::Diterima, false);
+        $this->tiketUnit($unit, StatusPengaduan::Diterima, true);
+        $this->tiketUnit($unit, StatusPengaduan::Diproses, false);
+        $this->tiketUnit($unit, StatusPengaduan::Diproses, true);
+        $this->tiketUnit($unit, StatusPengaduan::Selesai, false);
+
+        $kolom = $this->kolomPapan();
+        $hitung = fn (StatusInvestigasi $status): int => $status->terapkan(Pengaduan::query())->count();
+
+        // Monitor memecah kelompok yang di tab Lapis 2 masih satu status,
+        // jadi angkanya boleh berbeda satu tiket, tapi tidak boleh nol.
+        $this->assertSame(
+            $kolom['belum_dibuka'] + $kolom['sedang_investigasi'],
+            $hitung(StatusInvestigasi::SedangInvestigasi),
+        );
+        $this->assertSame($kolom['menunggu_racikan'], $hitung(StatusInvestigasi::MenungguRacikan));
+        $this->assertSame($kolom['jawaban_unit'], $hitung(StatusInvestigasi::JawabanUnit));
     }
 
     /**

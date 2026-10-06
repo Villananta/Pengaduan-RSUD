@@ -3,8 +3,8 @@
 namespace App\Support;
 
 use App\Enums\StatusPengaduan;
+use App\Enums\ZonaSla;
 use App\Models\Pengaduan;
-use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -12,6 +12,11 @@ use Illuminate\Support\Facades\Cache;
  *
  * Seluruh angka dihitung dari tabel pengaduan. Tidak ada lagi angka
  * rekaan yang diketik manual di controller atau view.
+ *
+ * Satuan waktu di sini adalah hari kerja, sama dengan yang dipakai
+ * App\Support\Sla. Menghitung dengan hari kalender membuat rata-rata
+ * publik menyimpang dari batas 12 hari kerja yang dijanjikan di halaman
+ * yang sama, terutama untuk tiket yang dimulai dan selesai sekitar akhir pekan.
  */
 final class StatistikPengaduan
 {
@@ -32,8 +37,13 @@ final class StatistikPengaduan
         $data = Cache::remember(self::KUNCI, self::TTL, self::hitung(...));
 
         $total = $data['total'];
-        $selesai = $data['selesai'];
         $tepatWaktu = $data['tepat_waktu'];
+
+        // Pembagi kepatuhan harus $terhitung, bukan jumlah tiket selesai.
+        // Tiket yang sudah berstatus Selesai tapi belum punya selesai_at
+        // tidak pernah ikut dihitung, sehingga memakainya sebagai pembagi
+        // membuat persen kepatuhan turun tanpa sebab yang sebenarnya.
+        $terhitung = $data['terhitung'];
 
         return [
             [
@@ -43,20 +53,20 @@ final class StatistikPengaduan
                 'tersedia' => true,
             ],
             [
-                'nilai' => $selesai > 0 ? self::persen($tepatWaktu, $selesai) : 'Belum ada data',
+                'nilai' => $terhitung > 0 ? self::persen($tepatWaktu, $terhitung) : 'Belum ada data',
                 'label' => 'Kepatuhan SLA',
                 'sub' => 'Selesai dalam '.Sla::hariKerja().' hari kerja',
-                'tersedia' => $selesai > 0,
+                'tersedia' => $terhitung > 0,
             ],
             [
-                'nilai' => $data['rata_rata_hari'] !== null
-                    ? number_format($data['rata_rata_hari'], 1, ',', '.').' Hari'
+                'nilai' => $data['rata_rata_hari_kerja'] !== null
+                    ? number_format($data['rata_rata_hari_kerja'], 1, ',', '.').' Hari Kerja'
                     : 'Belum ada data',
                 'label' => 'Rata-rata Resolusi',
-                'sub' => $data['rata_rata_hari'] !== null
-                    ? 'Dari '.$selesai.' pengaduan selesai'
+                'sub' => $data['rata_rata_hari_kerja'] !== null
+                    ? 'Dari '.$terhitung.' pengaduan selesai'
                     : 'Menunggu pengaduan pertama selesai',
-                'tersedia' => $data['rata_rata_hari'] !== null,
+                'tersedia' => $data['rata_rata_hari_kerja'] !== null,
             ],
             [
                 'nilai' => (string) $data['aktif'],
@@ -67,10 +77,10 @@ final class StatistikPengaduan
         ];
     }
 
-    /** Rata-rata waktu penyelesaian pengaduan selesai dalam hari kalender. */
-    public static function rataRataHari(): ?float
+    /** Rata-rata waktu penyelesaian pengaduan selesai dalam hari kerja. */
+    public static function rataRataHariKerja(): ?float
     {
-        $rata = Cache::remember(self::KUNCI, self::TTL, self::hitung(...))['rata_rata_hari'];
+        $rata = Cache::remember(self::KUNCI, self::TTL, self::hitung(...))['rata_rata_hari_kerja'];
 
         return $rata;
     }
@@ -78,7 +88,7 @@ final class StatistikPengaduan
     /** Kalimat ringkas rata-rata resolusi, atau null bila belum ada data. */
     public static function ringkasRataRata(): ?string
     {
-        $rata = self::rataRataHari();
+        $rata = self::rataRataHariKerja();
 
         return $rata === null
             ? null
@@ -103,14 +113,14 @@ final class StatistikPengaduan
             ->count();
 
         $tepatWaktu = 0;
-        $totalHari = 0.0;
+        $totalHariKerja = 0.0;
         $terhitung = 0;
 
         Pengaduan::query()
             ->where('status', StatusPengaduan::Selesai->value)
             ->whereNotNull('selesai_at')
             ->get(['created_at', 'selesai_at', 'kasus_berat'])
-            ->each(function (Pengaduan $pengaduan) use (&$tepatWaktu, &$totalHari, &$terhitung): void {
+            ->each(function (Pengaduan $pengaduan) use (&$tepatWaktu, &$totalHariKerja, &$terhitung): void {
                 $mulai = $pengaduan->created_at;
                 $selesai = $pengaduan->selesai_at;
 
@@ -119,11 +129,14 @@ final class StatistikPengaduan
                 }
 
                 $terhitung++;
-                $totalHari += $mulai->diffInDays($selesai, true);
+                // Hari kerja, bukan hari kalender, supaya satuan yang dipakai
+                // di sini sama dengan batas SLA dan dengan yang dihitung
+                // StatistikDashboard untuk sisi admin.
+                $totalHariKerja += (int) abs($mulai->diffInWeekdays($selesai, true));
 
                 // Kasus berat punya target yang lebih panjang, jadi dihitung
                 // dengan batasnya sendiri supaya tidak otomatis masuk terlambat.
-                if (Sla::zona($mulai, $selesai, $pengaduan->kasus_berat)->value === 'tepat_waktu') {
+                if (Sla::zona($mulai, $selesai, $pengaduan->kasus_berat) === ZonaSla::TepatWaktu) {
                     $tepatWaktu++;
                 }
             });
@@ -134,18 +147,12 @@ final class StatistikPengaduan
             'aktif' => $aktif,
             'tepat_waktu' => $tepatWaktu,
             'terhitung' => $terhitung,
-            'rata_rata_hari' => $terhitung > 0 ? round($totalHari / $terhitung, 1) : null,
+            'rata_rata_hari_kerja' => $terhitung > 0 ? round($totalHariKerja / $terhitung, 1) : null,
         ];
     }
 
     private static function persen(int $bagian, int $total): string
     {
         return number_format($total > 0 ? $bagian / $total * 100 : 0, 1, ',', '.').'%';
-    }
-
-    /** Target penyelesaian untuk satu pengaduan. */
-    public static function target(CarbonInterface $mulai): CarbonInterface
-    {
-        return Sla::target($mulai);
     }
 }

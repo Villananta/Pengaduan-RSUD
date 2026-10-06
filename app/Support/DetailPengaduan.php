@@ -218,7 +218,7 @@ final class DetailPengaduan
 
         return [
             'hariKerja' => Sla::hariKerja(),
-            'hariKe' => Sla::hariKerjaLewat($pengaduan->created_at),
+            'hariKe' => Sla::hariKe($pengaduan->created_at),
             'sisa' => $pengaduan->sisaHariSla(),
             'target' => $pengaduan->targetSla()->format('d M Y'),
             'persen' => $pengaduan->progresPersen(),
@@ -260,7 +260,8 @@ final class DetailPengaduan
     {
         return $pengaduan->pesan
             ->map(fn (PesanPengaduan $pesan): array => [
-                'dariAdmin' => $pesan->dariAdmin(),
+                // Key memakai dariHumas karena sapaan pembuka juga digambar di sisi kanan.
+                'dariHumas' => $pesan->dariHumas(),
                 'isi' => $pesan->isi,
                 'waktu' => $pesan->created_at->format('d M Y, H:i'),
                 'lampiran' => $pesan->adaLampiran() ? [

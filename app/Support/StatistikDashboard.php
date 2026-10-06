@@ -372,10 +372,7 @@ final class StatistikDashboard
                 : null)
             ->all();
 
-        $unitTerhubung = MasterUnit::query()
-            ->where('koneksi_simrs', true)
-            ->where('koneksi_simrs_terakhir', '>=', now()->subMinutes(15))
-            ->count();
+        $unitTerhubung = MasterUnit::query()->terhubung()->count();
 
         return [
             'per_tahap' => $perTahap,

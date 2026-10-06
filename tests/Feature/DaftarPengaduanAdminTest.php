@@ -210,4 +210,46 @@ class DaftarPengaduanAdminTest extends TestCase
         );
         $this->assertStringNotContainsString('href="#', $tampilan);
     }
+
+    public function test_jumlah_balasan_unit_tidak_menghitung_pesan_pembuka_dan_pelapor(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        // Tiket aktif yang sudah dibalas unit, jadi kolom Lapis 2-nya
+        // Menunggu Racikan dan kalimat penghitungnya ikut tampil.
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-HITUNG-01',
+            'master_unit_id' => $unit->id,
+            'unit' => $unit->nama,
+        ]);
+
+        // Empat pesan tersimpan, tapi hanya dua yang benar-benar balasan unit.
+        // Pesan pembuka dibuat otomatis oleh sistem dan balasan pelapor bukan
+        // jawaban unit, jadi keduanya tidak boleh menambah hitungan.
+        $pengaduan->pesan()->create([
+            'peran' => 'pembuka',
+            'isi' => 'Laporan Anda sudah kami terima dan sedang kami periksa.',
+        ]);
+        $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => 'Instalasi sudah memeriksa catatan pemberian obat.',
+        ]);
+        $pengaduan->pesan()->create([
+            'peran' => 'pelapor',
+            'isi' => 'Saya lampirkan foto resep yang saya terima.',
+        ]);
+        $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => 'Rekam medis sudah disesuaikan, terima kasih.',
+        ]);
+
+        $tampilan = $this->get(route('admin.pengaduan.index'))
+            ->assertOk()
+            ->assertSee('ADUAN-HITUNG-01')
+            ->assertSee('Menunggu Racikan')
+            ->getContent();
+
+        $this->assertStringContainsString('2 balasan unit masuk, siap diracik humas', $tampilan);
+        $this->assertStringNotContainsString('4 balasan unit masuk', $tampilan);
+    }
 }

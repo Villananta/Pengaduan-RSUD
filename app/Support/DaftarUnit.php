@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Enums\DisposisiUnit;
 use App\Enums\KategoriUnit;
 use App\Enums\PeranAksesUnit;
 use App\Enums\StatusAksesUnit;
@@ -35,15 +34,6 @@ final class DaftarUnit
 {
     /** Jumlah baris per halaman pada tabel unit. */
     private const PER_HALAMAN = 10;
-
-    /**
-     * Batas heartbeat SIMRS yang masih dianggap hidup, dalam menit.
-     *
-     * Nilainya sengaja sama dengan yang dipakai MasterUnit::koneksiAktif()
-     * dan statistik dashboard supaya angka unit terhubung di semua halaman
-     * selalu merujuk data yang sama.
-     */
-    private const BATAS_KONEKSI = 15;
 
     /** Urutan tabel yang boleh dipilih, urut dari yang paling sering dipakai. */
     private const URUTAN = ['beban', 'nama', 'kategori', 'kode'];
@@ -299,25 +289,20 @@ final class DaftarUnit
     /**
      * Saring kondisi koneksi unit.
      *
-     * Unit yang belum pernah ditugaskan tiket tidak punya disposisi sama
-     * sekali, jadi dipisahkan dari unit yang koneksinya benar-benar
-     * terputus. Kalau keduanya dicampur jadi satu, admin akan menganggap
-     * unit yang baru terdaftar sama rusaknya dengan unit yang sedang tidak
-     * bisa dihubungi.
+     * Ketiga kelasnya dibuat lewat scope di model supaya angka di dalam
+     * filter dan angka di kartu ringkasan di atasnya tidak pernah bisa
+     * saling menyangkal. Urutan pemeriksaannya juga tidak dianggap remeh:
+     * kelompok "belum ditugaskan" memang harus diperiksa terpisah dari
+     * "terputus", karena kalau keduanya dicampur admin akan menganggap unit
+     * yang baru terdaftar sama rusaknya dengan unit yang sedang tidak bisa
+     * dihubungi.
      */
     private static function filterKoneksi(Builder $query, ?string $nilai): void
     {
         match ($nilai) {
-            'terhubung' => $query->where('koneksi_simrs', true)
-                ->where(function (Builder $q): void {
-                    $q->whereNull('disposisi')->orWhere('disposisi', '!=', DisposisiUnit::Terputus->value);
-                }),
-            'terputus' => $query->where(function (Builder $q): void {
-                $q->where('disposisi', DisposisiUnit::Terputus->value)
-                    ->orWhere(fn (Builder $d) => $d->where('koneksi_simrs', false)
-                        ->whereNotNull('disposisi'));
-            }),
-            'belum_ditugaskan' => $query->whereNull('disposisi'),
+            'terhubung' => $query->terhubung(),
+            'terputus' => $query->terputus(),
+            'belum_ditugaskan' => $query->belumDitugaskan(),
             default => null,
         };
     }
@@ -337,15 +322,9 @@ final class DaftarUnit
         $total = MasterUnit::query()->count();
         $aktif = MasterUnit::query()->aktif()->count();
 
-        $terhubung = MasterUnit::query()
-            ->where('koneksi_simrs', true)
-            ->where('koneksi_simrs_terakhir', '>=', now()->subMinutes(self::BATAS_KONEKSI))
-            ->count();
+        $terhubung = MasterUnit::query()->terhubung()->count();
 
-        $terputus = MasterUnit::query()
-            ->where(fn (Builder $q) => $q->where('disposisi', DisposisiUnit::Terputus->value)
-                ->orWhere('koneksi_simrs', false))
-            ->count();
+        $terputus = MasterUnit::query()->terputus()->count();
 
         $punyaAntrean = MasterUnit::query()
             ->aktif()
@@ -383,7 +362,7 @@ final class DaftarUnit
                 'nadaBar' => 'bg-secondary',
                 'persen' => self::persen($terhubung, $total),
                 'sisi' => $terputus.' unit terputus',
-                'ket' => 'Koneksi dianggap hidup bila heartbeat SIMRS masuk dalam '.self::BATAS_KONEKSI.' menit terakhir.',
+                'ket' => 'Koneksi dianggap hidup bila heartbeat SIMRS masuk dalam '.MasterUnit::BATAS_KONEKSI.' menit terakhir.',
             ],
             [
                 'label' => 'Unit dengan Beban Aktif',

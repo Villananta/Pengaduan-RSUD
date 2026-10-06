@@ -295,6 +295,33 @@ class DashboardAdminTest extends TestCase
         $this->assertFalse($daftar->contains('ADUAN-AMAN-1'));
     }
 
+    public function test_kartu_tidak_menandai_tiket_mendek_sebagai_lewat_batas(): void
+    {
+        // Hari ke-11, SLA 12 hari kerja masih menyisakan satu hari kerja.
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-MENDEK-SLA-1',
+            'created_at' => now()->subWeekdays(10)->setTime(8, 0),
+        ]);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Hari ke-11, sisa 1 hari kerja')
+            ->assertDontSee('LEWAT BATAS');
+    }
+
+    public function test_kartu_menandai_tiket_yang_baru_melewati_sla(): void
+    {
+        // Hari ke-13, sudah berada di luar ambang 12 hari kerja.
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-TERLAMBAT-SLA-1',
+            'created_at' => now()->subWeekdays(12)->setTime(8, 0),
+        ]);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Hari ke-13 (LEWAT BATAS)');
+    }
+
     public function test_kasus_berat_diurutkan_di_atas_tiket_mendek_batas(): void
     {
         Pengaduan::factory()->create([

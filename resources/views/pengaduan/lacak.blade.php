@@ -83,7 +83,7 @@
                         class="w-full rounded-xl border border-brand-200 bg-brand-light px-4 py-3 text-sm text-ink placeholder-placeholder focus:border-brand-600 focus:outline-none"
                     >
                 </div>
-                <button type="submit" class="rounded-xl bg-brand-800 px-6 py-3 text-sm font-semibold text-white">
+                <button type="submit" class="rounded-full bg-brand-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700">
                     Cek Status Sekarang
                 </button>
             </form>
@@ -110,7 +110,7 @@
                     @foreach ($tahap as $status)
                         <span
                             @class([
-                                'flex min-w-56 flex-1 items-center gap-2 rounded-lg px-4 py-2',
+                                'flex min-w-56 flex-1 items-center gap-2 rounded-full px-4 py-2',
                                 'bg-brand-800 text-white' => $tiket->status === $status,
                                 'bg-brand-50 text-ink-muted shadow-[0_1px_2px_rgba(0,0,0,0.05)]' => $tiket->status !== $status,
                             ])
@@ -222,7 +222,7 @@
                         <a
                             href="tel:+62311500995"
                             @class([
-                                'rounded-lg px-4 py-2 text-xs font-semibold',
+                                'rounded-full px-4 py-2 text-xs font-semibold',
                                 'bg-alert text-white' => $perluAksi,
                                 'bg-white text-brand-800' => ! $perluAksi,
                             ])
@@ -357,7 +357,7 @@
                             </div>
 
                             @forelse ($tiket->pesan as $pesan)
-                                @if ($pesan->dariAdmin())
+                                @if ($pesan->dariHumas())
                                     <div class="flex flex-col items-start gap-1 pr-10">
                                         <div class="flex items-center gap-1">
                                             <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-800 text-[11px] font-bold tracking-[0.33px] text-white">H</span>
@@ -407,7 +407,7 @@
                                             @endif
                                         </div>
 
-                                        <span class="flex items-center gap-2 pt-1 text-[11px] font-medium tracking-[0.33px] text-chat-accent">
+                                        <span class="flex items-center gap-2 pt-1 text-[11px] font-medium tracking-[0.33px] text-brand-600">
                                             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="m3 11 18-8-8 18-2-8-8-2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                                             </svg>
@@ -487,7 +487,7 @@
                                     Isi pesan dan lampiran hanya dapat dilihat oleh tim humas.
                                 </p>
 
-                                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-brand-800 px-6 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                                <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-brand-800 px-6 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition hover:bg-brand-700">
                                     <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="m3 11 18-8-8 18-2-8-8-2Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\StatusPengaduan;
+use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -226,7 +227,7 @@ final class Dashboard
     {
         $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
         $sudahDibalas = (bool) $pengaduan->sudah_dibalas;
-        $hariKe = Sla::hariKerjaLewat($pengaduan->created_at) + 1;
+        $hariKe = Sla::hariKe($pengaduan->created_at);
         $sisa = $pengaduan->sisaHariSla();
 
         return [
@@ -248,7 +249,7 @@ final class Dashboard
                 default => 'bg-secondary-container text-on-secondary-container',
             },
             'tahap' => $this->tahapTiket($lewat, $sudahDibalas, $pengaduan),
-            'sla' => $this->barisSla($lewat, $hariKe, $sisa),
+            'sla' => $this->barisSla($pengaduan->zonaSla(), $hariKe, $sisa),
             'catatan' => $this->catatanTiket($lewat, $sudahDibalas, $pengaduan),
             'tombol' => $this->tombolTiket($lewat, $sudahDibalas, $pengaduan),
         ];
@@ -293,31 +294,33 @@ final class Dashboard
     /**
      * Baris posisi hari kerja pada kartu tiket.
      *
+     * Posisi diambil dari zona SLA (ambang 12 hari kerja), bukan dari
+     * limit investigasi unit 5 hari. Kalau pakai limit investigasi,
+     * tiket di hari ke-6 sampai ke-12 ikut dilabeli LEWAT BATAS padahal
+     * SLA-nya masih berjalan, dan baris yang menenangkan jadi tak pernah
+     * muncul. Investigasi yang lewat tetap ditandai lewat catatan kartu.
+     *
      * @return array{label: string, ikon: string, nada: string}
      */
-    private function barisSla(bool $lewat, int $hariKe, int $sisa): array
+    private function barisSla(ZonaSla $zona, int $hariKe, int $sisa): array
     {
-        if ($lewat) {
-            return [
+        return match ($zona) {
+            ZonaSla::Terlambat => [
                 'label' => 'Hari ke-'.$hariKe.' (LEWAT BATAS)',
                 'ikon' => 'warning',
                 'nada' => 'text-error',
-            ];
-        }
-
-        if ($sisa > 0) {
-            return [
+            ],
+            ZonaSla::Mendek => [
                 'label' => 'Hari ke-'.$hariKe.', sisa '.$sisa.' hari kerja',
                 'ikon' => 'timelapse',
+                'nada' => 'text-on-tertiary-container',
+            ],
+            default => [
+                'label' => 'Hari ke-'.$hariKe.', sisa '.$sisa.' hari kerja',
+                'ikon' => 'schedule',
                 'nada' => 'text-secondary',
-            ];
-        }
-
-        return [
-            'label' => 'Hari ke-'.$hariKe.' (SLA '.$this->hariKerja.' Hari Kerja)',
-            'ikon' => 'schedule',
-            'nada' => 'text-secondary',
-        ];
+            ],
+        };
     }
 
     /**

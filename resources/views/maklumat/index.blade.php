@@ -558,7 +558,7 @@
                              supaya tidak menyesatkan pelapor yang mengekliknya. -->
                         <span
                             @class([
-                                'flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-not-allowed',
+                                'flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-not-allowed',
                                 'bg-brand-800' => $d['tombol'] === 'gelap',
                                 'bg-brand-100 text-brand-deep' => $d['tombol'] === 'terang',
                             ])

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\DisposisiUnit;
 use App\Enums\KategoriUnit;
 use App\Enums\PeranAksesUnit;
 use App\Enums\StatusAksesUnit;
@@ -81,6 +82,86 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertSame('Unit Terhubung SIMRS', $daftar->kartu[1]['label']);
         $this->assertSame(8, $daftar->kartu[1]['nilai']);
         $this->assertSame('1 unit terputus', $daftar->kartu[1]['sisi']);
+    }
+
+    public function test_saring_terhubung_tidak_menghitung_heartbeat_yang_sudah_basi(): void
+    {
+        // SIMRS unit ini pernah menyimpan heartbeat, lalu berhenti mengirim.
+        // Unit semacam ini harus ikut "terputus", bukan tetap terhitung
+        // "terhubung" seperti yang dilakukan saring lama yang tidak pernah
+        // memeriksa umur heartbeat.
+        MasterUnit::factory()->create([
+            'kode' => 'UJI-90',
+            'nama' => 'Unit Heartbeat Basi',
+            'koneksi_simrs' => true,
+            'koneksi_simrs_terakhir' => now()->subMinutes(MasterUnit::BATAS_KONEKSI + 5),
+            'disposisi' => DisposisiUnit::Terhubung,
+        ]);
+
+        $this->get(route('admin.unit.index', ['koneksi' => 'terhubung']))
+            ->assertOk()
+            ->assertDontSee('Unit Heartbeat Basi')
+            ->assertSee('Instalasi Farmasi Pusat');
+
+        $this->get(route('admin.unit.index', ['koneksi' => 'terputus']))
+            ->assertOk()
+            ->assertSee('Unit Heartbeat Basi');
+
+        // Kartu ringkasan memakai rumus yang sama, jadi angkanya harus
+        // mengikuti: unit basi ikut menaikkan jumlah terputus, dan tidak
+        // menaikkan jumlah terhubung.
+        $daftar = DaftarUnit::dariRequest(request());
+
+        $this->assertSame(8, $daftar->kartu[1]['nilai']);
+        $this->assertSame('2 unit terputus', $daftar->kartu[1]['sisi']);
+    }
+
+    public function test_saring_belum_ditugaskan_mengenali_unit_baru(): void
+    {
+        // Kolom disposisi punya nilai bawaan sehingga tidak pernah kosong,
+        // jadi saring lama yang mencari disposisi NULL tidak akan pernah
+        // menemukan apa pun. Unit baru harus dikenali dari kenyataan bahwa
+        // dia belum pernah menyimpan heartbeat dan belum menerima tiket.
+        $this->tambahUnitUji();
+
+        // Notifikasi sukses menyebut nama dan kode unit, jadi buktinya bukan
+        // nama unit melainkan keterangan jumlah baris dari paginatornya.
+        $this->get(route('admin.unit.index', ['koneksi' => 'belum_ditugaskan']))
+            ->assertOk()
+            ->assertSee('Menampilkan 1 unit (dari 10 terdaftar)')
+            ->assertDontSee('Instalasi Farmasi Pusat')
+            ->assertDontSee('Instalasi Gawat Darurat');
+    }
+
+    public function test_unit_baru_tidak_langsung_dihitung_terputus(): void
+    {
+        // Saring kartu lama menganggap setiap unit yang koneksi_simrs-nya
+        // false sedang terputus, sehingga unit yang baru didaftarkan saja
+        // langsung menaikkan jumlah unit rusak di halaman admin.
+        $this->tambahUnitUji();
+
+        $daftar = DaftarUnit::dariRequest(request());
+
+        $this->assertSame(8, $daftar->kartu[1]['nilai']);
+        $this->assertSame('1 unit terputus', $daftar->kartu[1]['sisi']);
+    }
+
+    /** Tambah satu unit lewat form, seperti yang dilakukan admin sungguhan. */
+    private function tambahUnitUji(): void
+    {
+        $this->post(route('admin.unit.store'), [
+            'kode' => 'uji-77',
+            'nama' => 'Unit Uji Otomatis',
+            'kategori' => KategoriUnit::PenunjangKlinis->value,
+            'pic' => 'apt. Uji',
+            'jabatan_pic' => 'Supervisor Uji',
+            'kontak_wa' => '0812-0000-11',
+            'jam_layanan' => '24 Jam',
+            'peran_akses' => PeranAksesUnit::StafPelaksana->value,
+            'status_akses' => StatusAksesUnit::BelumDiundang->value,
+            'aktif' => '1',
+        ])
+            ->assertSessionHas('sukses');
     }
 
     public function test_saring_kode_dan_nama_menyaring_tabel(): void
@@ -288,6 +369,69 @@ class DaftarUnitAdminTest extends TestCase
         // Kolom kontak kosong harus disimpan sebagai null, bukan string
         // kosong, supaya pencarian "belum punya kontak" tidak keliru.
         $this->assertNull($unit->kontak_wa);
+    }
+
+    public function test_jam_layanan_yang_dikosongkan_tetap_bisa_disimpan(): void
+    {
+        // Jam layanan boleh kosong di form. Kalau kolomnya masih melarang
+        // null, penyimpanan akan ditolak dan admin mendapat galat 500.
+        $data = [
+            'nama' => 'Unit Tanpa Jam Layanan',
+            'kategori' => KategoriUnit::PenunjangKlinis->value,
+            'peran_akses' => PeranAksesUnit::StafPelaksana->value,
+            'status_akses' => StatusAksesUnit::BelumDiundang->value,
+            'aktif' => '1',
+        ];
+
+        $this->post(route('admin.unit.store'), $data + ['kode' => 'uji-88'])
+            ->assertRedirect(route('admin.unit.index'))
+            ->assertSessionHas('sukses');
+
+        $this->assertNull(MasterUnit::where('kode', 'UJI-88')->value('jam_layanan'));
+
+        $this->post(route('admin.unit.update', ['unit' => 'IFP-01']), $data + [
+            'kode' => 'IFP-01',
+            'nama' => 'Instalasi Farmasi Pusat',
+            'jam_layanan' => '',
+        ])
+            ->assertRedirect(route('admin.unit.index'))
+            ->assertSessionHas('sukses');
+
+        $this->assertNull(MasterUnit::where('kode', 'IFP-01')->value('jam_layanan'));
+    }
+
+    public function test_kode_huruf_kecil_menabrak_kode_yang_sudah_ada(): void
+    {
+        // IFP-01 sudah ada dari seeder. Kalau kode dinormalkan setelah
+        // validasi, "ifp-01" lolos cek keunikan lalu ditolak database,
+        // sehingga admin mendapat galat 500, bukan pesan validasi.
+        $this->post(route('admin.unit.store'), [
+            'kode' => 'ifp-01',
+            'nama' => 'Farmasi Duplikat',
+            'kategori' => KategoriUnit::PenunjangKlinis->value,
+            'peran_akses' => PeranAksesUnit::StafPelaksana->value,
+            'status_akses' => StatusAksesUnit::BelumDiundang->value,
+            'aktif' => '1',
+        ])
+            ->assertSessionHasErrors('kode');
+
+        $this->assertDatabaseMissing('master_units', ['kode' => 'IFP-01', 'nama' => 'Farmasi Duplikat']);
+        $this->assertSame(1, MasterUnit::where('kode', 'IFP-01')->count());
+    }
+
+    public function test_kode_huruf_kecil_disimpan_tetap_kapital(): void
+    {
+        $this->post(route('admin.unit.store'), [
+            'kode' => 'uji-99',
+            'nama' => 'Unit Kode Kapital',
+            'kategori' => KategoriUnit::PenunjangKlinis->value,
+            'peran_akses' => PeranAksesUnit::StafPelaksana->value,
+            'status_akses' => StatusAksesUnit::BelumDiundang->value,
+            'aktif' => '1',
+        ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('master_units', ['kode' => 'UJI-99']);
     }
 
     public function test_unit_yang_tidak_ada_memberi_jawaban_404(): void

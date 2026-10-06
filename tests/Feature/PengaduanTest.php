@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\KategoriPengaduan;
+use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
+use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Support\StatistikDashboard;
+use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -75,6 +79,39 @@ class PengaduanTest extends TestCase
         $this->assertCount(1, $riwayat);
         $this->assertTrue($riwayat->first()->dariAwal());
         $this->assertSame(StatusPengaduan::Diterima, $riwayat->first()->ke);
+    }
+
+    public function test_pesan_pembuka_otomatis_bukan_balasan_unit(): void
+    {
+        $this->post(route('pengaduan.store'), $this->form());
+
+        $pesan = Pengaduan::first()->pesan()->first();
+
+        // Sapaan pembuka ditulis otomatis begitu tiket dibuat. Kalau
+        // berperan admin, setiap tiket baru akan langsung terbaca sudah
+        // terjawab di daftar pengaduan, monitor, dan dashboard.
+        $this->assertSame('pembuka', $pesan->peran);
+        $this->assertFalse($pesan->dariAdmin());
+        $this->assertTrue($pesan->dariHumas(), 'Pembuka tetap digambar di sisi humas.');
+    }
+
+    public function test_tiket_baru_ditugaskan_unit_tidak_terbaca_sudah_dibalas(): void
+    {
+        $this->seed(MasterUnitSeeder::class);
+
+        $this->post(route('pengaduan.store'), $this->form(['unit' => config('pengaduan.units')[0]]));
+
+        $pengaduan = Pengaduan::first();
+        $pengaduan->update(['master_unit_id' => MasterUnit::first()->id]);
+
+        $this->assertSame(
+            StatusInvestigasi::SedangInvestigasi,
+            StatusInvestigasi::dariPengaduan($pengaduan, sudahDibalas: false),
+        );
+
+        // Tiket yang baru dibuat tidak boleh masuk hitungan tiket yang
+        // menunggu telaah balasan unit.
+        $this->assertSame(0, StatistikDashboard::ringkasanKritis()['telaah']);
     }
 
     public function test_kode_tiket_tidak_bisa_dimasukkan_melalui_mass_assignment(): void
