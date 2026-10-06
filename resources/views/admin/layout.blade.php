@@ -21,22 +21,6 @@
 <body class="bg-surface font-body-md text-on-surface min-h-screen">
 
     @php
-        /*
-         * Navigasi konsol admin.
-         *
-         * Item dibedakan menjadi tiga bentuk supaya tidak ada menu yang
-         * ditampilkan lebih aktif daripada kenyataannya:
-         *
-         * - 'route' : punya halaman sendiri, jadi benar-benar tautan.
-         * - 'pola'  : pola route untuk menandai menu sebagai aktif. Dipakai
-         *   sendiri oleh Detail Pengaduan yang tidak punya halaman indeks,
-         *   dan dipakai berdampingan dengan 'route' kalau satu menu punya
-         *   beberapa halaman, misalnya master unit dan form ubahnya.
-         * - kosong  : fiturnya belum dibangun, tampil sebagai menu mati.
-         *
-         * Kalau 'route' dan 'pola' ada bersamaan, tautannya tetap dari
-         * 'route' sementara penanda aktifnya mengikuti 'pola'.
-         */
         $beranda = 'admin.dashboard';
         $navigasi = [
             ['label' => 'Beranda Utama', 'route' => $beranda],
