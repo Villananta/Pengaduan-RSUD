@@ -73,8 +73,8 @@ class BersihkanPengaduan extends Command
                     }
 
                     foreach ($pengaduan->pesan as $pesan) {
-                        if ($pesan->adaLampiran()) {
-                            $disk->delete($pesan->lampiran);
+                        foreach ($pesan->daftarLampiran() as $path) {
+                            $disk->delete($path);
                             $berkas++;
                         }
                     }

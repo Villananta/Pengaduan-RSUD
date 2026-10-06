@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use App\Support\PengaduanMasuk;
 use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
@@ -151,18 +152,20 @@ class PengaduanController extends Controller
 
         $validated = $request->validate([
             'isi' => ['required', 'string', 'max:2000'],
-            'lampiran' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'lampiran' => ['nullable', 'array', 'max:5'],
+            'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ], [
             'isi.required' => 'Tuliskan pesan terlebih dahulu.',
-            'lampiran.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
-            'lampiran.max' => 'Ukuran maksimal lampiran adalah 4 MB.',
+            'lampiran.max' => 'Maksimal 5 lampiran per pesan.',
+            'lampiran.*.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
+            'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 4 MB.',
         ]);
 
         // Pesan dari pelapor selalu berperan sebagai "pelapor".
         $pengaduan->pesan()->create([
             'peran' => 'pelapor',
             'isi' => $validated['isi'],
-            'lampiran' => $request->file('lampiran')?->store('lampiran', config('pengaduan.disk_lampiran', 'public')),
+            'lampiran' => PesanPengaduan::simpanBerkas($request->file('lampiran', []) ?? []),
         ]);
 
         return redirect()

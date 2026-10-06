@@ -310,7 +310,7 @@
                         <p class="text-on-surface leading-relaxed whitespace-pre-line">{{ $tiket->deskripsi }}</p>
                     </div>
 
-                    {{-- Berkas lampiran. Gambar bisa dibuka, berkas lain hanya nama. --}}
+                    {{-- Berkas lampiran. Foto langsung dipratinjau, berkas lain hanya nama. --}}
 
                     @if (count($detail->lampiran) > 0)
                         <div class="flex flex-col gap-space-xs">
@@ -320,28 +320,51 @@
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
                                 @foreach ($detail->lampiran as $berkas)
-                                    <div class="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container">
-                                        <span @class([
-                                            'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
-                                            'bg-surface-container-highest text-error' => ! $berkas['gambar'],
-                                            'bg-surface-container-highest text-secondary' => $berkas['gambar'],
-                                        ])>
-                                            <x-symbol :nama="$berkas['gambar'] ? 'image' : 'picture_as_pdf'" class="text-[24px]" />
-                                        </span>
-                                        <div class="flex flex-col min-w-0">
-                                            <span class="font-label-md text-label-md font-bold text-on-surface truncate">{{ $berkas['nama'] }}</span>
-                                            <span class="font-label-sm text-label-sm text-on-surface-variant">Diunggah bersama pengaduan</span>
+                                    {{-- Foto pelapor ditampilkan sebagai pratinjau, berkas lain
+                                         tetap berupa baris nama supaya daftar tidak terlalu tinggi. --}}
+                                    @if ($berkas['gambar'])
+                                        <div class="flex flex-col gap-space-xs p-space-sm rounded-lg bg-surface-container">
+                                            <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener">
+                                                <img
+                                                    src="{{ $berkas['url'] }}"
+                                                    alt="Lampiran {{ $berkas['nama'] }}"
+                                                    class="w-full h-32 object-cover rounded-sm" style="width: 25% height:25% "
+                                                >
+                                            </a>
+
+                                            <div class="flex items-center justify-between gap-space-sm">
+                                                <span class="font-label-md text-label-md font-bold text-on-surface truncate">{{ $berkas['nama'] }}</span>
+                                                <a
+                                                    href="{{ $berkas['url'] }}"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    class="shrink-0 px-2 py-1 rounded-sm bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1 hover:bg-surface-container-high transition-colors"
+                                                >
+                                                    <x-symbol nama="visibility" class="text-[16px]" />
+                                                    Buka
+                                                </a>
+                                            </div>
                                         </div>
-                                        <a
-                                            href="{{ $berkas['url'] }}"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="ml-auto shrink-0 px-2 py-1 rounded-sm bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1 hover:bg-surface-container-high transition-colors"
-                                        >
-                                            <x-symbol :nama="$berkas['gambar'] ? 'visibility' : 'download'" class="text-[16px]" />
-                                            Buka
-                                        </a>
-                                    </div>
+                                    @else
+                                        <div class="flex items-center gap-space-sm p-space-sm rounded-lg bg-surface-container">
+                                            <span class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-surface-container-highest text-error">
+                                                <x-symbol nama="picture_as_pdf" class="text-[24px]" />
+                                            </span>
+                                            <div class="flex flex-col min-w-0">
+                                                <span class="font-label-md text-label-md font-bold text-on-surface truncate">{{ $berkas['nama'] }}</span>
+                                                <span class="font-label-sm text-label-sm text-on-surface-variant">Diunggah bersama pengaduan</span>
+                                            </div>
+                                            <a
+                                                href="{{ $berkas['url'] }}"
+                                                target="_blank"
+                                                rel="noopener"
+                                                class="ml-auto shrink-0 px-2 py-1 rounded-sm bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1 hover:bg-surface-container-high transition-colors"
+                                            >
+                                                <x-symbol nama="download" class="text-[16px]" />
+                                                Buka
+                                            </a>
+                                        </div>
+                                    @endif
                                 @endforeach
                             </div>
                         </div>
@@ -525,14 +548,30 @@
                                     'rounded-tr-xs bg-primary text-on-primary' => $pesan['dariHumas'],
                                 ])>
                                     {{ $pesan['isi'] }}
-                                </div>
 
-                                @if ($pesan['lampiran'])
-                                    <span class="mt-1 font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
-                                        <x-symbol :nama="$pesan['lampiran']['gambar'] ? 'image' : 'attach_file'" class="text-[14px]" />
-                                        {{ $pesan['lampiran']['nama'] }}
-                                    </span>
-                                @endif
+                                    @if (count($pesan['lampiran']) > 0)
+                                        <div class="mt-3 flex flex-col gap-2">
+
+                                            @foreach ($pesan['lampiran'] as $berkas)
+
+                                                {{-- Lampiran dibungkus gelembung yang sama seperti di halaman
+                                                     pelapor supaya tetap ringkas. Foto dibungkus tautan supaya
+                                                     bisa dibuka ukuran penuh di tab baru. --}}
+                                                @if ($berkas['gambar'])
+                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener">
+                                                        <img src="{{ $berkas['url'] }}" alt="Lampiran {{ $berkas['nama'] }}" class="w-full max-w-[240px] rounded-lg">
+                                                    </a>
+                                                @else
+                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-ink">
+                                                        <x-symbol nama="attach_file" class="text-[14px]" />
+                                                        {{ $berkas['nama'] }}
+                                                    </a>
+                                                @endif
+
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                         @empty
                             <p class="text-body-sm text-on-surface-variant">
@@ -571,24 +610,32 @@
                         </div>
 
                         <div class="flex flex-wrap items-center justify-between gap-space-md">
+                            {{-- previousElementSibling menunjuk teks "Lampiran",
+                                 bukan ikon x-symbol di sebelahnya, supaya ikon
+                                 paperclip tidak hilang saat berkas dipilih. --}}
                             <label class="flex items-center gap-2 px-space-md py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold cursor-pointer">
                                 <x-symbol nama="attach_file" class="text-[16px]" />
                                 <span>Lampiran</span>
                                 <input
                                     type="file"
-                                    name="lampiran"
+                                    name="lampiran[]"
                                     accept=".jpg,.jpeg,.png,.pdf"
+                                    multiple
                                     class="sr-only"
-                                    onchange="this.parentNode.querySelector('span').textContent = this.files[0] ? this.files[0].name : 'Lampiran'"
+                                    onchange="this.previousElementSibling.textContent = this.files.length ? this.files[0].name + (this.files.length > 1 ? ' + ' + (this.files.length - 1) + ' berkas lain' : '') : 'Lampiran'"
                                 >
                             </label>
 
                             <span class="font-label-sm text-label-sm text-on-surface-variant">
-                                JPG, PNG, atau PDF maksimal 4 MB.
+                                Maksimal 5 berkas JPG, PNG, atau PDF, masing-masing 4 MB.
                             </span>
                         </div>
 
                         @error('lampiran')
+                            <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                        @enderror
+
+                        @error('lampiran.*')
                             <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
                         @enderror
 

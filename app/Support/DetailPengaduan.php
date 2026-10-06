@@ -254,6 +254,9 @@ final class DetailPengaduan
     /**
      * Percakapan antara pelapor dan admin humas.
      *
+     * Lampiran selalu berupa daftar, walaupun kosong, supaya template cukup
+     * melakukan foreach tanpa memeriksa null dulu.
+     *
      * @return array<int, array<string, mixed>>
      */
     private static function percakapan(Pengaduan $pengaduan): array
@@ -264,11 +267,11 @@ final class DetailPengaduan
                 'dariHumas' => $pesan->dariHumas(),
                 'isi' => $pesan->isi,
                 'waktu' => $pesan->created_at->format('d M Y, H:i'),
-                'lampiran' => $pesan->adaLampiran() ? [
-                    'nama' => basename($pesan->lampiran),
-                    'url' => $pesan->urlLampiran(),
-                    'gambar' => $pesan->lampiranGambar(),
-                ] : null,
+                'lampiran' => array_map(fn (string $path): array => [
+                    'nama' => basename($path),
+                    'url' => $pesan->urlLampiran($path),
+                    'gambar' => $pesan->lampiranGambar($path),
+                ], $pesan->daftarLampiran()),
             ])
             ->all();
     }

@@ -249,7 +249,7 @@
                 <div class="flex items-center gap-space-md">
                     <span class="flex items-center gap-1.5 text-on-surface font-bold">
                         <x-symbol nama="verified_user" class="text-[16px] text-secondary" />
-                        Tampilan Terintegrasi Tripu SIMRS
+                        Tampilan Terintegrasi SIMRS
                     </span>
                     <span class="hidden md:inline text-outline" aria-hidden="true">&bull;</span>
                     <span class="hidden md:flex items-center gap-1 text-on-surface-variant">

@@ -453,18 +453,102 @@ class PengaduanTest extends TestCase
         $this->verifikasi($pengaduan);
 
         $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), [
-            'isi' => 'Berikut bukti foto resume medis.',
-            'lampiran' => UploadedFile::fake()->create('bukti.jpg', 120, 'image/jpeg'),
+            'isi' => 'Berikut bukti foto resume medis beserta kwitansinya.',
+            'lampiran' => [
+                UploadedFile::fake()->create('bukti.jpg', 120, 'image/jpeg'),
+                UploadedFile::fake()->create('kwitansi.pdf', 60, 'application/pdf'),
+            ],
         ])->assertRedirect(route('pengaduan.lacak'));
 
         $pesan = $pengaduan->pesan()->firstWhere('peran', 'pelapor');
 
-        $this->assertNotNull($pesan->lampiran);
-        Storage::disk('public')->assertExists($pesan->lampiran);
+        $this->assertCount(2, $pesan->daftarLampiran());
 
+        foreach ($pesan->daftarLampiran() as $path) {
+            Storage::disk('public')->assertExists($path);
+        }
+
+        // Keduanya tampil di kolom chat: gambar sebagai pratinjau, PDF sebagai tautan unduh.
         $this->get(route('pengaduan.lacak'))
             ->assertOk()
-            ->assertSee('Unggah Lampiran');
+            ->assertSee('Unggah Lampiran')
+            ->assertSee('Lampiran pesan Anda')
+            ->assertSee('Unduh lampiran');
+    }
+
+    public function test_foto_di_kolom_chat_bisa_dibuka_di_tab_baru(): void
+    {
+        Storage::fake('public');
+
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-TAB01']);
+
+        $this->verifikasi($pengaduan);
+
+        $fotoHumas = UploadedFile::fake()->create('surat-balasan.png', 30, 'image/png')->store('lampiran', 'public');
+
+        $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => 'Foto balasan kami lampirkan di bawah ini.',
+            'lampiran' => [$fotoHumas],
+        ]);
+
+        $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), [
+            'isi' => 'Foto bukti label obat yang salah.',
+            'lampiran' => [UploadedFile::fake()->create('label-obat.jpg', 40, 'image/jpeg')],
+        ])->assertRedirect(route('pengaduan.lacak'));
+
+        $fotoPelapor = $pengaduan->pesan()->firstWhere('peran', 'pelapor')->daftarLampiran()[0];
+
+        // Foto di kedua sisi gelembung harus dibungkus tautan tab baru,
+        // karena gambar biasa tidak bisa dibuka ukuran penuh oleh pembaca.
+        $tampilan = $this->get(route('pengaduan.lacak'))->assertOk()->getContent();
+
+        foreach ([$fotoHumas, $fotoPelapor] as $foto) {
+            $this->assertStringContainsString(
+                '<a href="'.Storage::disk('public')->url($foto).'" target="_blank" rel="noopener">',
+                $tampilan
+            );
+        }
+    }
+
+    public function test_lampiran_pesan_dibatasi_jumlah_dan_jenis(): void
+    {
+        Storage::fake('public');
+
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-LAMPIRAN']);
+
+        $this->verifikasi($pengaduan);
+
+        $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), [
+            'isi' => 'Seluruh bukti saya lampirkan sekaligus di pesan ini.',
+            'lampiran' => collect(range(1, 6))
+                ->map(fn () => UploadedFile::fake()->create('bukti.jpg', 10, 'image/jpeg'))
+                ->all(),
+        ])->assertSessionHasErrors('lampiran');
+
+        $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), [
+            'isi' => 'Berkas ini berupa program, bukan foto atau PDF.',
+            'lampiran' => [UploadedFile::fake()->create('bukti.exe', 10, 'application/x-msdownload')],
+        ])->assertSessionHasErrors('lampiran.0');
+
+        $this->assertCount(0, $pengaduan->pesan()->where('peran', 'pelapor')->get());
+    }
+
+    public function test_input_lampiran_chat_tidak_dihapus_oleh_labelnya(): void
+    {
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-LABEL']);
+
+        $this->verifikasi($pengaduan);
+
+        $tampilan = $this->get(route('pengaduan.lacak'))
+            ->assertOk()
+            ->getContent();
+
+        // Label hanya boleh mengganti namanya sendiri. Kalau seluruh isi label
+        // diganti lewat textContent, input file ikut terhapus dari DOM dan
+        // lampiran yang sudah dipilih tidak pernah ikut terkirim.
+        $this->assertStringContainsString('name="lampiran[]"', $tampilan);
+        $this->assertStringNotContainsString('this.parentNode.textContent', $tampilan);
     }
 
     public function test_lacak_tiket_tidak_menampilkan_aduan_lain(): void

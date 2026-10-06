@@ -223,7 +223,9 @@ final class DaftarPengaduan
             return [
                 'label' => 'Menunggu Unit',
                 'ikon' => 'pending_actions',
-                'nada' => 'bg-tertiary-container text-tertiary-fixed',
+                // Teksnya harus warna on-tertiary-container: warna fixed justru
+                // sama persis dengan warna container, jadi label jadi tak terbaca.
+                'nada' => 'bg-tertiary-container text-on-tertiary-container',
             ];
         }
 

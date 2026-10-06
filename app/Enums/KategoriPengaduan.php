@@ -31,5 +31,5 @@ enum KategoriPengaduan: string
             self::Fasilitas => 'Antrean pendaftaran, kebersihan toilet/ruangan, AC, parkir, fasilitas lift, rambu petunjuk arah, kasir, dll.',
             self::Medis => 'Tindakan dokter/perawat, komunikasi DPJP, keterlambatan visitasi, dispensing obat farmasi, edukasi terapi medis.',
         };
-    }  
+    }
 }

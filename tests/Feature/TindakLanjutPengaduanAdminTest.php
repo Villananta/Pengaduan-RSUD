@@ -11,6 +11,8 @@ use App\Support\StatistikDashboard;
 use App\Support\TindakLanjutPengaduan;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -417,6 +419,80 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertNull($pengaduan->selesai_at);
     }
 
+    public function test_balasan_admin_bisa_melampiri_lebih_dari_satu_berkas(): void
+    {
+        Storage::fake('public');
+
+        $pengaduan = $this->tiketDiproses('ADUAN-CHAT-05');
+
+        $this->post(route('admin.pengaduan.balas', $pengaduan->kode_tiket), [
+            'isi' => 'Bersama balasan ini kami lampirkan berita acara beserta fotonya.',
+            'lampiran' => [
+                UploadedFile::fake()->create('berita-acara.pdf', 90, 'application/pdf'),
+                UploadedFile::fake()->create('foto.jpg', 60, 'image/jpeg'),
+            ],
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $balasan = $pengaduan->pesan()->where('peran', 'admin')->latest('id')->first();
+
+        $this->assertCount(2, $balasan->daftarLampiran());
+
+        foreach ($balasan->daftarLampiran() as $path) {
+            Storage::disk('public')->assertExists($path);
+        }
+
+        // Nama kedua berkas terbaca di kolom percakapan halaman detail.
+        $tampilan = $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->getContent();
+
+        foreach ($balasan->daftarLampiran() as $path) {
+            $this->assertStringContainsString(basename($path), $tampilan);
+        }
+
+        // Label tombol lampiran hanya mengubah teksnya, bukan seluruh isinya,
+        // supaya ikon paperclip tetap ada dan input file tidak terhapus.
+        $this->assertStringNotContainsString('this.parentNode.querySelector', $tampilan);
+        $this->assertStringContainsString('name="lampiran[]"', $tampilan);
+    }
+
+    public function test_foto_dari_pelapor_tampil_sebagai_pratinjau_di_kolom_chat(): void
+    {
+        Storage::fake('public');
+
+        $pengaduan = $this->tiketDiproses('ADUAN-FOTO-06');
+
+        $this->verifikasiPelapor($pengaduan);
+
+        $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), [
+            'isi' => 'Foto antrean di loket pendaftaran pagi ini.',
+            'lampiran' => [UploadedFile::fake()->create('antrean-loket.jpg', 80, 'image/jpeg')],
+        ])->assertRedirect(route('pengaduan.lacak'));
+
+        $foto = $pengaduan->pesan()->firstWhere('peran', 'pelapor')->daftarLampiran()[0];
+
+        // Halaman admin harus memuat gambar itu sebagai pratinjau yang
+        // dibungkus tautan, bukan sekadar nama berkas yang tidak terbaca foto.
+        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->assertSee('src="'.Storage::disk('public')->url($foto).'"', false)
+            ->assertSee('<a href="'.Storage::disk('public')->url($foto).'" target="_blank" rel="noopener">', false);
+    }
+
+    public function test_foto_lampiran_aduan_tampil_sebagai_pratinjau_di_halaman_admin(): void
+    {
+        Storage::fake('public');
+
+        $path = UploadedFile::fake()->create('bukti-parkir.jpg', 50, 'image/jpeg')->store('lampiran', 'public');
+
+        $pengaduan = $this->tiketDiproses('ADUAN-FOTO-07');
+        $pengaduan->forceFill(['lampiran' => [$path]])->save();
+
+        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->assertSee('src="'.Storage::disk('public')->url($path).'"', false);
+    }
+
     public function test_balasan_admin_tidak_perlu_admin_tiket_sudah_selesai(): void
     {
         $pengaduan = $this->tiketDiproses('ADUAN-CHAT-02', StatusPengaduan::Selesai);
@@ -467,5 +543,14 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         return Pengaduan::factory()
             ->status($status ?? StatusPengaduan::Diproses)
             ->create(['kode_tiket' => $kode]);
+    }
+
+    /** Verifikasi NRM seperti langkah pelapor supaya sesi boleh mengirim pesan. */
+    private function verifikasiPelapor(Pengaduan $pengaduan): void
+    {
+        $this->post(route('pengaduan.verifikasi'), [
+            'kode' => $pengaduan->kode_tiket,
+            'nrm' => $pengaduan->nrm,
+        ])->assertRedirect(route('pengaduan.lacak'));
     }
 }

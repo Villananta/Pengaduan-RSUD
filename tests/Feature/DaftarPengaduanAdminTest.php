@@ -42,6 +42,21 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertSee('Lapis 2: Status di Unit');
     }
 
+    public function test_label_menunggu_unit_memakai_warna_teks_yang_terbaca(): void
+    {
+        Pengaduan::factory()->status(StatusPengaduan::Diterima)->create(['kode_tiket' => 'ADUAN-DAFTAR-02']);
+
+        $tampilan = $this->get(route('admin.pengaduan.index'))
+            ->assertOk()
+            ->assertSee('Menunggu Unit')
+            ->getContent();
+
+        // Warna teks yang lama sama persis dengan warna latarnya, jadi label
+        // dan ikonnya menyatu dengan kolom. Teksnya wajib pakai warna on-.
+        $this->assertStringContainsString('rounded-xl bg-tertiary-container text-on-tertiary-container', $tampilan);
+        $this->assertStringNotContainsString('rounded-xl bg-tertiary-container text-tertiary-fixed', $tampilan);
+    }
+
     public function test_halaman_kosong_menampilkan_pesan_bukan_tabel_kosong(): void
     {
         $this->get(route('admin.pengaduan.index'))

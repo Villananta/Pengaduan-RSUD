@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -221,16 +222,18 @@ final class TindakLanjutPengaduan
      * Angka telaah pada dashboard justru bergantung pada keberadaan balasan
      * ini, jadi cache statistik ikut dibuang walaupun tahap tiket tidak
      * berubah. Tanpa itu angka telaah tertinggal sampai cache-nya kedaluwarsa.
+     *
+     * @param  array<int, UploadedFile|null>  $berkas
      */
     public static function balasPelapor(
         Pengaduan $pengaduan,
         string $isi,
-        ?UploadedFile $lampiran = null,
+        array $berkas = [],
     ): void {
         $pengaduan->pesan()->create([
             'peran' => 'admin',
             'isi' => $isi,
-            'lampiran' => $lampiran?->store('lampiran', config('pengaduan.disk_lampiran', 'public')),
+            'lampiran' => PesanPengaduan::simpanBerkas($berkas),
         ]);
 
         self::segarkanStatistik();
