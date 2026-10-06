@@ -277,9 +277,10 @@ final class DaftarPengaduan
     /**
      * Kolom monitoring SLA: posisi hari kerja, progres, dan sisa waktu.
      *
-     * Tiket yang menunggu pelapor tidak pernah tetapkan ulang, jadi
-     * progresnya ditampilkan dalam keadaan dijeda, bukan seolah-olah
-     * masih berjalan.
+     * Tiket yang menunggu pelapor tetap memakai penomoran hari yang sama
+     * seperti biasa, karena tidak ada mekanisme penghentian timer. Yang
+     * dibedakan hanya kalimat judulnya, supaya admin tahu bahwa keterlambatan
+     * pada tahap ini menunggu pelapor, bukan menunggu unit.
      *
      * @return array<string, mixed>
      */
@@ -301,7 +302,7 @@ final class DaftarPengaduan
         return [
             'jeda' => $jeda,
             'judul' => $jeda
-                ? 'Timer dijeda, menunggu kelengkapan pelapor'
+                ? 'SLA '.Sla::hariKerja().' Hari Kerja (ditahan menunggu pelapor)'
                 : 'SLA '.Sla::hariKerja().' Hari Kerja',
             'posisi' => $posisi,
             'nadaPosisi' => match (true) {

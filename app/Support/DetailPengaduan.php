@@ -18,10 +18,10 @@ use Illuminate\Support\Collection;
  * pelapor, dan jejak audit. Semua query dan penyusunan kalimat ditahan di
  * sini supaya template hanya membungkus data yang sudah jadi.
  *
- * Bagian yang belum punya sumber data sengaja tidak dikarang di sini.
- * Menandai kasus berat, mengirim jawaban resmi, dan disposisi ke unit belum
- * punya kolom maupun endpoint, jadi template menampilkannya sebagai kontrol
- * nonaktif alih-alih mengirim data palsu ke server.
+ * Tombol yang ditampilkan tidak dihitung di sini. Ketersediaan tindakan
+ * (tutup tiket, kembalikan ke unit, pindah tahap, tandai kasus berat)
+ * diambil dari App\Support\TindakLanjutPengaduan supaya tombol di layar
+ * dan penerimaan di server memakai satu aturan yang sama.
  */
 final class DetailPengaduan
 {

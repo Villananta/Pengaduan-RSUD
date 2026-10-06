@@ -150,7 +150,7 @@ class InputAduanAdminTest extends TestCase
 
     public function test_lampiran_tersimpan_di_disk_lampiran(): void
     {
-        Storage::fake('s3');
+        Storage::fake('public');
 
         $this->post(route('admin.pengaduan.store'), $this->form([
             // image() butuh ekstensi GD yang belum terpasang di mesin ini,
@@ -161,7 +161,7 @@ class InputAduanAdminTest extends TestCase
         $pengaduan = Pengaduan::first();
 
         $this->assertCount(1, $pengaduan->daftarLampiran());
-        Storage::disk('s3')->assertExists($pengaduan->daftarLampiran()[0]);
+        Storage::disk('public')->assertExists($pengaduan->daftarLampiran()[0]);
     }
 
     public function test_kanal_wajib_dipilih(): void

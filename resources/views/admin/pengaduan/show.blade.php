@@ -109,7 +109,8 @@
                 </div>
             </div>
 
-            {{-- Penanda Lapis 2: unit yang ditugaskan dan kondisi koneksinya. --}}
+            {{-- Penanda Lapis 2: unit yang ditugaskan. Titik kondisi koneksi
+                 SIMRS disembunyikan karena heartbeat-nya belum pernah ditulis. --}}
 
             <div class="flex items-center gap-space-sm bg-surface-container-low p-space-sm rounded-lg shrink-0">
                 <span class="w-10 h-10 rounded-lg {{ $unit['tertaut'] ? 'bg-secondary text-on-secondary' : 'bg-surface-container-highest text-outline' }} flex items-center justify-center shrink-0">
@@ -123,7 +124,7 @@
 
                     <div class="flex items-center gap-1.5">
                         @if ($unit['tertaut'])
-                            <span class="w-2 h-2 rounded-full {{ $unit['terhubung'] ? 'bg-secondary' : 'bg-error' }}" aria-hidden="true"></span>
+                            <span class="w-2 h-2 rounded-full bg-secondary" aria-hidden="true"></span>
                         @endif
 
                         <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $unit['status'] }}</span>
@@ -411,7 +412,7 @@
                     <div class="p-space-sm rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col gap-space-sm">
                         <div class="flex items-center justify-between gap-space-sm">
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full {{ $unit['tertaut'] ? ($unit['terhubung'] ? 'bg-secondary' : 'bg-error') : 'bg-outline' }}" aria-hidden="true"></span>
+                                <span class="w-2 h-2 rounded-full {{ $unit['tertaut'] ? 'bg-secondary' : 'bg-outline' }}" aria-hidden="true"></span>
                                 <span class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider">
                                     {{ $unit['tertaut'] ? 'Unit Ditugaskan' : 'Belum Ditugaskan' }}
                                 </span>
@@ -424,16 +425,10 @@
                             @endif
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm text-on-surface font-body-sm text-body-sm pt-1 border-t border-outline-variant/20">
+                        <div class="grid grid-cols-1 gap-space-sm text-on-surface font-body-sm text-body-sm pt-1 border-t border-outline-variant/20">
                             <div>
                                 <span class="text-on-surface-variant text-[11px] block">Unit Tujuan</span>
                                 <strong>{{ $unit['nama'] }}</strong>
-                            </div>
-                            <div>
-                                <span class="text-on-surface-variant text-[11px] block">Koneksi SIMRS</span>
-                                <strong class="{{ $unit['tertaut'] && $unit['terhubung'] ? 'text-secondary' : 'text-outline' }}">
-                                    {{ ! $unit['tertaut'] ? 'Tidak berlaku' : ($unit['terhubung'] ? 'Aktif' : 'Terputus') }}
-                                </strong>
                             </div>
                         </div>
                     </div>
@@ -621,9 +616,6 @@
                         <span class="flex items-center gap-1 font-semibold text-on-surface">
                             <x-symbol nama="forum" class="text-[16px] text-secondary" />
                             Kanal Disposisi SIMRS: Humas &harr; Unit
-                        </span>
-                        <span class="text-primary font-bold">
-                            {{ $unit['tertaut'] && $unit['terhubung'] ? 'Sinkron Real-Time' : 'Belum Tersambung' }}
                         </span>
                     </div>
 

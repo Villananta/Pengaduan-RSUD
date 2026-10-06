@@ -217,6 +217,10 @@ final class TindakLanjutPengaduan
      * Balasan ini sengaja tidak mengubah tahap tiket. Admin boleh membalas
      * sebanyak yang diperlukan, termasuk setelah tiket dinyatakan selesai,
      * karena percakapan dengan pelapor berjalan terus di luar alur tahap.
+     *
+     * Angka telaah pada dashboard justru bergantung pada keberadaan balasan
+     * ini, jadi cache statistik ikut dibuang walaupun tahap tiket tidak
+     * berubah. Tanpa itu angka telaah tertinggal sampai cache-nya kedaluwarsa.
      */
     public static function balasPelapor(
         Pengaduan $pengaduan,
@@ -228,6 +232,8 @@ final class TindakLanjutPengaduan
             'isi' => $isi,
             'lampiran' => $lampiran?->store('lampiran', config('pengaduan.disk_lampiran', 'public')),
         ]);
+
+        self::segarkanStatistik();
     }
 
     /** Nyalakan atau matikan penandaan kasus berat beserta jejak auditnya. */

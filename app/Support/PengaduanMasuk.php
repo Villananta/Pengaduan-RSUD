@@ -115,7 +115,8 @@ final class PengaduanMasuk
 
         if ($kanal === null) {
             return "Terima kasih telah menyampaikan pengaduan kepada kami. Laporan Anda telah kami terima dengan nomor tiket {$kode} pada {$waktu}.\n\n"
-                .'Tim Humas & Pengaduan RSUD Dr. Soetomo akan menindaklanjuti laporan ini sesuai prosedur yang berlaku, dengan estimasi penyelesaian maksimal 5 hari kerja. '
+                .'Tim Humas & Pengaduan RSUD Dr. Soetomo akan menindaklanjuti laporan ini sesuai prosedur yang berlaku, dengan estimasi penyelesaian maksimal '
+                .Sla::hariKerja().' hari kerja. '
                 ."Kami akan menginformasikan perkembangan penanganan melalui kontak yang telah Anda daftarkan.\n\n"
                 ."Mohon simpan nomor tiket ini sebagai referensi jika Anda ingin menanyakan status laporan.\n\n"
                 .'Terima kasih atas kepercayaan Anda kepada RSUD Dr. Soetomo.';

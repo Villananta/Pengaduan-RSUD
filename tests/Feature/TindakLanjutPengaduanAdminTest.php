@@ -377,6 +377,28 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame($sebelum - 1, $sesudah);
     }
 
+    /**
+     * Hitungan telaah diambil dari keberadaan balasan unit, bukan dari tahap.
+     *
+     * Angkanya harus langsung berubah begitu admin menulis balasan, bukan
+     * menunggu cache dashboard yang masa berlakunya enam puluh detik.
+     */
+    public function test_balasan_admin_membuang_cache_angka_telaah(): void
+    {
+        $pengaduan = $this->tiketDiproses('ADUAN-CACHE-02');
+
+        // Angka dihangatkan lebih dulu supaya nilai lamanya masuk cache.
+        $sebelum = StatistikDashboard::ringkasanKritis()['telaah'];
+
+        $this->post(route('admin.pengaduan.balas', $pengaduan->kode_tiket), [
+            'isi' => 'Instalasi sudah memeriksa catatan pemberian obat dan menyimpulkan tidak ada kesalahan dosis.',
+        ])->assertRedirect();
+
+        $sesudah = StatistikDashboard::ringkasanKritis()['telaah'];
+
+        $this->assertSame($sebelum + 1, $sesudah);
+    }
+
     public function test_admin_bisa_membalas_di_kolom_percakapan(): void
     {
         $pengaduan = $this->tiketDiproses('ADUAN-CHAT-01');

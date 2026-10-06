@@ -7,7 +7,9 @@ use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Support\Sla;
 use App\Support\StatistikDashboard;
+use Carbon\Carbon;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -163,6 +165,50 @@ class PengaduanTest extends TestCase
         $this->assertDatabaseCount('pengaduan', 0);
     }
 
+    /**
+     * Jam aplikasi harus mengikuti WIB.
+     *
+     * Sebelum zona waktu diseragamkan, `now()` masih membaca UTC sehingga
+     * kejadian beberapa menit yang lalu dianggap masa depan dan ditolak,
+     * padahal pelapor justru mengisi kejadian yang baru saja terjadi.
+     */
+    public function test_kejadian_paling_baru_diterima_dengan_zona_wib(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-06 15:30:00'));
+
+        $this->post(route('pengaduan.store'), $this->form([
+            'waktu_kejadian' => '2026-10-06T15:00',
+        ]))->assertRedirect();
+
+        $this->assertDatabaseCount('pengaduan', 1);
+    }
+
+    /** Halaman sukses menampilkan waktu sesuai jam aplikasi, bukan jam server. */
+    public function test_halaman_sukses_menampilkan_waktu_aplikasi(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-06 15:30:00'));
+
+        $this->post(route('pengaduan.store'), $this->form());
+
+        $pengaduan = Pengaduan::first();
+        $waktu = $pengaduan->created_at->translatedFormat('d F Y H:i').' WIB';
+
+        $this->get(route('pengaduan.sukses', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->assertSee($waktu);
+    }
+
+    /** Janji waktu penyelesaian di pesan pembuka wajib memakai standar SLA yang berlaku. */
+    public function test_pesan_pembuka_web_memakai_standar_sla(): void
+    {
+        $this->post(route('pengaduan.store'), $this->form());
+
+        $isi = Pengaduan::first()->pesan()->first()->isi;
+
+        $this->assertStringContainsString('maksimal '.Sla::hariKerja().' hari kerja', $isi);
+        $this->assertStringNotContainsString('maksimal 5 hari kerja', $isi);
+    }
+
     public function test_unit_harus_terdaftar(): void
     {
         $this->post(route('pengaduan.store'), $this->form(['unit' => 'Unit Asing']))
@@ -173,7 +219,7 @@ class PengaduanTest extends TestCase
 
     public function test_lampiran_dibatasi_jumlah_dan_jenis(): void
     {
-        Storage::fake('s3');
+        Storage::fake('public');
 
         $this->post(route('pengaduan.store'), $this->form([
             'lampiran' => collect(range(1, 6))
@@ -284,7 +330,7 @@ class PengaduanTest extends TestCase
 
     public function test_lampiran_aduan_bisa_dilihat_pelapor(): void
     {
-        Storage::fake('s3');
+        Storage::fake('public');
 
         $path = UploadedFile::fake()->create('bukti-resep.jpg', 40, 'image/jpeg')->store('lampiran', 'public');
         $pengaduan = Pengaduan::factory()->create([
@@ -397,7 +443,7 @@ class PengaduanTest extends TestCase
 
     public function test_pesan_bisa_dilampiri_berkas(): void
     {
-        Storage::fake('s3');
+        Storage::fake('public');
 
         $pengaduan = Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-20260925-BERKAS',
@@ -414,7 +460,7 @@ class PengaduanTest extends TestCase
         $pesan = $pengaduan->pesan()->firstWhere('peran', 'pelapor');
 
         $this->assertNotNull($pesan->lampiran);
-        Storage::disk('s3')->assertExists($pesan->lampiran);
+        Storage::disk('public')->assertExists($pesan->lampiran);
 
         $this->get(route('pengaduan.lacak'))
             ->assertOk()

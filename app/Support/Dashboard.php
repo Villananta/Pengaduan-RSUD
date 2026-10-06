@@ -260,7 +260,7 @@ final class Dashboard
     {
         return 'Menampilkan '.$this->perluTindakan->total()
             .' pengaduan butuh tindakan dari '.$this->aktif
-            .' pengaduan aktif, sisa 2 hari kerja atau kurang menuju batas SLA';
+            .' pengaduan aktif, tinggal dua hari kerja terakhir sebelum batas SLA';
     }
 
     /** Jumlah tiket yang tampil pada halaman saat ini. */

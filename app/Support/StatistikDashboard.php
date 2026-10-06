@@ -198,7 +198,7 @@ final class StatistikDashboard
     /**
      * True bila sebuah tiket layak masuk daftar butuh tindakan segera.
      *
-     * Ada dua syarat: SLA-nya sudah tinggal dua hari kerja atau kurang
+     * Ada dua syarat: SLA-nya sudah memasuki dua hari kerja terakhir
      * (zona Mendek dan Terlambat memakai angka peringatan yang sama), atau
      * tiketnya ditandai kasus berat. Kasus berat tetap masuk meski SLA-nya
      * longgar karena penandaan itu berarti perlu telaah komite etik.

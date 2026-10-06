@@ -38,16 +38,11 @@
         </div>
 
         {{-- Ringkasan unit yang sedang diubah, supaya admin bisa membandingkan
-             isi formulir dengan data yang tersimpan tanpa membuka daftar. --}}
+             isi formulir dengan data yang tersimpan tanpa membuka daftar.
+             Indikator koneksi SIMRS tidak dicantumkan karena heartbeat-nya
+             belum pernah ditulis aplikasi ini. --}}
         @if ($unit)
             <div class="p-space-sm rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-wrap items-center gap-x-space-lg gap-y-space-sm">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full {{ $unit->koneksiAktif() ? 'bg-secondary' : 'bg-error' }}" aria-hidden="true"></span>
-                    <span class="font-label-sm text-label-sm font-bold text-on-surface uppercase tracking-wider">
-                        {{ $unit->koneksiAktif() ? 'Koneksi SIMRS Aktif' : 'Koneksi SIMRS Terputus' }}
-                    </span>
-                </div>
-
                 <div class="flex items-center gap-2">
                     <x-symbol nama="badge" class="text-[16px] text-outline" />
                     <span class="font-label-sm text-label-sm text-on-surface-variant">
@@ -345,9 +340,9 @@
             <div class="flex items-center justify-between gap-space-sm flex-wrap bg-surface-container-lowest p-space-lg rounded-lg shadow-sm">
                 <span class="font-body-sm text-body-sm text-outline">
                     @if ($unit)
-                        Kode unit <strong class="text-on-surface">{{ $unit->kode }}</strong> tidak bisa diubah. Status koneksi SIMRS hanya berubah lewat mesin pengingat di luar aplikasi ini.
+                        Kode unit <strong class="text-on-surface">{{ $unit->kode }}</strong> tidak bisa diubah.
                     @else
-                        Unit baru belum punya koneksi SIMRS. Catatan koneksi akan terisi sendiri begitu unit pertama kali ditugaskan sebuah pengaduan.
+                        Kode unit wajib lima huruf kapital dan tidak boleh sama dengan milik unit lain.
                     @endif
                 </span>
 

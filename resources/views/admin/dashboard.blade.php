@@ -125,9 +125,10 @@
                     <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Status Tiket di Unit Layanan</h2>
                 </div>
 
-                <span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs">
-                    <span class="w-2 h-2 rounded-full bg-secondary animate-ping" aria-hidden="true"></span>
-                    Sinkron SIMRS terpadu, pembaruan tiap 30 detik
+                {{-- Penanda "sinkron tiap 30 detik" dihapus: tidak ada
+                     koneksi SIMRS yang benar-benar jalan di belakangnya. --}}
+                <span class="font-body-sm text-body-sm text-on-surface-variant">
+                    Angka diperbarui saat halaman ini dibuka
                 </span>
             </div>
 
@@ -191,7 +192,7 @@
                             </span>
                             <div class="flex flex-col">
                                 <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Daftar Pengaduan Butuh Tindakan Segera</h2>
-                                <p class="font-body-sm text-body-sm text-on-surface-variant">Hanya pengaduan yang sisa 2 hari kerja atau kurang menuju batas SLA, dan pengaduan yang ditandai kasus berat.</p>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant">Hanya pengaduan yang sudah memasuki dua hari kerja terakhir sebelum batas SLA, dan pengaduan yang ditandai kasus berat.</p>
                             </div>
                         </div>
 

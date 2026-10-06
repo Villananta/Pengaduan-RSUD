@@ -104,13 +104,6 @@ class UnitController extends Controller
     }
 
     /**
-     * Cari unit berdasarkan kode, bukan id angka.
-     *
-     * Kode unitlah yang dikenal petugas karena kode itu yang tampil di
-     * setiap layar. Kalau kodenya tidak ada, jawabannya 404 supaya tautan
-     * lama yang sudah kedaluwarsa tidak terlihat seperti halaman kosong.
-     */
-    /**
      * Isi bersama untuk formulir tambah dan ubah.
      *
      * Beban unit ikut diambil karena panel ringkasan di atas formulir

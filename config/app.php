@@ -65,7 +65,11 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Seluruh tampilan waktu memakai label WIB dan validasi kejadian
+    // dibandingkan dengan `now()`. Kalau dikembalikan ke UTC, jam yang
+    // tampil meleset tujuh jam dan kejadian dalam tujuh jam terakhir
+    // ditolak sebagai "masa depan".
+    'timezone' => 'Asia/Jakarta',
 
     /*
     |--------------------------------------------------------------------------

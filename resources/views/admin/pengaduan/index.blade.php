@@ -57,16 +57,8 @@
             </div>
 
             <div class="flex items-center gap-space-sm bg-surface-container-lowest p-1.5 rounded-lg shadow-sm self-stretch lg:self-auto">
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-surface-container-low">
-                    <x-symbol nama="sync_saved_locally" class="text-[18px] text-secondary" />
-                    <div class="flex flex-col">
-                        <span class="font-label-sm text-label-sm text-on-surface-variant leading-none">Sinkronisasi Unit</span>
-                        <span class="font-title-sm text-title-sm font-bold text-on-surface leading-tight mt-0.5">
-                            {{ $ringkas['unit_terhubung'] }}/{{ $ringkas['unit_total'] }} Online
-                        </span>
-                    </div>
-                </div>
-
+                {{-- Chip "Sinkronisasi Unit X/Y Online" disembunyikan karena
+                     koneksi SIMRS belum pernah ditulis aplikasi ini. --}}
                 <div class="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-surface-container-low">
                     <x-symbol nama="schedule" class="text-[18px] text-on-tertiary-container" />
                     <div class="flex flex-col">

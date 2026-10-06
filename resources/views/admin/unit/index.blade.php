@@ -75,9 +75,11 @@
         </div>
         <!-- End of Strip Konteks -->
 
-        <!-- Empat Kartu Metrik: kondisi unit, koneksi, antrean, dan akses akun. -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md">
+        <!-- Empat Kartu Metrik: kondisi unit, antrean, dan akses akun. Kartu
+             koneksi SIMRS disembunyikan lewat tanda 'sembunyi' di datanya. -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-md">
             @foreach ($daftar->kartu as $k)
+                @continue($k['sembunyi'] ?? false)
                 <div class="bg-surface-container-lowest p-space-md rounded-lg shadow-sm flex flex-col justify-between gap-space-sm">
                     <div class="flex items-center justify-between gap-space-sm">
                         <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">{{ $k['label'] }}</span>
@@ -176,13 +178,18 @@
                     <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
                 </div>
 
+                {{-- Saring 'Terhubung SIMRS' dan 'Terputus' disembunyikan:
+                     tidak ada yang menulis heartbeat, jadi keduanya hanya akan
+                     menampilkan hasil salah. 'Belum Ditugaskan Tiket' tetap
+                     ada karena statusnya berasal dari data disposisi sendiri. --}}
                 <div class="md:col-span-2 relative flex items-center">
-                    <x-symbol nama="cloud_off" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                    <x-symbol nama="assignment" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
                     <select
                         name="koneksi"
                         class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                     >
                         @foreach ($pilihan['koneksi'] as $nilai => $label)
+                            @continue(in_array($nilai, ['terhubung', 'terputus'], true))
                             <option value="{{ $nilai }}" @selected($daftar->saring['koneksi'] === $nilai)>{{ $label }}</option>
                         @endforeach
                     </select>
@@ -270,7 +277,7 @@
                                 <th class="py-3 px-space-md">Kategori</th>
                                 <th class="py-3 px-space-md text-center">Beban Aktif</th>
                                 <th class="py-3 px-space-md text-center">Kepatuhan SLA</th>
-                                <th class="py-3 px-space-md">Koneksi SIMRS</th>
+                                <th class="py-3 px-space-md">Penugasan</th>
                                 <th class="py-3 px-space-md">Akses PIC</th>
                                 <th class="py-3 px-space-md text-right rounded-lg">Tindakan</th>
                             </tr>
@@ -346,19 +353,10 @@
                                         @endif
                                     </td>
 
+                                    {{-- Badge koneksi SIMRS tidak ditampilkan
+                                         (belum ada yang menulis heartbeat),
+                                         hanya status penugasan unit. --}}
                                     <td class="py-space-md px-space-md min-w-[160px]">
-                                        @if ($unit->koneksiAktif())
-                                            <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold flex items-center gap-1 w-fit">
-                                                <x-symbol nama="cloud_done" class="text-[14px]" />
-                                                Aktif
-                                            </span>
-                                        @else
-                                            <span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold flex items-center gap-1 w-fit">
-                                                <x-symbol nama="cloud_off" class="text-[14px]" />
-                                                Terputus
-                                            </span>
-                                        @endif
-
                                         @if ($unit->disposisi)
                                             <span class="block mt-1 font-label-sm text-label-sm text-outline">{{ $unit->disposisi->ringkas() }}</span>
                                         @else

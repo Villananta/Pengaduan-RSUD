@@ -46,19 +46,10 @@
             </div>
 
             <div class="flex items-center gap-space-sm flex-wrap self-end lg:self-center">
-                <div class="flex items-center gap-space-sm px-space-sm py-1 rounded-xl bg-tertiary-container/40 border border-tertiary-fixed-dim/40 text-tertiary-fixed">
-                    <x-symbol nama="timer" class="text-[18px] text-tertiary-fixed-dim animate-pulse" />
-                    <div class="flex flex-col text-left">
-                        <span class="font-label-sm text-label-sm font-bold leading-none">Unit Terhubung</span>
-                        <span class="font-body-sm text-body-sm text-on-primary-container leading-none mt-0.5">
-                            {{ $monitor->unitTerhubung }}/{{ $monitor->unitTotal }} SIMRS
-                        </span>
-                    </div>
-                </div>
-
-                {{-- Sinkronisasi SIMRS memakai mesin pengingat di luar aplikasi
-                     ini, jadi tombolnya tidak ditampilkan sebagai aksi yang
-                     bisa dijalankan dari sini. --}}
+                {{-- Kartu "Unit Terhubung X/Y SIMRS" sengaja tidak ditampilkan.
+                     Angkanya berasal dari heartbeat yang belum pernah ditulis
+                     aplikasi ini, jadi begitu integrasi SIMRS datang kartu ini
+                     tinggal dipasang kembali. --}}
                 <a
                     href="{{ route('admin.monitor.index') }}"
                     class="px-space-md py-2 rounded-lg bg-secondary text-on-secondary font-label-lg text-label-lg hover:bg-secondary/90 transition-colors flex items-center gap-1.5 shadow-sm"

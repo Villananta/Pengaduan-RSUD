@@ -252,4 +252,27 @@ class DaftarPengaduanAdminTest extends TestCase
         $this->assertStringContainsString('2 balasan unit masuk, siap diracik humas', $tampilan);
         $this->assertStringNotContainsString('4 balasan unit masuk', $tampilan);
     }
+
+    /**
+     * Tiket Revisi memang menunggu pelapor, tapi sistem tidak pernah
+     * menghentikan penghitungan harinya.
+     *
+     * Kalimat lama menjanjikan "Timer dijeda" sementara kolom posisi di
+     * layar yang sama tetap menghitung mundur, jadi pelabelannya harus
+     * jujur: ditahan menunggu pelapor, bukan dihentikan.
+     */
+    public function test_tiket_revisi_tidak_disebut_timer_dijeda(): void
+    {
+        Pengaduan::factory()->status(StatusPengaduan::Revisi)->create([
+            'kode_tiket' => 'ADUAN-REVISI-01',
+            'created_at' => now()->subWeekdays(14)->setTime(8, 0),
+        ]);
+
+        $tampilan = $this->get(route('admin.pengaduan.index'))
+            ->assertOk()
+            ->assertSee('ditahan menunggu pelapor')
+            ->getContent();
+
+        $this->assertStringNotContainsString('Timer dijeda', $tampilan);
+    }
 }

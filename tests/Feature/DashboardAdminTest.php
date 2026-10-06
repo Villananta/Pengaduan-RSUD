@@ -29,7 +29,7 @@ class DashboardAdminTest extends TestCase
             ->assertOk()
             ->assertSee('Status Tiket di Unit Layanan')
             ->assertSee('Beban Resolusi Unit Terbanyak')
-            ->assertSee('Sinkron SIMRS terpadu');
+            ->assertSee('Angka diperbarui saat halaman ini dibuka');
     }
 
     public function test_menu_yang_desainnya_belum_ada_tidak_ditautkan(): void

@@ -363,6 +363,12 @@ final class DaftarUnit
                 'persen' => self::persen($terhubung, $total),
                 'sisi' => $terputus.' unit terputus',
                 'ket' => 'Koneksi dianggap hidup bila heartbeat SIMRS masuk dalam '.MasterUnit::BATAS_KONEKSI.' menit terakhir.',
+
+                // Angka tetap dihitung karena masih dipakai tes dan saringan
+                // 'terhubung'/'terputus', tapi kartunya tidak ditampilkan:
+                // tidak ada endpoint yang menulis heartbeat, jadi angkanya
+                // selalu terlihat hidup padahal belum tersambung apa pun.
+                'sembunyi' => true,
             ],
             [
                 'label' => 'Unit dengan Beban Aktif',
