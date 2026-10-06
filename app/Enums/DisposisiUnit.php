@@ -42,7 +42,9 @@ enum DisposisiUnit: string
         return match ($this) {
             self::Terhubung, self::JawabanMasuk => 'bg-secondary-container text-on-secondary-container',
             self::SedangInvestigasi => 'bg-surface-container text-secondary',
-            self::MenungguInvestigasi, self::MenungguInfoTambahan => 'bg-tertiary-container text-tertiary-fixed-dim',
+            // Warna teks on-tertiary-container karena varian fixed-dim terlalu
+            // dekat dengan latarnya dan membuat labelnya tak terbaca.
+            self::MenungguInvestigasi, self::MenungguInfoTambahan => 'bg-tertiary-container text-on-tertiary-container',
             self::Terputus => 'bg-error-container text-on-error-container',
         };
     }

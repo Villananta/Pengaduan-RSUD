@@ -134,7 +134,7 @@
 
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pt-space-xs">
                 <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded-xs bg-tertiary-container text-tertiary-fixed font-label-sm text-label-sm uppercase font-bold tracking-wide" style="color: #3d3c10">Lapis 2</span>
+                    <span class="px-2 py-0.5 rounded-xs bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Lapis 2</span>
                     <span class="font-title-sm text-title-sm text-on-surface-variant font-medium">Status Investigasi di Unit:</span>
                 </div>
 

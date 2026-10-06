@@ -375,7 +375,9 @@ final class DaftarUnit
                 'nilai' => $punyaAntrean,
                 'satuan' => 'unit',
                 'ikon' => 'pending_actions',
-                'nadaAngka' => 'text-tertiary-fixed-dim',
+                // Angka memakai warna tertiary biasa: varian fixed-dim terlalu
+                // muda untuk dibaca di atas kartu yang hampir putih.
+                'nadaAngka' => 'text-tertiary',
                 'nadaBar' => 'bg-tertiary',
                 'persen' => self::persen($punyaAntrean, $total),
                 'sisi' => $tiketAktif.' pengaduan masih diproses unit',

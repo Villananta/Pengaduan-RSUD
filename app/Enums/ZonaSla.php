@@ -32,7 +32,9 @@ enum ZonaSla: string
     {
         return match ($this) {
             self::TepatWaktu => 'bg-secondary-container text-on-secondary-container',
-            self::Mendek => 'bg-tertiary-container text-tertiary-fixed-dim',
+            // Teks harus warna on-tertiary-container: warna fixed sama persis
+            // dengan latarnya sehingga label Mendek Batas tidak terbaca.
+            self::Mendek => 'bg-tertiary-container text-on-tertiary-container',
             self::Terlambat => 'bg-error text-on-error',
         };
     }
