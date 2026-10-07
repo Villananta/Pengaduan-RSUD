@@ -249,7 +249,7 @@
                 <a
                     href="{{ $dashboard->urlLihatSemua() }}"
                     class="flex items-center gap-1.5 px-3 py-2 rounded-sm bg-secondary text-on-secondary font-label-md text-label-md hover:bg-secondary/90 transition-colors self-start md:self-auto"
-                    title="Buka daftar lengkap pengaduan unit ini di konsol admin"
+                    title="Buka seluruh disposisi milik unit ini"
                 >
                     <x-symbol nama="open_in_new" class="text-[16px]" />
                     Lihat Semua

@@ -35,6 +35,10 @@ final class DaftarPengaduan
      * @param  array<string, int>  $jumlahTahap  Indeks 'semua' dan nilai enum tahap.
      * @param  array<string, int>  $jumlahInvestigasi  Indeks nilai enum StatusInvestigasi.
      * @param  array<string, mixed>  $ringkas  Angka untuk strip konteks, kartu kaki, dan paginasi.
+     * @param  bool  $halamanUnit  True bila halaman ini dibuka dari sisi unit, bukan konsol humas.
+     * @param  string  $ruteDaftar  Nama rute yang dipakai untuk tautan tab dan paginasi.
+     * @param  string  $ruteTiket  Nama rute tujuan tombol Buka Detail.
+     * @param  array<string, mixed>  $parameterRute  Parameter rute wajib, misalnya kode unit pada URL.
      */
     public function __construct(
         public readonly LengthAwarePaginator $daftar,
@@ -48,6 +52,10 @@ final class DaftarPengaduan
         public readonly int $perHalaman,
         public readonly Collection $pilihanUnit,
         public readonly array $ringkas,
+        public readonly bool $halamanUnit = false,
+        public readonly string $ruteDaftar = 'admin.pengaduan.index',
+        public readonly string $ruteTiket = 'admin.pengaduan.show',
+        public readonly array $parameterRute = [],
     ) {}
 
     /**
@@ -56,13 +64,25 @@ final class DaftarPengaduan
      * Nilai filter yang tidak dikenal diabaikan, bukan dipakai sebagai
      * kondisi query, supaya tautan lama atau crafted tidak bisa membuat
      * hasil yang tidak terduga.
+     *
+     * Empat parameter terakhir diisi hanya oleh halaman sisi unit. Unit yang
+     * dikunci lewat URL membuat filter ?unit= dari query diabaikan, supaya
+     * satu unit tidak bisa membuka daftar unit lain lewat parameter buatan.
+     *
+     * @param  string  $ruteDaftar  'admin.pengaduan.index' untuk konsol humas
+     * @param  string  $ruteTiket  'admin.pengaduan.show' untuk konsol humas
      */
-    public static function dariRequest(Request $request): self
-    {
-        $status = StatusPengaduan::dariNilai($request->query('status'));
+    public static function dariRequest(
+        Request $request,
+        ?MasterUnit $terkunci = null,
+        ?StatusPengaduan $kunciTahap = null,
+        string $ruteDaftar = 'admin.pengaduan.index',
+        string $ruteTiket = 'admin.pengaduan.show',
+    ): self {
+        $status = $kunciTahap ?? StatusPengaduan::dariNilai($request->query('status'));
         $investigasi = StatusInvestigasi::dariNilai($request->query('investigasi'));
         $kategori = self::kategori($request->query('kategori'));
-        $unit = self::unit($request->query('unit'));
+        $unit = $terkunci ?? self::unit($request->query('unit'));
         $cari = trim((string) $request->query('q', ''));
         $perHalaman = self::perHalaman($request->query('per_halaman'));
 
@@ -120,8 +140,18 @@ final class DaftarPengaduan
             unit: $unit,
             cari: $cari,
             perHalaman: $perHalaman,
-            pilihanUnit: MasterUnit::query()->orderBy('kode')->get(),
-            ringkas: self::ringkas($jumlahTahap),
+            // Dropdown pemilih unit hanya berguna di konsol. Halaman unit
+            // tidak pernah menawarkan unit lain, jadi query-nya dibuang.
+            pilihanUnit: $terkunci !== null
+                ? collect()
+                : MasterUnit::query()->orderBy('kode')->get(),
+            ringkas: $terkunci !== null
+                ? self::ringkasUnit($terkunci, $jumlahTahap)
+                : self::ringkas($jumlahTahap),
+            halamanUnit: $terkunci !== null,
+            ruteDaftar: $ruteDaftar,
+            ruteTiket: $ruteTiket,
+            parameterRute: $terkunci !== null ? ['unit' => $terkunci->kode] : [],
         );
     }
 
@@ -144,9 +174,11 @@ final class DaftarPengaduan
     {
         $parameter = request()->except([$kunci, 'page', 'per_halaman']);
 
+        // Kode unit pada URL selalu menang atas ?unit= di query, karena pada
+        // halaman unit kedudukannya tetap pengunci, bukan filter pilihan.
         return $nilai === null || $nilai === ''
-            ? route('admin.pengaduan.index', $parameter)
-            : route('admin.pengaduan.index', array_merge($parameter, [$kunci => $nilai]));
+            ? route($this->ruteDaftar, $this->parameterRute + $parameter)
+            : route($this->ruteDaftar, $this->parameterRute + array_merge($parameter, [$kunci => $nilai]));
     }
 
     /**
@@ -349,6 +381,10 @@ final class DaftarPengaduan
      */
     private function aksi(Pengaduan $pengaduan): array
     {
+        if ($this->halamanUnit) {
+            return $this->aksiUnit($pengaduan);
+        }
+
         $aksi = [];
 
         if ($pengaduan->status->diterima()) {
@@ -375,10 +411,45 @@ final class DaftarPengaduan
             'label' => $pengaduan->status->perluAksi() ? 'Buka Detail' : 'Buka Detail',
             'ikon' => 'visibility',
             'nada' => 'bg-primary-container text-on-primary',
-            'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
+            'url' => route($this->ruteTiket, $this->parameterRute + ['kode' => $pengaduan->kode_tiket]),
         ];
 
         return $aksi;
+    }
+
+    /**
+     * Tombol aksi pada halaman daftar disposisi sisi unit.
+     *
+     * Isinya berbeda dari konsol karena kewenangan unit juga berbeda: unit
+     * tidak boleh menentukan penanganan ataupun mendorong unit lain, tapi
+     * membutuhkan pintu untuk membuka telaahnya sendiri dan untuk mencetak
+     * lembar disposisi. Cetak masih berupa tombol nonaktif karena pencetakannya
+     * belum dibangun, sehingga tidak boleh membawa url palsu.
+     *
+     * @return array<int, array{label: string, ikon: string, nada: string, url: ?string}>
+     */
+    private function aksiUnit(Pengaduan $pengaduan): array
+    {
+        return [
+            [
+                'label' => 'Cetak Lembar Disposisi',
+                'ikon' => 'print',
+                'nada' => 'bg-surface-container text-on-surface-variant',
+                'url' => null,
+            ],
+            [
+                'label' => 'Lanjutkan Telaah',
+                'ikon' => 'edit_note',
+                'nada' => 'bg-surface-container text-on-surface-variant',
+                'url' => null,
+            ],
+            [
+                'label' => $pengaduan->status->selesai() ? 'Lihat Arsip' : 'Buka Detail',
+                'ikon' => 'visibility',
+                'nada' => 'bg-primary-container text-on-primary',
+                'url' => route($this->ruteTiket, $this->parameterRute + ['kode' => $pengaduan->kode_tiket]),
+            ],
+        ];
     }
 
     /**
@@ -396,6 +467,33 @@ final class DaftarPengaduan
             'unit_total' => MasterUnit::query()->count(),
             'hari_investigasi' => Sla::hariInvestigasi(),
             'lewat' => StatistikDashboard::ringkasanKritis()['total_lewat'],
+        ];
+    }
+
+    /**
+     * Angka untuk strip konteks pada halaman sisi unit.
+     *
+     * Angka disusun dari hitungan tab (yang sudah menyaring unit dari URL)
+     * dan dari StatistikUnit, supaya halaman unit tidak ikut menampilkan
+     * jumlah seluruh rumah sakit yang tidak menyangkutnya.
+     *
+     * @param  array<string, int>  $jumlahTahap
+     * @return array<string, mixed>
+     */
+    private static function ringkasUnit(MasterUnit $unit, array $jumlahTahap): array
+    {
+        $zona = StatistikUnit::ringkasan($unit);
+
+        return [
+            'total' => $jumlahTahap['semua'],
+            'aktif' => $jumlahTahap['semua'] - $jumlahTahap[StatusPengaduan::Selesai->value],
+            'selesai' => $jumlahTahap[StatusPengaduan::Selesai->value],
+            'terlambat' => $zona['terlambat'],
+            'mendek' => $zona['mendek'],
+            'rata_rata_hari_kerja' => $zona['rata_rata_hari_kerja'],
+            'selesai_bulan_ini' => $zona['selesai_bulan_ini'],
+            'unit' => $unit,
+            'hari_investigasi' => Sla::hariInvestigasi(),
         ];
     }
 

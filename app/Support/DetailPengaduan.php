@@ -8,6 +8,7 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Models\RiwayatStatusPengaduan;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -52,16 +53,21 @@ final class DetailPengaduan
      * Kode tiket sudah unik jadi cukup jadi kunci pencarian; tiket yang tidak
      * ada dibiarkan melempar 404 supaya admin tidak melihat halaman kosong
      * untuk tiket yang dihapus.
+     *
+     * Unit param dipakai oleh halaman sisi unit: bila diisi, pencarian ikut
+     * dikunci pada master_unit_id itu sehingga tiket milik unit lain ikut
+     * berujung 404, bukan terbuka oleh sekadar menebak kode tiket.
      */
-    public static function dariKode(string $kode): self
+    public static function dariKode(string $kode, ?MasterUnit $unit = null): self
     {
         $pengaduan = Pengaduan::query()
             ->with(['masterUnit', 'pesan', 'riwayatStatus.admin'])
+            ->when($unit !== null, fn (Builder $q): Builder => $q->where('master_unit_id', $unit->id))
             ->where('kode_tiket', $kode)
             ->firstOrFail();
 
         $sudahDibalas = $pengaduan->pesan->contains(
-            fn (PesanPengaduan $pesan): bool => $pesan->dariAdmin()
+            fn (PesanPengaduan $pesan): bool => $pesan->jawaban()
         );
 
         $investigasi = StatusInvestigasi::dariPengaduan($pengaduan, $sudahDibalas);
@@ -97,6 +103,30 @@ final class DetailPengaduan
     public function draf(): ?string
     {
         return $this->pengaduan->draf_jawaban;
+    }
+
+    /**
+     * Instruksi disposisi terakhir dari humas untuk halaman sisi unit.
+     *
+     * Satu-satunya arahan humas yang tersimpan permanen pada tiket adalah
+     * catatan pada baris riwayat perpindahan tahap, jadi halaman unit cukup
+     * menarik yang paling baru tanpa membaca kolomnya sendiri. Null ketika
+     * belum ada admin yang pernah menulis catatan, supaya template bisa
+     * menampilkan penjelas pengganti alih-alih baris kosong.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function instruksiDisposisi(): ?array
+    {
+        $terakhir = null;
+
+        foreach ($this->audit as $baris) {
+            if (filled($baris['catatan'])) {
+                $terakhir = $baris;
+            }
+        }
+
+        return $terakhir;
     }
 
     /**
@@ -265,6 +295,13 @@ final class DetailPengaduan
             ->map(fn (PesanPengaduan $pesan): array => [
                 // Key memakai dariHumas karena sapaan pembuka juga digambar di sisi kanan.
                 'dariHumas' => $pesan->dariHumas(),
+                // Dipecah sendiri supaya template bisa memberi label "PIC Unit"
+                // tanpa menebak-nebak peran dari isi pesannya.
+                'dariUnit' => $pesan->dariUnit(),
+                // Peran mentah ikut dibawa karena satu label tiga kemungkinan
+                // (pelapor, humas, unit) tidak bisa diturunkan dari dua penanda
+                // di atas: sapaan pembuka memang terbaca sebagai pesan humas.
+                'peran' => $pesan->peran,
                 'isi' => $pesan->isi,
                 'waktu' => $pesan->created_at->format('d M Y, H:i'),
                 'lampiran' => array_map(fn (string $path): array => [

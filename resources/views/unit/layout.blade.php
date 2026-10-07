@@ -20,29 +20,49 @@
 
 <body class="bg-surface font-body-md text-on-surface min-h-screen">
 
-    @php
-        // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL,
-        // supaya halaman pemilih unit tidak dipenuhi tautan yang tujuannya
-        // belum bisa ditentukan. Begitu akun PIC unit diaktifkan, menu ini
-        // tidak perlu diubah karena namanya sudah memakai rute tetap.
-        $navigasi = [
-            ['label' => 'Pilih Unit', 'pola' => 'unit.pilih', 'url' => route('unit.pilih')],
-        ];
-
-        if ($unit !== null) {
-            $navigasi[] = [
-                'label' => 'Beranda Unit',
-                'pola' => 'unit.dashboard',
-                'url' => route('unit.dashboard', $unit),
+        @php
+            // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL,
+            // supaya halaman pemilih unit tidak dipenuhi tautan yang tujuannya
+            // belum bisa ditentukan. Begitu akun PIC unit diaktifkan, menu ini
+            // tidak perlu diubah karena namanya sudah memakai rute tetap.
+            $navigasi = [
+                ['label' => 'Pilih Unit', 'pola' => 'unit.pilih', 'url' => route('unit.pilih')],
             ];
 
-            $navigasi[] = [
-                'label' => 'Daftar Pengaduan',
-                'pola' => 'admin.pengaduan.index',
-                'url' => route('admin.pengaduan.index', ['unit' => $unit->kode]),
-            ];
-        }
-    @endphp
+            if ($unit !== null) {
+                $navigasi[] = [
+                    'label' => 'Beranda Unit',
+                    'pola' => 'unit.dashboard',
+                    'url' => route('unit.dashboard', $unit),
+                ];
+
+                $navigasi[] = [
+                    'label' => 'Daftar Disposisi Masuk',
+                    'pola' => 'unit.disposisi.index',
+                    'url' => route('unit.disposisi.index', $unit),
+                ];
+
+                // Workspace selalu menunjuk satu tiket tertentu. Di luar
+                // halaman detail tujuannya belum bisa ditentukan, jadi
+                // menunya ditampilkan tanpa tautan, bukan diarahkan ke daftar
+                // yang isinya berbeda dengan yang dijanjikan menu.
+                $kodeTiket = request()->route('kode');
+
+                $navigasi[] = [
+                    'label' => 'Workspace & Form Jawaban',
+                    'pola' => 'unit.disposisi.show',
+                    'url' => is_string($kodeTiket) && $kodeTiket !== ''
+                        ? route('unit.disposisi.show', ['unit' => $unit, 'kode' => $kodeTiket])
+                        : null,
+                ];
+
+                $navigasi[] = [
+                    'label' => 'Riwayat & Arsip Disposisi',
+                    'pola' => 'unit.disposisi.arsip',
+                    'url' => route('unit.disposisi.arsip', $unit),
+                ];
+            }
+        @endphp
 
     <!-- Topbar -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-[0_2px_14px_rgba(26,26,46,0.08)]">
@@ -101,26 +121,35 @@
 
         <!-- Navigasi Utama -->
         <div class="bg-white border-b border-outline-variant h-12 w-full px-margin flex items-center justify-between">
-            <nav class="flex items-center h-full gap-space-sm" aria-label="Navigasi dashboard unit">
-                @foreach ($navigasi as $item)
+                <nav class="flex items-center h-full gap-space-sm overflow-x-auto" aria-label="Navigasi dashboard unit">
+                    @foreach ($navigasi as $item)
 
-                    @php
-                        $aktif = request()->routeIs($item['pola']);
-                    @endphp
+                        @php
+                            $aktif = request()->routeIs($item['pola']);
+                        @endphp
 
-                    {{-- Menu aktif memakai pill mint, jadi penanda halaman
-                         terbaca tanpa memotong tinggi bilah navigasi. --}}
-                    <a
-                        href="{{ $item['url'] }}"
-                        @class([
-                            'flex items-center rounded-full px-3 py-1.5 transition-colors',
-                            'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                            'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
-                        ])
-                        @if ($aktif) aria-current="page" @endif
-                    >{{ $item['label'] }}</a>
-                @endforeach
-            </nav>
+                        {{-- Menu aktif memakai pill mint, jadi penanda halaman
+                             terbaca tanpa memotong tinggi bilah navigasi. --}}
+                        @if ($item['url'] === null)
+                            {{-- Menu tanpa tujuan tetap ditampilkan sebagai label
+                                 supaya urutan menu sama dengan halaman lain, tapi
+                                 tidak boleh berpura-pura menjadi tautan. --}}
+                            <span
+                                class="flex items-center rounded-full px-3 py-1.5 text-outline cursor-not-allowed font-title-sm text-title-sm font-semibold"
+                            >{{ $item['label'] }}</span>
+                        @else
+                            <a
+                                href="{{ $item['url'] }}"
+                                @class([
+                                    'flex items-center rounded-full px-3 py-1.5 transition-colors',
+                                    'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
+                                    'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
+                                ])
+                                @if ($aktif) aria-current="page" @endif
+                            >{{ $item['label'] }}</a>
+                        @endif
+                    @endforeach
+                </nav>
 
             <div class="hidden md:flex items-center gap-space-xs text-ink-muted font-label-md text-label-md">
                 <x-symbol nama="domain" class="text-[16px] text-outline" />

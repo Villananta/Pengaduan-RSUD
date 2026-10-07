@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
 use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
+use App\Http\Controllers\Unit\DisposisiController as UnitDisposisiController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/buat-aduan');
@@ -79,4 +80,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
 Route::prefix('unit')->name('unit.')->group(function () {
     Route::get('/', [UnitDashboardController::class, 'pilih'])->name('pilih');
     Route::get('/{unit}/dashboard', [UnitDashboardController::class, 'index'])->name('dashboard');
+
+    // Halaman disposisi sisi unit. Sengaja terpisah dari rute admin.pengaduan
+    // karena pemiliknya berbeda: di sini kode unit mengunci isi halaman, jadi
+    // satu unit tidak bisa membuka daftar atau detail tiket milik unit lain.
+    Route::get('/{unit}/disposisi', [UnitDisposisiController::class, 'index'])->name('disposisi.index');
+    Route::get('/{unit}/arsip', [UnitDisposisiController::class, 'arsip'])->name('disposisi.arsip');
+    Route::get('/{unit}/pengaduan/{kode}', [UnitDisposisiController::class, 'show'])->name('disposisi.show');
+    Route::post('/{unit}/pengaduan/{kode}/jawaban', [UnitDisposisiController::class, 'kirim'])->name('disposisi.kirim');
 });

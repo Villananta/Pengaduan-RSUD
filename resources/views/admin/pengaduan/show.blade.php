@@ -539,13 +539,14 @@
                                     'ml-1' => ! $pesan['dariHumas'],
                                     'mr-1' => $pesan['dariHumas'],
                                 ])>
-                                    {{ $pesan['dariHumas'] ? 'Admin Humas' : $tiket->nama_lengkap }} &bull; {{ $pesan['waktu'] }}
+                                    {{ $pesan['dariUnit'] ? 'PIC Unit' : ($pesan['dariHumas'] ? 'Admin Humas' : $tiket->nama_lengkap) }} &bull; {{ $pesan['waktu'] }}
                                 </span>
 
                                 <div @class([
                                     'p-space-sm rounded-lg font-body-sm text-body-sm',
-                                    'rounded-tl-xs bg-surface-container text-on-surface' => ! $pesan['dariHumas'],
-                                    'rounded-tr-xs bg-primary text-on-primary' => $pesan['dariHumas'],
+                                    'rounded-tl-xs bg-secondary text-on-secondary' => $pesan['dariUnit'],
+                                    'rounded-tl-xs bg-surface-container text-on-surface' => ! $pesan['dariHumas'] && ! $pesan['dariUnit'],
+                                    'rounded-tr-xs bg-primary text-on-primary' => $pesan['dariHumas'] && ! $pesan['dariUnit'],
                                 ])>
                                     {{ $pesan['isi'] }}
 
@@ -657,7 +658,7 @@
                 </div>
                 <!-- End of Tab 1 -->
 
-                <!-- Tab 2: kanal disposisi ke unit, belum ada isinya -->
+                <!-- Tab 2: kanal disposisi dua arah yang masih berupa saluran satu pintu. -->
                 <div class="hidden p-space-md flex flex-col gap-space-md" data-panel="unit">
                     <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
                         <span class="flex items-center gap-1 font-semibold text-on-surface">
@@ -667,9 +668,10 @@
                     </div>
 
                     <p class="text-body-sm text-on-surface-variant leading-relaxed">
-                        Balasan unit tercatat sebagai pesan dengan peran admin pada tab percakapan pelapor. Kanal
-                        disposisi dua arah yang terpisah belum dibangun, jadi tidak ada ruang obrolan khusus
-                        dengan PIC unit di halaman ini.
+                        Jawaban unit ditulis dari halaman disposisi sisi unit, disimpan dengan peran
+                        unit, lalu tampil pada tab percakapan pelapor dengan label &ldquo;PIC Unit&rdquo;.
+                        Ruang obrolan khusus yang terpisah dari percakapan pelapor belum dibangun,
+                        jadi kolom ini masih menjelaskan saluran satu pintu itu.
                     </p>
                 </div>
                 <!-- End of Tab 2 -->

@@ -110,10 +110,10 @@ final class DashboardUnit
             .' pengaduan aktif, diurutkan dari yang paling mendesak';
     }
 
-    /** Tautan ke daftar pengaduan konsol admin yang sudah menyaring unit ini. */
+    /** Tautan ke daftar disposisi milik unit ini, bukan ke konsol humas. */
     public function urlLihatSemua(): string
     {
-        return route('admin.pengaduan.index', ['unit' => $this->unit->kode]);
+        return route('unit.disposisi.index', ['unit' => $this->unit->kode]);
     }
 
     /** Status investigasi sebuah pengaduan, untuk keterangan sisi unit. */
@@ -145,7 +145,10 @@ final class DashboardUnit
                 default => 'bg-surface-container-low',
             },
             'sla' => $this->barisSla($zona, Sla::hariKe($pengaduan->created_at), $pengaduan->sisaHariSla()),
-            'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
+            'url' => route('unit.disposisi.show', [
+                'unit' => $this->unit->kode,
+                'kode' => $pengaduan->kode_tiket,
+            ]),
         ];
     }
 
@@ -168,7 +171,10 @@ final class DashboardUnit
             'investigasi' => $this->investigasi($pengaduan),
             'sla' => $this->barisSla($zona, Sla::hariKe($pengaduan->created_at), $pengaduan->sisaHariSla()),
             'redup' => $pengaduan->status->selesai(),
-            'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
+            'url' => route('unit.disposisi.show', [
+                'unit' => $this->unit->kode,
+                'kode' => $pengaduan->kode_tiket,
+            ]),
         ];
     }
 

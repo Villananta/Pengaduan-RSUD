@@ -144,11 +144,11 @@ enum StatusInvestigasi: string
         $ditugaskan = fn (Builder $q): Builder => $q->whereNotNull('master_unit_id');
         $sudahDibalas = fn (Builder $q): Builder => $q->whereHas(
             'pesan',
-            fn (Builder $p): Builder => $p->where('peran', 'admin')
+            fn (Builder $p): Builder => $p->jawaban()
         );
         $belumDibalas = fn (Builder $q): Builder => $q->whereDoesntHave(
             'pesan',
-            fn (Builder $p): Builder => $p->where('peran', 'admin')
+            fn (Builder $p): Builder => $p->jawaban()
         );
 
         return match ($this) {

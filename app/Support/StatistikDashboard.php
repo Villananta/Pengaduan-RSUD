@@ -280,10 +280,11 @@ final class StatistikDashboard
         $selesai = (int) ($perTahap[StatusPengaduan::Selesai->value] ?? 0);
         $aktif = (int) array_sum(array_diff_key($perTahap, [StatusPengaduan::Selesai->value => true]));
 
-        // Telaah: jawaban unit sudah masuk lewat balasan admin, tinggal diracik humas.
+        // Telaah: jawaban unit sudah masuk lewat balasan humas atau langsung
+        // dari PIC unit, tinggal diracik humas.
         $telaah = Pengaduan::query()
             ->aktif()
-            ->whereHas('pesan', fn ($q) => $q->where('peran', 'admin'))
+            ->whereHas('pesan', fn ($q) => $q->jawaban())
             ->count();
 
         $disposisi = Pengaduan::query()

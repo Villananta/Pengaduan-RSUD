@@ -252,15 +252,15 @@ final class MonitorDisposisi
         $dasar = fn (): Builder => Pengaduan::query()
             ->whereNotNull('master_unit_id')
             ->with('masterUnit')
-            ->withExists(['pesan as sudah_dibalas' => fn (Builder $q): Builder => $q->where('peran', 'admin')]);
+            ->withExists(['pesan as sudah_dibalas' => fn (Builder $q): Builder => $q->jawaban()]);
 
         $sudahDibalas = fn (Builder $q): Builder => $q->whereHas(
             'pesan',
-            fn (Builder $p): Builder => $p->where('peran', 'admin')
+            fn (Builder $p): Builder => $p->jawaban()
         );
         $belumDibalas = fn (Builder $q): Builder => $q->whereDoesntHave(
             'pesan',
-            fn (Builder $p): Builder => $p->where('peran', 'admin')
+            fn (Builder $p): Builder => $p->jawaban()
         );
 
         $kolom = [
