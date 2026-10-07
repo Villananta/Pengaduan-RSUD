@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\UploadedFile;
@@ -16,6 +17,17 @@ use Illuminate\Support\Facades\Storage;
  */
 class PesanPengaduan extends Model
 {
+    /**
+     * Peran yang dihitung sebagai jawaban sudah masuk.
+     *
+     * Daftar ini dipakai oleh scope maupun method baca supaya jumlah "balasan
+     * unit" di daftar pengaduan, monitor, dan dashboard tidak mungkin berbeda
+     * satu sama lain. 'admin' tetap ikut karena sejak awal balasan yang masuk
+     * lewat konsol humas memakai peran itu; 'unit' ditambahkan begitu jawaban
+     * bisa ditulis PIC unit langsung dari halamannya sendiri.
+     */
+    public const PERAN_JAWABAN = ['admin', 'unit'];
+
     protected $table = 'pesan_pengaduan';
 
     protected $fillable = [
@@ -48,14 +60,45 @@ class PesanPengaduan extends Model
     }
 
     /**
+     * Balasan yang ditulis PIC unit sendiri lewat halaman unit.
+     *
+     * Dipisah dari dariAdmin() karena pengirimnya memang berbeda entitas:
+     * pesan ini tidak boleh terbaca sebagai suara humas di depan pelapor,
+     * tapi tetap harus dihitung sebagai jawaban yang menunggu racikan humas.
+     */
+    public function dariUnit(): bool
+    {
+        return $this->peran === 'unit';
+    }
+
+    /** True bila pesan ini termasuk jawaban yang sudah masuk. */
+    public function jawaban(): bool
+    {
+        return in_array($this->peran, self::PERAN_JAWABAN, true);
+    }
+
+    /**
+     * Sinyal "jawaban sudah masuk" untuk withExists() dan hitungan lain.
+     *
+     * Satu scope dipakai di semua tempat karena enam file menghitung angka
+     * yang sama; kalau aturannya ditulis ulang di tiap file, satu perubahan
+     * peran bisa membuat daftar dan dashboard tidak lagi sejalan.
+     */
+    public function scopeJawaban(Builder $query): Builder
+    {
+        return $query->whereIn('peran', self::PERAN_JAWABAN);
+    }
+
+    /**
      * Pesan yang berasal dari sisi humas, jadi ditulis di gelembung kanan.
      *
      * Membedakan dari dariAdmin(): sapaan pembuka juga tampil di sisi humas,
-     * hanya saja bukan bukti unit sudah menjawab.
+     * hanya saja bukan bukti unit sudah menjawab. Pesan PIC unit sengaja
+     * tidak ikut, karena dia digambar di sisi berlawanan dengan label sendiri.
      */
     public function dariHumas(): bool
     {
-        return $this->peran !== 'pelapor';
+        return $this->peran === 'pembuka' || $this->peran === 'admin';
     }
 
     /** Daftar berkas lampiran yang menyertai pesan ini. */

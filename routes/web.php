@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\MonitorController as AdminMonitorController;
 use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
 use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
+use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/buat-aduan');
@@ -67,4 +68,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/unit/{unit}/ubah', [AdminUnitController::class, 'edit'])->name('unit.edit');
     Route::post('/unit/{unit}/perbarui', [AdminUnitController::class, 'update'])->name('unit.update');
     Route::post('/unit/{unit}/status', [AdminUnitController::class, 'status'])->name('unit.status');
+});
+
+// Dashboard unit layanan (pintu masuk /unit).
+//
+// Prototype ini sengaja dibuat tanpa login: satu halaman /unit menampilkan
+// daftar unit, lalu kode unit di URL menentukan dashboard mana yang dibuka.
+// Begitu akun PIC unit diaktifkan, grup ini cukup diberi middleware auth
+// tanpa harus mengubah nama rute yang sudah dipakai template.
+Route::prefix('unit')->name('unit.')->group(function () {
+    Route::get('/', [UnitDashboardController::class, 'pilih'])->name('pilih');
+    Route::get('/{unit}/dashboard', [UnitDashboardController::class, 'index'])->name('dashboard');
 });

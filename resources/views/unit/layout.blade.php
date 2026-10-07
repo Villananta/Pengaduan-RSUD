@@ -7,7 +7,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>@yield('title', 'Beranda Utama') — Portal Pengaduan Humas | RSUD Dr. Soetomo</title>
+    <title>@yield('title', 'Dashboard Unit') — Portal Pengaduan Humas | RSUD Dr. Soetomo</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,21 +21,33 @@
 <body class="bg-surface font-body-md text-on-surface min-h-screen">
 
     @php
-        $beranda = 'admin.dashboard';
+        // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL,
+        // supaya halaman pemilih unit tidak dipenuhi tautan yang tujuannya
+        // belum bisa ditentukan. Begitu akun PIC unit diaktifkan, menu ini
+        // tidak perlu diubah karena namanya sudah memakai rute tetap.
         $navigasi = [
-            ['label' => 'Beranda Utama', 'route' => $beranda],
-            ['label' => 'Daftar Pengaduan', 'route' => 'admin.pengaduan.index'],
-            ['label' => 'Detail Pengaduan', 'route' => null, 'pola' => 'admin.pengaduan.show'],
-            ['label' => 'Input Aduan', 'route' => 'admin.pengaduan.create'],
-            ['label' => 'Monitor Disposisi & SLA', 'route' => 'admin.monitor.index'],
-            ['label' => 'Master Data Unit', 'route' => 'admin.unit.index', 'pola' => 'admin.unit.*'],
+            ['label' => 'Pilih Unit', 'pola' => 'unit.pilih', 'url' => route('unit.pilih')],
         ];
+
+        if ($unit !== null) {
+            $navigasi[] = [
+                'label' => 'Beranda Unit',
+                'pola' => 'unit.dashboard',
+                'url' => route('unit.dashboard', $unit),
+            ];
+
+            $navigasi[] = [
+                'label' => 'Daftar Pengaduan',
+                'pola' => 'admin.pengaduan.index',
+                'url' => route('admin.pengaduan.index', ['unit' => $unit->kode]),
+            ];
+        }
     @endphp
 
     <!-- Topbar -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-[0_2px_14px_rgba(26,26,46,0.08)]">
 
-        <!-- Baris Identitas: logo, standar SLA, dan petugas humas. -->
+        <!-- Baris Identitas: logo, standar SLA, dan unit yang sedang dibuka. -->
         <div class="bg-white h-16 w-full px-margin flex items-center justify-between">
             <div class="flex items-center gap-space-md">
                 <div class="flex items-center gap-space-sm">
@@ -48,9 +60,15 @@
 
                 <div class="hidden md:block h-6 w-px bg-outline-variant mx-space-xs" aria-hidden="true"></div>
 
-                <span class="hidden lg:inline-flex items-center px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold uppercase tracking-wider">
-                    Admin Humas &amp; Kepatuhan Medis
-                </span>
+                @if ($unit !== null)
+                    <span class="hidden lg:inline-flex items-center px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold uppercase tracking-wider">
+                        PIC Unit &bull; {{ $unit->namaLengkap() }}
+                    </span>
+                @else
+                    <span class="hidden lg:inline-flex items-center px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold uppercase tracking-wider">
+                        Pilih Unit Layanan
+                    </span>
+                @endif
             </div>
 
             <div class="flex items-center gap-space-md">
@@ -64,22 +82,17 @@
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    aria-label="Notifikasi penting"
-                    class="relative p-space-xs text-ink-muted hover:text-brand-800 transition-colors"
-                >
-                    <x-symbol nama="notifications" class="text-[24px]" />
-                    <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-white" aria-hidden="true"></span>
-                </button>
-
                 <div class="flex items-center gap-space-sm pl-space-xs border-l border-outline-variant">
                     <span class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                        <x-symbol nama="person" class="text-on-primary text-[18px]" />
+                        <x-symbol nama="badge" class="text-on-primary text-[18px]" />
                     </span>
                     <div class="hidden xl:flex flex-col text-left">
-                        <span class="font-label-lg text-label-lg text-ink font-semibold leading-tight">{{ auth()->user()?->name ?? 'Admin Humas' }}</span>
-                        <span class="font-label-sm text-label-sm text-ink-muted leading-none">Tim Humas RSUD</span>
+                        <span class="font-label-lg text-label-lg text-ink font-semibold leading-tight">
+                            {{ $unit?->pic ?? 'Belum ada PIC' }}
+                        </span>
+                        <span class="font-label-sm text-label-sm text-ink-muted leading-none">
+                            {{ $unit?->jabatan_pic ?? 'Pilih unit untuk mulai bekerja' }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -88,56 +101,32 @@
 
         <!-- Navigasi Utama -->
         <div class="bg-white border-b border-outline-variant h-12 w-full px-margin flex items-center justify-between">
-            <nav class="flex items-center h-full gap-space-sm" aria-label="Navigasi konsol admin">
+            <nav class="flex items-center h-full gap-space-sm" aria-label="Navigasi dashboard unit">
                 @foreach ($navigasi as $item)
+
                     @php
-                        $penanda = $item['pola'] ?? $item['route'] ?? null;
-                        $aktif = $penanda !== null && request()->routeIs($penanda);
+                        $aktif = request()->routeIs($item['pola']);
                     @endphp
 
                     {{-- Menu aktif memakai pill mint, jadi penanda halaman
                          terbaca tanpa memotong tinggi bilah navigasi. --}}
-                    @if ($item['route'])
-                        <a
-                            href="{{ route($item['route']) }}"
-                            @class([
-                                'flex items-center rounded-full px-3 py-1.5 transition-colors',
-                                'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
-                            ])
-                            @if ($aktif) aria-current="page" @endif
-                        >{{ $item['label'] }}</a>
-                    @elseif ($item['pola'] ?? false)
-                        {{-- Menu tanpa halaman indeks. Tidak diklik karena tidak
-                             ada tujuan yang boleh ditautkan, tapi tampil normal
-                             supaya tidak terbaca sebagai fitur yang belum ada. --}}
-                        <span
-                            @class([
-                                'flex items-center rounded-full px-3 py-1.5 font-title-sm text-title-sm font-semibold',
-                                'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                'text-ink-muted' => ! $aktif,
-                            ])
-                            @if ($aktif) aria-current="page" @endif
-                        >{{ $item['label'] }}</span>
-                    @else
-                        <span
-                            @class([
-                                'flex items-center rounded-full px-3 py-1.5 font-title-sm text-title-sm font-semibold',
-                                'select-none',
-                                'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                'text-ink-muted/50 cursor-not-allowed' => ! $aktif,
-                            ])
-                            @if (! $aktif) title="Fitur sedang dirancang" aria-disabled="true" @endif
-                        >{{ $item['label'] }}</span>
-                    @endif
+                    <a
+                        href="{{ $item['url'] }}"
+                        @class([
+                            'flex items-center rounded-full px-3 py-1.5 transition-colors',
+                            'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
+                            'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
+                        ])
+                        @if ($aktif) aria-current="page" @endif
+                    >{{ $item['label'] }}</a>
                 @endforeach
             </nav>
 
             <div class="hidden md:flex items-center gap-space-xs text-ink-muted font-label-md text-label-md">
                 <x-symbol nama="domain" class="text-[16px] text-outline" />
-                <span>Humas</span>
+                <span>Unit Pelayanan</span>
                 <x-symbol nama="chevron_right" class="text-[14px] text-outline-variant" />
-                <span class="text-ink font-semibold">Pelayanan Terpadu</span>
+                <span class="text-ink font-semibold">{{ $unit?->nama ?? 'Pilih Instalasi' }}</span>
             </div>
         </div>
         <!-- End of Navigasi Utama -->
