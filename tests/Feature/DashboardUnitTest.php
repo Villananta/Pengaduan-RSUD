@@ -196,15 +196,17 @@ class DashboardUnitTest extends TestCase
             ->assertDontSee('#ADUAN-UNIT-AMAN');
     }
 
-    public function test_tautan_lihat_semua_membawa_filter_unit_yang_sedang_dibuka(): void
+    public function test_tautan_lihat_semua_membuka_daftar_disposisi_unit_yang_sedang_dibuka(): void
     {
         $tampilan = $this->get(route('unit.dashboard', 'IFP-01'))
             ->assertOk()
             ->assertSee('Lihat Semua')
             ->getContent();
 
+        // Beranda unit tidak lagi melempar petugas ke konsol humas; tautan
+        // ini harus mendarat di daftar disposisi milik unit yang sama.
         $this->assertStringContainsString(
-            'href="'.route('admin.pengaduan.index', ['unit' => 'IFP-01']).'"',
+            'href="'.route('unit.disposisi.index', ['unit' => 'IFP-01']).'"',
             $tampilan,
         );
     }

@@ -23,11 +23,11 @@
         @php
             // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL,
             // supaya halaman pemilih unit tidak dipenuhi tautan yang tujuannya
-            // belum bisa ditentukan. Begitu akun PIC unit diaktifkan, menu ini
-            // tidak perlu diubah karena namanya sudah memakai rute tetap.
-            $navigasi = [
-                ['label' => 'Pilih Unit', 'pola' => 'unit.pilih', 'url' => route('unit.pilih')],
-            ];
+            // belum bisa ditentukan. Menu "Pilih Unit" justru hanya ada di
+            // halaman pemilih: begitu pengguna masuk ke dashboard unit, pintu
+            // keluar dari unit itu dihapus dari topbar supaya tidak memancing
+            // orang pindah unit tanpa sengaja.
+            $navigasi = [];
 
             if ($unit !== null) {
                 $navigasi[] = [
@@ -60,6 +60,14 @@
                     'label' => 'Riwayat & Arsip Disposisi',
                     'pola' => 'unit.disposisi.arsip',
                     'url' => route('unit.disposisi.arsip', $unit),
+                ];
+            } else {
+                // Di halaman pemilih unit belum ada tujuan lain, jadi satu-satunya
+                // menu yang bisa diberi tautan tetap adalah pemilih unit itu sendiri.
+                $navigasi[] = [
+                    'label' => 'Pilih Unit',
+                    'pola' => 'unit.pilih',
+                    'url' => route('unit.pilih'),
                 ];
             }
         @endphp

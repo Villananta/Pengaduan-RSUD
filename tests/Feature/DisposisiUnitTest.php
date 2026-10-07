@@ -10,6 +10,7 @@ use App\Models\Pengaduan;
 use App\Support\DaftarPengaduan;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /**
@@ -62,7 +63,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_workspace_unit_menampilkan_form_jawaban_dan_instruksi_disposisi(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['master_unit_id' => $farmasi->id]);
@@ -135,7 +136,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_kirim_jawaban_memberi_sinyal_ke_konsol_humas_dan_panel_unit(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['master_unit_id' => $farmasi->id]);
@@ -174,7 +175,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_jawaban_unit_kosong_ditolak_dengan_pesan_indonesia(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['master_unit_id' => $farmasi->id]);
@@ -193,7 +194,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_tiket_yang_sudah_selesai_tidak_menerima_jawaban_unit(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $tiket = Pengaduan::factory()->selesai()->create(['master_unit_id' => $farmasi->id]);
 
@@ -206,7 +207,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_workspace_tiket_selesai_tidak_menampilkan_form_jawaban(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $tiket = Pengaduan::factory()->selesai()->create(['master_unit_id' => $farmasi->id]);
 
@@ -224,7 +225,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_halaman_arsip_hanya_menampilkan_tiket_selesai(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $arsip = Pengaduan::factory()->selesai()->create(['master_unit_id' => $farmasi->id]);
         $berjalan = Pengaduan::factory()->status(StatusPengaduan::Diproses)
@@ -242,7 +243,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_halaman_unit_tidak_memiliki_tautan_palsu(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['master_unit_id' => $farmasi->id]);
@@ -263,7 +264,7 @@ class DisposisiUnitTest extends TestCase
 
     public function test_menu_unit_memiliki_empat_item_dan_workspace_tanpa_tautan_di_luar_detail(): void
     {
-        $farmasi = MasterUnit::where('kode' => 'IFP-01')->firstOrFail();
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $tampilan = $this->get(route('unit.disposisi.index', $farmasi))
             ->assertOk()
@@ -272,6 +273,11 @@ class DisposisiUnitTest extends TestCase
         foreach (['Beranda Unit', 'Daftar Disposisi Masuk', 'Riwayat &amp; Arsip Disposisi'] as $menu) {
             $this->assertStringContainsString($menu, $tampilan);
         }
+
+        // Begitu pengguna berada di dalam dashboard unit, menu "Pilih Unit"
+        // dihapus dari topbar supaya tidak ada pintu keluar unit yang
+        // memancing orang pindah unit tanpa sengaja.
+        $this->assertStringNotContainsString('Pilih Unit', $tampilan);
 
         // Di luar halaman detail belum ada tiket yang dituju, jadi menu
         // workspace tampil sebagai label mati, bukan sebagai tautan.
