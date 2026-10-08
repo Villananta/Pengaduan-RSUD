@@ -294,10 +294,16 @@ final class StatistikDashboard
 
         $lewatTiket = collect();
 
+        // Daftar tiket lewat harus tetap disaring di dalam PHP karena
+        // diffInWeekdays tidak bisa diterjemahkan ke SQL, tapi barisnya
+        // ditarik per bagian dengan lazy() supaya memori tidak ikut membesar
+        // seiring jumlah tiket aktif.
         Pengaduan::query()
             ->aktif()
             ->with('masterUnit')
-            ->get(['id', 'kode_tiket', 'unit', 'master_unit_id', 'status', 'created_at'])
+            ->orderBy('id')
+            ->select(['id', 'kode_tiket', 'unit', 'master_unit_id', 'status', 'created_at'])
+            ->lazy(1000)
             ->filter(fn (Pengaduan $pengaduan): bool => Sla::lewatInvestigasi($pengaduan->created_at))
             ->each(function (Pengaduan $pengaduan) use (&$lewatTiket): void {
                 $lewatTiket->push([
@@ -310,7 +316,13 @@ final class StatistikDashboard
         $selesaiTiket = Pengaduan::query()
             ->selesai()
             ->whereNotNull('selesai_at')
-            ->get(['created_at', 'selesai_at', 'master_unit_id', 'kasus_berat']);
+            // Semua tanda selesai tetap harus dihitung di dalam PHP karena
+            // diffInWeekdays dan zona SLA tidak bisa diagregasi di SQL, jadi
+            // baris hanya dialirkan per bagian supaya tidak menggantung seluruh
+            // riwayat dalam memori sekaligus.
+            ->orderBy('id')
+            ->select(['id', 'created_at', 'selesai_at', 'master_unit_id', 'kasus_berat'])
+            ->lazy(1000);
 
         $tepatWaktu = 0;
         $totalHariKerja = 0.0;

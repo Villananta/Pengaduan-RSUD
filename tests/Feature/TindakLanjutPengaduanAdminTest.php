@@ -6,6 +6,7 @@ use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use App\Support\TindakLanjutPengaduan;
@@ -419,6 +420,46 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertNull($pengaduan->selesai_at);
     }
 
+    public function test_admin_bisa_mengirim_koordinasi_ke_unit(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-KOORD-01',
+            'master_unit_id' => $farmasi->id,
+        ]);
+
+        $this->post(route('admin.pengaduan.koordinasi', $pengaduan->kode_tiket), [
+            'isi' => 'Tolong sampaikan kronologi lengkap kejadian di kamar rawat.',
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $pesan = $pengaduan->pesan()
+            ->where('peran', 'admin')
+            ->where('kanal', PesanPengaduan::KANAL_UNIT)
+            ->first();
+
+        $this->assertNotNull($pesan);
+        $this->assertSame('Tolong sampaikan kronologi lengkap kejadian di kamar rawat.', $pesan->isi);
+        $this->assertTrue($pesan->jalurUnit());
+
+        // Pesan koordinasi tidak mengubah tahap tiket.
+        $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
+    }
+
+    public function test_koordinasi_unit_ditolak_saat_tiket_belum_ditugaskan(): void
+    {
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-KOORD-99',
+            'master_unit_id' => null,
+        ]);
+
+        $this->post(route('admin.pengaduan.koordinasi', $pengaduan->kode_tiket), [
+            'isi' => 'Pesan sebelum unit ditugaskan.',
+        ])->assertSessionHasErrors('isi');
+
+        $this->assertCount(0, $pengaduan->pesan()->where('kanal', PesanPengaduan::KANAL_UNIT)->get());
+    }
+
     public function test_balasan_admin_bisa_melampiri_lebih_dari_satu_berkas(): void
     {
         Storage::fake('public');
@@ -531,6 +572,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $kode = 'ADUAN-HILANG-99';
 
         $this->post(route('admin.pengaduan.balas', $kode), ['isi' => 'x'])->assertNotFound();
+        $this->post(route('admin.pengaduan.koordinasi', $kode), ['isi' => 'x'])->assertNotFound();
         $this->post(route('admin.pengaduan.tahap', $kode), ['tujuan' => 'diproses'])->assertNotFound();
         $this->post(route('admin.pengaduan.draf', $kode), ['draf' => 'x'])->assertNotFound();
         $this->post(route('admin.pengaduan.jawaban', $kode), ['isi' => 'x'])->assertNotFound();

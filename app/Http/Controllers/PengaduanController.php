@@ -48,6 +48,7 @@ class PengaduanController extends Controller
         // balasan unit. Kalau berperan 'admin', setiap tiket baru akan langsung
         // terbaca sudah terjawab di daftar pengaduan, monitor, dan dashboard.
         $pengaduan->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_PELAPOR,
             'peran' => 'pembuka',
             'isi' => PengaduanMasuk::pesanPembuka($pengaduan),
         ]);
@@ -121,7 +122,12 @@ class PengaduanController extends Controller
         $kode = strtoupper(trim((string) $request->query('kode', '')));
 
         $tiket = $kodeTerverifikasi
-            ? Pengaduan::with('pesan')->where('kode_tiket', $kodeTerverifikasi)->first()
+            ? Pengaduan::with([
+                // Hanya pesan jalur pelapor yang berhak dilihat di halaman
+                // lacak; koordinasi humas dengan unit tidak untuk dikonsumsi
+                // pelapor sehingga ikut disaring sejak query pertama.
+                'pesan' => fn ($q) => $q->jalurPelapor(),
+            ])->where('kode_tiket', $kodeTerverifikasi)->first()
             : null;
 
         if ($tiket === null) {
@@ -163,6 +169,7 @@ class PengaduanController extends Controller
 
         // Pesan dari pelapor selalu berperan sebagai "pelapor".
         $pengaduan->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_PELAPOR,
             'peran' => 'pelapor',
             'isi' => $validated['isi'],
             'lampiran' => PesanPengaduan::simpanBerkas($request->file('lampiran', []) ?? []),

@@ -150,7 +150,7 @@ final class PengaduanMasuk
     }
 
     /**
-     * Kode tiket empat huruf acak dengan tanggal dibuatnya.
+     * Kode tiket lima huruf acak dengan tanggal dibuatnya.
      *
      * Diulang sampai benar-benar belum dipakai supaya tidak pernah bentrok
      * dengan tiket lama yang sekarang masih bisa dilacak pelapor.

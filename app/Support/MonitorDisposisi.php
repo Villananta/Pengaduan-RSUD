@@ -8,7 +8,6 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
 /**
  * Data tampilan untuk halaman Monitor Disposisi & SLA Unit.
@@ -40,24 +39,15 @@ final class MonitorDisposisi
     /** Jumlah baris tabel eskalasi sebelum dipangkas. */
     private const BATAS_ESKALASI = 10;
 
-    /** Jumlah unit yang tampil pada rapor kepatuhan. */
-    private const BATAS_RAPOR = 6;
-
     /**
      * @param  array<int, array<string, mixed>>  $kartu  Empat kartu angka di bawah banner.
      * @param  array<int, array<string, mixed>>  $papan  Kolom kanban status disposisi unit.
      * @param  array{baris: array<int, array<string, mixed>>, jumlah: array<string, int>, saring: string}  $eskalasi
-     * @param  array<int, array<string, mixed>>  $rapor  Kepatuhan SLA per unit.
-     * @param  Collection<int, array<string, mixed>>  $permintaan  Tiket yang butuh keputusan humas.
-     * @param  array<int, array<string, string>>  $aturan  Siklus investigasi dalam bentuk teks.
      */
     public function __construct(
         public readonly array $kartu,
         public readonly array $papan,
         public readonly array $eskalasi,
-        public readonly array $rapor,
-        public readonly Collection $permintaan,
-        public readonly array $aturan,
         public readonly int $aktif,
         public readonly int $ditugaskan,
         public readonly int $telaah,
@@ -87,13 +77,6 @@ final class MonitorDisposisi
             kartu: self::kartu($kritis, $aktif),
             papan: self::papan(),
             eskalasi: $eskalasi,
-            // Rapor per unit dan catatan kaki siklus sudah dihitung di
-            // rapor() dan aturan(), tapi belum ada markup yang membacanya.
-            // Keduanya sengaja dikosongkan supaya halaman ini tidak
-            // menjalankan query yang hasilnya tidak pernah tampil.
-            rapor: [],
-            permintaan: collect(),
-            aturan: [],
             aktif: $aktif,
             // Angka ini hanya menghitung tiket aktif yang sudah ditautkan ke
             // unit, karena papan kanban ini tidak memuat tiket yang masih
@@ -486,65 +469,6 @@ final class MonitorDisposisi
                 ],
             ],
         ];
-    }
-
-    /**
-     * Rapor kepatuhan SLA per unit.
-     *
-     * Unit tanpa pengaduan selesai tidak punya angka sama sekali supaya
-     * tampilan bisa membedakan unit yang belum punya data dari unit yang
-     * benar-benar nol persen.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private static function rapor(): array
-    {
-        $kepatuhan = StatistikDashboard::kepatuhanSlaUnit();
-        $standar = (int) config('pengaduan.kepatuhan_standar_persen', 90);
-
-        return MasterUnit::query()
-            ->get()
-            ->map(fn (MasterUnit $unit): ?array => ($kepatuhan[$unit->id] ?? null) === null ? null : [
-                'kode' => $unit->kode,
-                'nama' => $unit->nama,
-                'persen' => $kepatuhan[$unit->id],
-                'memenuhi' => $kepatuhan[$unit->id] >= $standar,
-                'nadaAngka' => $kepatuhan[$unit->id] >= $standar ? 'text-secondary' : 'text-error',
-                'nadaBar' => $kepatuhan[$unit->id] >= $standar ? 'bg-secondary' : 'bg-error',
-                'nadaTitik' => $kepatuhan[$unit->id] >= $standar ? 'bg-secondary' : 'bg-error',
-                'status' => $unit->koneksiAktif() ? 'Terhubung SIMRS' : 'Koneksi SIMRS belum aktif',
-                'keterangan' => $kepatuhan[$unit->id] >= $standar
-                    ? 'Memenuhi ambang '.$standar.'%'
-                    : 'Di bawah ambang '.$standar.'%, perlu telaah',
-            ])
-            ->filter()
-            ->sortByDesc(fn (array $baris): bool => $baris['memenuhi'])
-            ->sortBy('persen')
-            // Yang paling rendah tetap ditampilkan karena justru unit
-            // itulah yang paling perlu ditindaklanjuti.
-            ->take(self::BATAS_RAPOR)
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Siklus investigasi unit dalam bentuk teks untuk catatan kaki tabel.
-     *
-     * Peta warnanya sengaja tidak ikut dibawa ke sini karena catatan kaki
-     * ini hanya dibaca, bukan butuh penanda visual seperti stepper di
-     * beranda.
-     *
-     * @return array<int, array<string, string>>
-     */
-    private static function aturan(): array
-    {
-        return collect(config('pengaduan.siklus_investigasi', []))
-            ->map(fn (array $pillar): array => [
-                'hari' => $pillar['hari'],
-                'judul' => $pillar['judul'],
-                'ket' => $pillar['ket'],
-            ])
-            ->all();
     }
 
     /** Margin peringatan SLA dalam hari kerja. */

@@ -31,7 +31,8 @@ final class DetailPengaduan
      * @param  array<string, mixed>  $unit  Status investigasi unit pada tiket ini.
      * @param  array<string, mixed>  $sla  Posisi waktu kerja terhadap target.
      * @param  array<int, array<string, mixed>>  $lampiran  Berkas yang diunggah pelapor.
-     * @param  array<int, array<string, mixed>>  $percakapan  Pesan antara pelapor dan humas.
+     * @param  array<int, array<string, mixed>>  $percakapan  Pesan kanal pelapor dengan humas.
+     * @param  array<int, array<string, mixed>>  $koordinasi  Pesan kanal koordinasi humas dan unit.
      * @param  array<int, array<string, mixed>>  $audit  Jejak perpindahan tahap.
      * @param  Collection<int, MasterUnit>  $pilihanUnit  Unit yang boleh dipilih pada form disposisi.
      */
@@ -43,6 +44,7 @@ final class DetailPengaduan
         public readonly array $sla,
         public readonly array $lampiran,
         public readonly array $percakapan,
+        public readonly array $koordinasi,
         public readonly array $audit,
         public readonly Collection $pilihanUnit,
     ) {}
@@ -80,6 +82,7 @@ final class DetailPengaduan
             sla: self::sla($pengaduan),
             lampiran: self::lampiran($pengaduan),
             percakapan: self::percakapan($pengaduan),
+            koordinasi: self::koordinasi($pengaduan),
             audit: self::audit($pengaduan),
             // Unit nonaktif tidak ditawarkan lagi karena admin sudah sengaja
             // mematikannya dari halaman master unit. Menawarkannya di sini membuat
@@ -282,7 +285,12 @@ final class DetailPengaduan
     }
 
     /**
-     * Percakapan antara pelapor dan admin humas.
+     * Percakapan pada kanal pelapor: pesan yang boleh dibaca di halaman lacak.
+     *
+     * Pesan kanal koordinasi humas dan unit sengaja tidak ikut, supaya admin
+     * melihat bahan rahasia kerja internal tidak tercampur obrolan dengan
+     * pelapor. Jawaban unit lama yang dulu satu percakapan tetap terbaca di
+     * sini karena data ringkasan masih menaruhnya pada kanal pelapor.
      *
      * Lampiran selalu berupa daftar, walaupun kosong, supaya template cukup
      * melakukan foreach tanpa memeriksa null dulu.
@@ -292,25 +300,55 @@ final class DetailPengaduan
     private static function percakapan(Pengaduan $pengaduan): array
     {
         return $pengaduan->pesan
-            ->map(fn (PesanPengaduan $pesan): array => [
-                // Key memakai dariHumas karena sapaan pembuka juga digambar di sisi kanan.
-                'dariHumas' => $pesan->dariHumas(),
-                // Dipecah sendiri supaya template bisa memberi label "PIC Unit"
-                // tanpa menebak-nebak peran dari isi pesannya.
-                'dariUnit' => $pesan->dariUnit(),
-                // Peran mentah ikut dibawa karena satu label tiga kemungkinan
-                // (pelapor, humas, unit) tidak bisa diturunkan dari dua penanda
-                // di atas: sapaan pembuka memang terbaca sebagai pesan humas.
-                'peran' => $pesan->peran,
-                'isi' => $pesan->isi,
-                'waktu' => $pesan->created_at->format('d M Y, H:i'),
-                'lampiran' => array_map(fn (string $path): array => [
-                    'nama' => basename($path),
-                    'url' => $pesan->urlLampiran($path),
-                    'gambar' => $pesan->lampiranGambar($path),
-                ], $pesan->daftarLampiran()),
-            ])
+            ->filter(fn (PesanPengaduan $pesan): bool => $pesan->jalurPelapor())
+            ->map(fn (PesanPengaduan $pesan): array => self::petakanPesan($pesan))
+            ->values()
             ->all();
+    }
+
+    /**
+     * Percakapan pada kanal koordinasi humas dan unit.
+     *
+     * Berisi jawaban PIC unit dan catatan admin humas yang tidak terlihat
+     * oleh pelapor. Kanal ini yang ditampilkan pada Tab "Koordinasi Unit" di
+     * konsol humas dan pada panel chat halaman disposisi sisi unit.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function koordinasi(Pengaduan $pengaduan): array
+    {
+        return $pengaduan->pesan
+            ->filter(fn (PesanPengaduan $pesan): bool => $pesan->jalurUnit())
+            ->map(fn (PesanPengaduan $pesan): array => self::petakanPesan($pesan))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Bentuk satu pesan menjadi array yang siap digambar di template.
+     *
+     * @return array<string, mixed>
+     */
+    private static function petakanPesan(PesanPengaduan $pesan): array
+    {
+        return [
+            // Key memakai dariHumas karena sapaan pembuka juga digambar di sisi kanan.
+            'dariHumas' => $pesan->dariHumas(),
+            // Dipecah sendiri supaya template bisa memberi label "PIC Unit"
+            // tanpa menebak-nebak peran dari isi pesannya.
+            'dariUnit' => $pesan->dariUnit(),
+            // Peran mentah ikut dibawa karena satu label tiga kemungkinan
+            // (pelapor, humas, unit) tidak bisa diturunkan dari dua penanda
+            // di atas: sapaan pembuka memang terbaca sebagai pesan humas.
+            'peran' => $pesan->peran,
+            'isi' => $pesan->isi,
+            'waktu' => $pesan->created_at->format('d M Y, H:i'),
+            'lampiran' => array_map(fn (string $path): array => [
+                'nama' => basename($path),
+                'url' => $pesan->urlLampiran($path),
+                'gambar' => $pesan->lampiranGambar($path),
+            ], $pesan->daftarLampiran()),
+        ];
     }
 
     /**

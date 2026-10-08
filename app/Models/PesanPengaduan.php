@@ -9,7 +9,13 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Satu baris percakapan pada kolom chat pelapor dan admin humas.
+ * Satu baris percakapan pengaduan: chat pelapor maupun koordinasi unit.
+ *
+ * Kolom kanal memisahkan dua jalur percakapan pada satu tiket. Jalur
+ * 'pelapor' berisi pesan antara pelapor dan admin humas yang boleh dibaca
+ * di halaman lacak; jalur 'unit' berisi koordinasi humas dengan PIC unit
+ * yang tidak boleh bocor ke pelapor. Peran tetap dipakai untuk menentukan
+ * pengirim setiap pesan di dalam jalurnya.
  *
  * Satu pesan boleh membawa lebih dari satu berkas, jadi kolom lampiran
  * dibaca sebagai daftar path, bukan sebagai satu path tunggal seperti
@@ -17,6 +23,12 @@ use Illuminate\Support\Facades\Storage;
  */
 class PesanPengaduan extends Model
 {
+    /** Jalur percakapan pelapor dengan admin humas. */
+    public const KANAL_PELAPOR = 'pelapor';
+
+    /** Jalur koordinasi internal admin humas dengan PIC unit. */
+    public const KANAL_UNIT = 'unit';
+
     /**
      * Peran yang dihitung sebagai jawaban sudah masuk.
      *
@@ -32,6 +44,7 @@ class PesanPengaduan extends Model
 
     protected $fillable = [
         'pengaduan_id',
+        'kanal',
         'peran',
         'isi',
         'lampiran',
@@ -78,6 +91,24 @@ class PesanPengaduan extends Model
     }
 
     /**
+     * Pesan milik kanal koordinasi humas dan unit.
+     *
+     * Dipisah dari dariUnit() karena jalur unit bisa memuat pesan dari kedua
+     * pihak: jawaban PIC unit sekaligus catatan admin humas yang tidak pernah
+     * terlihat oleh pelapor.
+     */
+    public function jalurUnit(): bool
+    {
+        return $this->kanal === self::KANAL_UNIT;
+    }
+
+    /** Kebalikan jalurUnit(): pesan yang boleh dibaca pelapor di halaman lacak. */
+    public function jalurPelapor(): bool
+    {
+        return $this->kanal === self::KANAL_PELAPOR;
+    }
+
+    /**
      * Sinyal "jawaban sudah masuk" untuk withExists() dan hitungan lain.
      *
      * Satu scope dipakai di semua tempat karena enam file menghitung angka
@@ -87,6 +118,18 @@ class PesanPengaduan extends Model
     public function scopeJawaban(Builder $query): Builder
     {
         return $query->whereIn('peran', self::PERAN_JAWABAN);
+    }
+
+    /** Batasi query ke pesan kanal koordinasi humas dan unit. */
+    public function scopeJalurUnit(Builder $query): Builder
+    {
+        return $query->where('kanal', self::KANAL_UNIT);
+    }
+
+    /** Batasi query ke pesan kanal pelapor yang boleh dibaca di halaman lacak. */
+    public function scopeJalurPelapor(Builder $query): Builder
+    {
+        return $query->where('kanal', self::KANAL_PELAPOR);
     }
 
     /**

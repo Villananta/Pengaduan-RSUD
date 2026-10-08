@@ -54,6 +54,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/pengaduan/{kode}', [AdminPengaduanController::class, 'show'])->name('pengaduan.show');
 
     Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])->name('pengaduan.balas');
+    Route::post('/pengaduan/{kode}/koordinasi', [AdminPengaduanController::class, 'koordinasi'])->name('pengaduan.koordinasi');
     Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])->name('pengaduan.tahap');
     Route::post('/pengaduan/{kode}/draf', [AdminPengaduanController::class, 'simpanDraf'])->name('pengaduan.draf');
     Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])->name('pengaduan.jawaban');

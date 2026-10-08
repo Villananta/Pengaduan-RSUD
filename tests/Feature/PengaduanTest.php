@@ -7,6 +7,7 @@ use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use Carbon\Carbon;
@@ -439,6 +440,33 @@ class PengaduanTest extends TestCase
 
         $this->post(route('pengaduan.pesan', $pengaduan->kode_tiket), ['isi' => ''])
             ->assertSessionHasErrors('isi');
+    }
+
+    public function test_koordinasi_humas_tidak_bocor_ke_halaman_lacak_pelapor(): void
+    {
+        $this->seed(MasterUnitSeeder::class);
+
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-20261008-RAHASIA',
+            'master_unit_id' => $farmasi->id,
+        ]);
+
+        $this->verifikasi($pengaduan);
+
+        // Pesan internal humas&harr;unit duduk di jalur koordinasi yang
+        // tidak boleh disajikan pada halaman milik pelapor.
+        $pengaduan->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_UNIT,
+            'peran' => 'admin',
+            'isi' => 'Mohon periksa catatan pemberian obat tanpa menyebut identitas pasien.',
+        ]);
+
+        $this->get(route('pengaduan.lacak'))
+            ->assertOk()
+            ->assertSee('Riwayat Tanggapan Dua Arah')
+            ->assertDontSee('Mohon periksa catatan pemberian obat tanpa menyebut identitas pasien.');
     }
 
     public function test_pesan_bisa_dilampiri_berkas(): void

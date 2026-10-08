@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\DisposisiUnit;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -17,32 +18,36 @@ use RuntimeException;
  * kelas ini hanya menjalankan perintah unit. Dengan dipisah, aturan unit tidak
  * perlu ikut memeriksa tombol humas dan sebaliknya.
  *
- * Pesan disimpan dengan peran 'unit', bukan 'admin', supaya di konsol humas
- * jawaban ini terbaca sebagai suara PIC unit dan tidak tertukar dengan balasan
- * humas kepada pelapor. Peran itulah yang juga dipakai App\Enums\StatusInvestigasi
- * sebagai tanda "Menunggu Racikan Humas".
+ * Pesan disimpan dengan peran 'unit' pada kanal koordinasi supaya di konsol
+ * humas jawaban ini terbaca sebagai suara PIC unit dan tidak tertukar dengan
+ * balasan humas kepada pelapor. Peran itulah yang juga dipakai
+ * App\Enums\StatusInvestigasi sebagai tanda "Menunggu Racikan Humas".
  */
 final class JawabanUnit
 {
     /**
-     * Simpan jawaban unit pada percakapan tiket.
+     * Simpan jawaban unit di kanal koordinasi humas dan unit.
      *
      * Tahap tiket sengaja tidak diubah. Unit tidak berwenang memajukan tahap
      * pengaduan; unit hanya menyerahkan jawaban, dan penutupan tetap ada di
      * tangan humas lewat aksi yang sudah ada.
      *
+     * @param  array<int, \Illuminate\Http\UploadedFile|null>  $berkas
+     *
      * @throws RuntimeException bila tiket sudah selesai sehingga tidak lagi menerima jawaban
      */
-    public static function kirim(MasterUnit $unit, Pengaduan $pengaduan, string $isi): void
+    public static function kirim(MasterUnit $unit, Pengaduan $pengaduan, string $isi, array $berkas = []): void
     {
         if ($pengaduan->status->selesai()) {
             throw new RuntimeException('Tiket ini sudah selesai sehingga jawaban unit tidak diterima lagi.');
         }
 
-        DB::transaction(function () use ($unit, $pengaduan, $isi): void {
+        DB::transaction(function () use ($unit, $pengaduan, $isi, $berkas): void {
             $pengaduan->pesan()->create([
+                'kanal' => PesanPengaduan::KANAL_UNIT,
                 'peran' => 'unit',
                 'isi' => $isi,
+                'lampiran' => PesanPengaduan::simpanBerkas($berkas),
             ]);
 
             // Panel koneksi SIMRS di konsol humas membaca kolom disposisi,

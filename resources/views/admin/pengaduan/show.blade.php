@@ -658,21 +658,145 @@
                 </div>
                 <!-- End of Tab 1 -->
 
-                <!-- Tab 2: kanal disposisi dua arah yang masih berupa saluran satu pintu. -->
+                <!-- Tab 2: kanal koordinasi dua arah humas dan unit -->
                 <div class="hidden p-space-md flex flex-col gap-space-md" data-panel="unit">
                     <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
                         <span class="flex items-center gap-1 font-semibold text-on-surface">
                             <x-symbol nama="forum" class="text-[16px] text-secondary" />
                             Kanal Disposisi SIMRS: Humas &harr; Unit
                         </span>
+                        <span class="text-secondary font-bold">{{ count($detail->koordinasi) }} Pesan</span>
                     </div>
 
-                    <p class="text-body-sm text-on-surface-variant leading-relaxed">
-                        Jawaban unit ditulis dari halaman disposisi sisi unit, disimpan dengan peran
-                        unit, lalu tampil pada tab percakapan pelapor dengan label &ldquo;PIC Unit&rdquo;.
-                        Ruang obrolan khusus yang terpisah dari percakapan pelapor belum dibangun,
-                        jadi kolom ini masih menjelaskan saluran satu pintu itu.
-                    </p>
+                    <div class="flex flex-col gap-space-sm max-h-[360px] overflow-y-auto pr-1">
+                        @forelse ($detail->koordinasi as $pesan)
+                            <div @class([
+                                'flex flex-col max-w-[85%]',
+                                'items-start self-start' => $pesan['dariUnit'],
+                                'items-end self-end' => ! $pesan['dariUnit'],
+                            ])>
+                                <span @class([
+                                    'font-label-sm text-label-sm text-on-surface-variant mb-0.5',
+                                    'ml-1' => $pesan['dariUnit'],
+                                    'mr-1' => ! $pesan['dariUnit'],
+                                ])>
+                                    {{ $pesan['dariUnit'] ? 'PIC Unit' : 'Admin Humas' }} &bull; {{ $pesan['waktu'] }}
+                                </span>
+
+                                <div @class([
+                                    'p-space-sm rounded-lg font-body-sm text-body-sm',
+                                    'rounded-tl-xs bg-secondary text-on-secondary' => $pesan['dariUnit'],
+                                    'rounded-tr-xs bg-primary text-on-primary' => ! $pesan['dariUnit'],
+                                ])>
+                                    {{ $pesan['isi'] }}
+
+                                    @if (count($pesan['lampiran']) > 0)
+                                        <div class="mt-3 flex flex-col gap-2">
+
+                                            @foreach ($pesan['lampiran'] as $berkas)
+
+                                                {{-- Lampiran dibungkus gelembung yang sama seperti di halaman
+                                                     pelapor supaya tetap ringkas. Foto dibungkus tautan supaya
+                                                     bisa dibuka ukuran penuh di tab baru. --}}
+                                                @if ($berkas['gambar'])
+                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener">
+                                                        <img src="{{ $berkas['url'] }}" alt="Lampiran {{ $berkas['nama'] }}" class="w-full max-w-[240px] rounded-lg">
+                                                    </a>
+                                                @else
+                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-ink">
+                                                        <x-symbol nama="attach_file" class="text-[14px]" />
+                                                        {{ $berkas['nama'] }}
+                                                    </a>
+                                                @endif
+
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-body-sm text-on-surface-variant">
+                                Belum ada koordinasi antara humas dan unit pada tiket ini.
+                            </p>
+                        @endforelse
+                    </div>
+
+                    @if ($unit['tertaut'])
+                        {{-- Form Koordinasi Humas: pesan ke PIC unit, tidak bocor ke pelapor. --}}
+                        <form
+                            method="POST"
+                            action="{{ route('admin.pengaduan.koordinasi', $kode) }}"
+                            enctype="multipart/form-data"
+                            class="flex flex-col gap-space-sm bg-surface-container-low p-space-md rounded-lg"
+                        >
+                            @csrf
+
+                            <div class="flex flex-col gap-space-xs">
+                                <label for="isiKoordinasi" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                    Tulis Pesan untuk Unit
+                                </label>
+
+                                <textarea
+                                    id="isiKoordinasi"
+                                    name="isi"
+                                    rows="3"
+                                    maxlength="2000"
+                                    placeholder="Tuliskan petunjuk, pertanyaan klarifikasi, atau catatan kerja untuk PIC unit..."
+                                    class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
+                                >{{ old('isi') }}</textarea>
+
+                                @error('isi')
+                                    <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                                @enderror
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-between gap-space-md">
+                                <label class="flex items-center gap-2 px-space-md py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold cursor-pointer">
+                                    <x-symbol nama="attach_file" class="text-[16px]" />
+                                    <span>Lampiran</span>
+                                    <input
+                                        type="file"
+                                        name="lampiran[]"
+                                        accept=".jpg,.jpeg,.png,.pdf"
+                                        multiple
+                                        class="sr-only"
+                                        onchange="this.previousElementSibling.textContent = this.files.length ? this.files[0].name + (this.files.length > 1 ? ' + ' + (this.files.length - 1) + ' berkas lain' : '') : 'Lampiran'"
+                                    >
+                                </label>
+
+                                <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                    Maksimal 5 berkas JPG, PNG, atau PDF, masing-masing 4 MB.
+                                </span>
+                            </div>
+
+                            @error('lampiran')
+                                <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                            @enderror
+
+                            @error('lampiran.*')
+                                <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                            @enderror
+
+                            <div class="flex flex-wrap items-center justify-between gap-space-md">
+                                <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                    Pesan ini hanya terlihat PIC unit, tidak masuk ke percakapan pelapor.
+                                </span>
+
+                                <button
+                                    type="submit"
+                                    class="py-3 px-space-xl rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                                >
+                                    <x-symbol nama="send" class="text-[18px]" />
+                                    Kirim Pesan
+                                </button>
+                            </div>
+                        </form>
+                        <!-- End of Form Koordinasi Humas -->
+                    @else
+                        <p class="text-body-sm text-on-surface-variant leading-relaxed">
+                            Tiket ini belum ditugaskan ke unit, jadi kanal koordinasi unit masih kosong.
+                        </p>
+                    @endif
                 </div>
                 <!-- End of Tab 2 -->
             </article>

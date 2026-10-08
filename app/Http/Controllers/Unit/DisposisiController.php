@@ -83,13 +83,23 @@ class DisposisiController extends Controller
 
         $validated = $request->validate([
             'isi' => ['required', 'string', 'max:2000'],
+            'lampiran' => ['nullable', 'array', 'max:5'],
+            'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ], [
             'isi.required' => 'Tuliskan jawaban unit lebih dulu sebelum dikirim.',
             'isi.max' => 'Jawaban unit maksimal 2000 karakter.',
+            'lampiran.max' => 'Maksimal 5 lampiran per pesan.',
+            'lampiran.*.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
+            'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 4 MB.',
         ]);
 
         try {
-            JawabanUnit::kirim($unit, $pengaduan, $validated['isi']);
+            JawabanUnit::kirim(
+                $unit,
+                $pengaduan,
+                $validated['isi'],
+                $request->file('lampiran', []) ?? [],
+            );
         } catch (RuntimeException $alasan) {
             // Alasan penolakan ditulis dengan nama field yang dipakai template,
             // supaya pesan salahnya muncul tepat di atas formulirnya.
@@ -100,6 +110,6 @@ class DisposisiController extends Controller
 
         return redirect()
             ->route('unit.disposisi.show', ['unit' => $unit, 'kode' => $pengaduan->kode_tiket])
-            ->with('sukses', 'Jawaban unit terkirim dan menunggu racikan humas.');
+            ->with('sukses', 'Pesan unit terkirim dan tiket menunggu racikan humas.');
     }
 }

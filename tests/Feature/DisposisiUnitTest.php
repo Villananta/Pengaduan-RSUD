@@ -7,6 +7,7 @@ use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use App\Support\DaftarPengaduan;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -75,6 +76,7 @@ class DisposisiUnitTest extends TestCase
         ]);
 
         $tiket->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_UNIT,
             'peran' => 'unit',
             'isi' => 'Stok obat sudah diperiksa, tidak ada selisih.',
         ]);
@@ -83,7 +85,8 @@ class DisposisiUnitTest extends TestCase
             ->assertOk()
             ->assertSee('Arahan Disposisi dari Humas')
             ->assertSee('Tolong telusuri catatan pemberian obat pada tiket ini.')
-            ->assertSee('Kirim Jawaban Unit')
+            ->assertSee('Koordinasi dengan Humas')
+            ->assertSee('Stok obat sudah diperiksa, tidak ada selisih.')
             ->assertSee('PIC Unit')
             ->assertSee('Cetak Lembar Disposisi')
             ->assertSee('cursor-not-allowed')
@@ -129,6 +132,7 @@ class DisposisiUnitTest extends TestCase
             $jawaban->isi,
         );
         $this->assertTrue($jawaban->jawaban());
+        $this->assertTrue($jawaban->jalurUnit());
 
         // Tahap tiket tidak berubah: unit tidak berwenang memajukan tahap.
         $this->assertSame(StatusPengaduan::Diproses, $tiket->status);
@@ -171,6 +175,45 @@ class DisposisiUnitTest extends TestCase
 
         $this->assertSame(0, $setelah->jumlahInvestigasi[StatusInvestigasi::SedangInvestigasi->value]);
         $this->assertSame(1, $setelah->jumlahInvestigasi[StatusInvestigasi::MenungguRacikan->value]);
+    }
+
+    public function test_chat_humas_dan_unit_berjalan_dua_arah(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        // Unit membalas lewat halamannya sendiri...
+        $this->post(route('unit.disposisi.kirim', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]), [
+            'isi' => 'Hasil telaah: tidak ditemukan selisih stok.',
+        ])->assertRedirect();
+
+        // ...lalu humas membalas lewat kanal koordinasi di konsolnya.
+        $this->post(route('admin.pengaduan.koordinasi', $tiket->kode_tiket), [
+            'isi' => 'Terima kasih, mohon lampirkan berita acara pemeriksaannya.',
+        ])->assertRedirect(route('admin.pengaduan.show', $tiket->kode_tiket));
+
+        $tiket->refresh();
+
+        $dariUnit = $tiket->pesan()->where('peran', 'unit')->first();
+        $dariHumas = $tiket->pesan()
+            ->where('peran', 'admin')
+            ->where('kanal', PesanPengaduan::KANAL_UNIT)
+            ->first();
+
+        // Kedua arah berdiam di jalur koordinasi, terpisah dari chat pelapor.
+        $this->assertTrue($dariUnit?->jalurUnit());
+        $this->assertNotNull($dariHumas);
+        $this->assertTrue($dariHumas->jalurUnit());
+
+        // Keduanya tampil pada Tab Koordinasi Unit di detail konsol humas.
+        $tampilan = $this->get(route('admin.pengaduan.show', $tiket->kode_tiket))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Hasil telaah: tidak ditemukan selisih stok.', $tampilan);
+        $this->assertStringContainsString('Terima kasih, mohon lampirkan berita acara pemeriksaannya.', $tampilan);
     }
 
     public function test_jawaban_unit_kosong_ditolak_dengan_pesan_indonesia(): void

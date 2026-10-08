@@ -13,7 +13,7 @@ use RuntimeException;
 /**
  * Tindak lanjut admin humas terhadap satu tiket pengaduan.
  *
- * Halaman detail danach bisa melakukan empat hal: menyusun draf jawaban,
+ * Halaman detail dapat melakukan empat hal: menyusun draf jawaban,
  * mengirim jawaban resmi sekaligus menutup tiket, mengembalikan tiket ke
  * unit untuk klarifikasi ulang, dan menyalakan penandaan kasus berat.
  * Semuanya dikumpulkan di sini supaya aturan transisinya hanya ada satu
@@ -51,6 +51,7 @@ final class TindakLanjutPengaduan
         DB::transaction(function () use ($pengaduan, $isi, $catatan, $adminId): void {
             if (filled($isi)) {
                 $pengaduan->pesan()->create([
+                    'kanal' => PesanPengaduan::KANAL_PELAPOR,
                     'peran' => 'admin',
                     'isi' => $isi,
                 ]);
@@ -79,13 +80,15 @@ final class TindakLanjutPengaduan
             throw new RuntimeException($alasan);
         }
 
-        // Unit yang sudah memberi jawaban ditandai menunggu investigasi lagi,
-        // supaya kembalinya tidak terlihat sebagai pekerjaan yang belum dimulai.
-        $pengaduan->masterUnit?->update([
-            'disposisi' => DisposisiUnit::MenungguInvestigasi,
-        ]);
+        DB::transaction(function () use ($pengaduan, $catatan, $adminId): void {
+            // Unit yang sudah memberi jawaban ditandai menunggu investigasi lagi,
+            // supaya kembalinya tidak terlihat sebagai pekerjaan yang belum dimulai.
+            $pengaduan->masterUnit?->update([
+                'disposisi' => DisposisiUnit::MenungguInvestigasi,
+            ]);
 
-        $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
+            $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
+        });
 
         self::segarkanStatistik();
     }
@@ -231,6 +234,41 @@ final class TindakLanjutPengaduan
         array $berkas = [],
     ): void {
         $pengaduan->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_PELAPOR,
+            'peran' => 'admin',
+            'isi' => $isi,
+            'lampiran' => PesanPengaduan::simpanBerkas($berkas),
+        ]);
+
+        self::segarkanStatistik();
+    }
+
+    /**
+     * Kirim satu pesan admin humas ke kanal koordinasi unit.
+     *
+     * Berbeda dari balasPelapor(), pesan ini duduk pada jalur 'unit' sehingga
+     * tidak pernah tampil di halaman lacak pelapor. Jalurnya sendiri sama seperti
+     * jawaban PIC unit, jadi obrolan antara humas dan unit terbaca sebagai satu
+     * percakapan dua arah, bukan dua SALURAN terpisah.
+     *
+     * Tahap tiket sengaja tidak diubah; pesan ini hanya koordinasi kerja, bukan
+     * keputusan alur pengaduan.
+     *
+     * @param  array<int, UploadedFile|null>  $berkas
+     *
+     * @throws RuntimeException bila tiket belum ditugaskan ke unit mana pun
+     */
+    public static function koordinasiUnit(
+        Pengaduan $pengaduan,
+        string $isi,
+        array $berkas = [],
+    ): void {
+        if ($pengaduan->master_unit_id === null) {
+            throw new RuntimeException('Tiket ini belum ditugaskan ke unit sehingga tidak ada kanal koordinasi unit.');
+        }
+
+        $pengaduan->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_UNIT,
             'peran' => 'admin',
             'isi' => $isi,
             'lampiran' => PesanPengaduan::simpanBerkas($berkas),

@@ -103,7 +103,19 @@ final class Sla
      */
     public static function target(CarbonInterface $mulai, bool $kasusBerat = false): CarbonInterface
     {
-        return $mulai->copy()->addWeekdays(self::totalHariKerja($kasusBerat) - 1);
+        // addWeekdays tidak senapas dengan diffInWeekdays untuk tanggal mulai
+        // akhir pekan: dari Sabtu, addWeekdays sudah menghitung Senin berikutnya
+        // sebagai minggu kerja pertama, padahal diffInWeekdays masih mencatat nol.
+        // Karena semua tampilan "Hari ke-N" memakai diffInWeekdays, target ikut
+        // dihitung dari hari kerja pertamanya supaya keduanya tidak berselisih
+        // satu hari kerja untuk tiket yang masuk Sabtu atau Minggu.
+        $awal = $mulai->copy();
+
+        if ($awal->isWeekend()) {
+            $awal->nextWeekday();
+        }
+
+        return $awal->addWeekdays(self::totalHariKerja($kasusBerat) - 1);
     }
 
     /**

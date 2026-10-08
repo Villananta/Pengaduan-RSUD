@@ -7,6 +7,7 @@ use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use App\Support\DaftarPengaduan;
 use App\Support\DetailPengaduan;
 use App\Support\PengaduanMasuk;
@@ -83,6 +84,7 @@ class PengaduanController extends Controller
         // lewat halaman lacak begitu kode tiket dan NRM-nya diberikan.
         // Perannya 'pembuka' supaya tidak terhitung sebagai balasan unit.
         $pengaduan->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_PELAPOR,
             'peran' => 'pembuka',
             'isi' => PengaduanMasuk::pesanPembuka($pengaduan, $kanal, $request->user()?->name),
         ]);
@@ -255,6 +257,46 @@ class PengaduanController extends Controller
         );
 
         return $this->kembali($pengaduan, 'Balasan terkirim ke pelapor.');
+    }
+
+    /**
+     * Kirim pesan admin humas ke kanal koordinasi unit.
+     *
+     * Obrolan ini tidak mengubah tahap tiket dan tidak terlihat oleh pelapor;
+     * tujuannya hanya menjadi pengganti form jawaban unit yang dulu satu
+     * pintu, supaya humas bisa membalas PIC unit dari halaman yang sama.
+     */
+    public function koordinasi(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'isi' => ['required', 'string', 'max:2000'],
+            'lampiran' => ['nullable', 'array', 'max:5'],
+            'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+        ], [
+            'isi.required' => 'Tuliskan pesan koordinasi lebih dulu sebelum dikirim.',
+            'isi.max' => 'Pesan koordinasi maksimal 2000 karakter.',
+            'lampiran.max' => 'Maksimal 5 lampiran per pesan.',
+            'lampiran.*.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
+            'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 4 MB.',
+        ]);
+
+        try {
+            TindakLanjutPengaduan::koordinasiUnit(
+                $pengaduan,
+                $validated['isi'],
+                $request->file('lampiran', []) ?? [],
+            );
+        } catch (RuntimeException $alasan) {
+            // Tiket tanpa unit memang tidak punya kanal koordinasi, jadi
+            // penolakannya ditulis ke folder isi agar muncul di atas form.
+            throw ValidationException::withMessages([
+                'isi' => $alasan->getMessage(),
+            ]);
+        }
+
+        return $this->kembali($pengaduan, 'Pesan koordinasi terkirim ke unit.');
     }
 
     /** Nyalakan atau matikan penandaan kasus berat beserta ekstensi SLA-nya. */

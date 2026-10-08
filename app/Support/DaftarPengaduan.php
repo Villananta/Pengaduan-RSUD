@@ -100,10 +100,19 @@ final class DaftarPengaduan
             ->when($unit !== null, fn (Builder $q): Builder => $q->where('master_unit_id', $unit->id))
             ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value));
 
+        // Hitungan per tahap digabung dalam satu query group-by, bukan lima
+        // query count terpisah. Total dihitung sendiri (bukan dijumlah dari
+        // grup) supaya angka "semua" tetap memperhitungkan baris yang statusnya
+        // tidak dikenal enum, sama seperti sebelum digabung.
         $jumlahTahap = ['semua' => $dasar()->count()];
 
+        $perStatus = $dasar()
+            ->selectRaw('status, count(*) as jumlah')
+            ->groupBy('status')
+            ->pluck('jumlah', 'status');
+
         foreach (StatusPengaduan::cases() as $tahap) {
-            $jumlahTahap[$tahap->value] = $dasar()->where('status', $tahap->value)->count();
+            $jumlahTahap[$tahap->value] = (int) ($perStatus[$tahap->value] ?? 0);
         }
 
         $jumlahInvestigasi = [];
@@ -408,7 +417,7 @@ final class DaftarPengaduan
         }
 
         $aksi[] = [
-            'label' => $pengaduan->status->perluAksi() ? 'Buka Detail' : 'Buka Detail',
+            'label' => 'Buka Detail',
             'ikon' => 'visibility',
             'nada' => 'bg-primary-container text-on-primary',
             'url' => route($this->ruteTiket, $this->parameterRute + ['kode' => $pengaduan->kode_tiket]),

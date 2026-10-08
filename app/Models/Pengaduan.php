@@ -237,12 +237,21 @@ class Pengaduan extends Model
         }
 
         $sisa = $this->sisaHariSla();
+        $target = $this->targetSla()->format('d M Y');
 
-        if ($sisa > 0) {
-            return 'Sisa '.$sisa.' hari kerja, target '.$this->targetSla()->format('d M Y');
+        // Sisa hari nol tidak otomatis berarti lewat: di hari terakhir yang
+        // masih tepat waktu sisa juga nol. Penentu terlambatnya adalah zona
+        // SLA, jadi kalimat "melewati target" hanya muncul setelah zona benar
+        // benar Terlambat, bukan pada hari terakhir sebelum deadline.
+        if ($this->zonaSla() === ZonaSla::Terlambat) {
+            return 'Melewati target SLA '.$this->totalHariKerjaSla().' hari kerja';
         }
 
-        return 'Melewati target SLA '.$this->totalHariKerjaSla().' hari kerja';
+        if ($sisa === 0) {
+            return 'Tenggat penyelesaian hari ini, target '.$target;
+        }
+
+        return 'Sisa '.$sisa.' hari kerja, target '.$target;
     }
 
     /** Total hari kerja SLA tiket ini, termasuk tambahan kasus berat. */
