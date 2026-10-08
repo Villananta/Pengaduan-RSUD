@@ -13,7 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Aplikasi berjalan di belakang proxy Railway yang memutus HTTPS di
+        // edge. Tanpa kepercayaan ini, Laravel menganggap koneksi sebagai
+        // HTTP biasa dan membangun tautan aset ber-schema http, sehingga
+        // browser memblokir CSS/JS saat halaman dibuka lewat https.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
