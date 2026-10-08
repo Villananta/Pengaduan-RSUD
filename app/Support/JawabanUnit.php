@@ -6,6 +6,7 @@ use App\Enums\DisposisiUnit;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -32,7 +33,7 @@ final class JawabanUnit
      * pengaduan; unit hanya menyerahkan jawaban, dan penutupan tetap ada di
      * tangan humas lewat aksi yang sudah ada.
      *
-     * @param  array<int, \Illuminate\Http\UploadedFile|null>  $berkas
+     * @param  array<int, UploadedFile|null>  $berkas
      *
      * @throws RuntimeException bila tiket sudah selesai sehingga tidak lagi menerima jawaban
      */

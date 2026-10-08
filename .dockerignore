@@ -1,0 +1,26 @@
+# Kontrol versi
+.git
+.idea
+.vscode
+
+# Konfigurasi lingkungan disuntik Railway via env vars, tidak usah ikut.
+.env
+.env.*
+!.env.example
+
+# Dependensi lokal yang justru dibangun di dalam image.
+vendor
+node_modules
+
+# Aset hasil build dibuat pada tahap frontend di Dockerfile; build lokal
+# yang basi tidak boleh menimpa hasil itu.
+public/build
+public/hot
+
+# Database lokal dan log tidak relevan di container.
+database/database.sqlite
+*.sqlite
+storage/logs/*.log
+
+# Ujian dan perangkat pengembangan tidak masuk ke image runtime.
+tests

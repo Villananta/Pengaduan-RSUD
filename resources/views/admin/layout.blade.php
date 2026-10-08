@@ -108,9 +108,7 @@
                             @if ($aktif) aria-current="page" @endif
                         >{{ $item['label'] }}</a>
                     @elseif ($item['pola'] ?? false)
-                        {{-- Menu tanpa halaman indeks. Tidak diklik karena tidak
-                             ada tujuan yang boleh ditautkan, tapi tampil normal
-                             supaya tidak terbaca sebagai fitur yang belum ada. --}}
+                       
                         <span
                             @class([
                                 'flex items-center rounded-full px-3 py-1.5 font-title-sm text-title-sm font-semibold',
