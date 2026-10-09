@@ -31,7 +31,7 @@
                         Input Aduan dari Kanal Non-Web
                     </h1>
                     <p class="font-body-md text-body-md text-on-surface-variant">
-                        Isi formulir ini dengan data yang sudah dikonfirmasi langsung dari pelapor. Tiket baru dibuat dengan nomor resmi dan bisa dilacak pelapor begitu kode tiket dan NRM-nya diberikan.
+                        Isi formulir ini dengan data yang sudah dikonfirmasi langsung dari pelapor. Tiket baru dibuat dengan nomor resmi dan bisa dilacak pelapor begitu kode tiketnya diberikan.
                     </p>
                 </div>
             </div>
@@ -197,11 +197,10 @@
                             required
                             class="{{ $input }}"
                         >
-                        {{-- NRM dipakai sebagai kunci verifikasi pelapor saat melacak
-                             tiket, jadi keliru di sini berarti pelapor tidak akan
-                             pernah bisa membaca tiketnya sendiri. --}}
+                        {{-- NRM tetap jadi data rekam medis pelapor, tetapi
+                             bukan lagi kunci verifikasi saat melacak tiket. --}}
                         <span class="{{ $bantuan }}">
-                            Wajib dicatat sesuai kartu berobat. NRM ini yang dipakai pelapor untuk memverifikasi tiketnya.
+                            Wajib dicatat sesuai kartu berobat. Pelapor tidak lagi memakai NRM untuk membuka tiketnya.
                         </span>
                         @error('nrm')<span class="{{ $galat }}">{{ $message }}</span>@enderror
                     </div>

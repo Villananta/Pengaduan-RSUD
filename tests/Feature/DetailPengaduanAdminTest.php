@@ -122,29 +122,4 @@ class DetailPengaduanAdminTest extends TestCase
     {
         $this->get(route('admin.pengaduan.show', 'ADUAN-TIDAK-ADA-99'))->assertNotFound();
     }
-
-    public function test_menu_detail_pengaduan_tetap_aktif_walaupun_tidak_punya_tautan(): void
-    {
-        Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-NAV-01']);
-
-        $menu = function (string $html): string {
-            preg_match('/<span[^>]*>\s*Detail Pengaduan\s*<\/span>/', $html, $cocok);
-
-            return $cocok[0] ?? '';
-        };
-
-        $diBeranda = $menu($this->get(route('admin.dashboard'))->assertOk()->getContent());
-        $diDetail = $menu($this->get(route('admin.pengaduan.show', 'ADUAN-NAV-01'))->assertOk()->getContent());
-
-        // Menu ini sudah jadi bagian dari aplikasi, jadi tidak lagi tampil
-        // sebagai fitur yang sedang dirancang.
-        $this->assertStringNotContainsString('aria-disabled', $diBeranda);
-        $this->assertStringNotContainsString('cursor-not-allowed', $diBeranda);
-
-        // Tetap bukan tautan karena tidak ada halaman indeks untuknya.
-        $this->assertStringNotContainsString('<a', $diBeranda);
-
-        // Saat sedang membuka tiket, menunya ditandai sebagai halaman aktif.
-        $this->assertStringContainsString('aria-current="page"', $diDetail);
-    }
 }

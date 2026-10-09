@@ -30,7 +30,7 @@
         </div>
     @endif
 
-    <!-- Pencarian Tiket: kode dan NRM wajib agar data pribadi tidak terbuka -->
+    <!-- Pencarian Tiket: kode tiket wajib agar data pribadi tidak terbuka -->
     <section class="w-full bg-brand-section px-8 py-10">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <nav class="flex items-center gap-2 text-xs text-ink-muted">
@@ -49,13 +49,13 @@
                 <div>
                     <h1 class="text-2xl font-semibold leading-8 text-ink">Lacak Status Pengaduan</h1>
                     <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">
-                        Masukkan kode tiket dan nomor rekam medis Anda untuk melihat kronologi dan jawaban dari tim pengaduan RSUD.
+                        Masukkan kode tiket pengaduan Anda untuk melihat kronologi dan jawaban dari tim pengaduan RSUD.
                     </p>
                 </div>
                 <span class="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-800">Data Terverifikasi</span>
             </div>
 
-            {{-- Verifikasi dikirim lewat POST agar NRM tidak pernah muncul di URL --}}
+            {{-- Verifikasi dikirim lewat POST agar kode tiket tidak pernah muncul di URL --}}
             <form method="POST" action="{{ route('pengaduan.verifikasi') }}" class="mt-5 flex flex-col gap-3 sm:flex-row">
                 @csrf
                 <div class="flex-1">
@@ -71,25 +71,13 @@
                         class="w-full rounded-xl border border-brand-200 bg-brand-light px-4 py-3 text-sm text-ink placeholder-placeholder focus:border-brand-600 focus:outline-none"
                     >
                 </div>
-                <div class="flex-1">
-                    <label for="nrm" class="sr-only">Nomor Rekam Medis</label>
-                    <input
-                        id="nrm"
-                        type="password"
-                        name="nrm"
-                        placeholder="Nomor Rekam Medis"
-                        autocomplete="off"
-                        required
-                        class="w-full rounded-xl border border-brand-200 bg-brand-light px-4 py-3 text-sm text-ink placeholder-placeholder focus:border-brand-600 focus:outline-none"
-                    >
-                </div>
                 <button type="submit" class="rounded-full bg-brand-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700">
                     Cek Status Sekarang
                 </button>
             </form>
 
             <p class="mt-3 text-xs text-ink-muted">
-                Kode tiket dan NRM tersedia pada halaman konfirmasi pengajuan. Keduanya dipakai bersama karena data rekam medis tidak boleh dibuka hanya dengan kode tiket. NRM dikirim secara aman dan tidak disimpan di alamat halaman.
+                Kode tiket tersedia pada halaman konfirmasi pengajuan. Kode ini satu-satunya kunci untuk membuka detail pengaduan, jadi simpan dan jangan bagikan kepada siapa pun.
             </p>
         </div>
     </section>
@@ -521,68 +509,28 @@
                             </div>
                         </form>
                         <!-- End of Form Balasan Pelapor -->
-
-                        <!-- Catatan Disposisi Struktural Terbuka -->
-                        <div class="flex flex-col gap-1 pt-1">
-                            <p class="text-[11px] font-bold uppercase tracking-[0.55px] text-brand-600">Catatan Disposisi Struktural Terbuka</p>
-
-                            <div class="flex flex-wrap justify-center gap-1">
-                                <div class="flex min-w-[248px] flex-1 flex-col gap-0.5 rounded-lg bg-brand-50 p-2">
-                                    <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $tiket->created_at->format('d M Y, H:i') }}</span>
-                                    <span class="pt-0.5 text-xs font-bold tracking-[0.24px] text-ink">Disposisi Kepala Humas</span>
-                                    <span class="text-[13px] leading-[18px] text-brand-600">Diteruskan ke Tim Humas</span>
-                                </div>
-
-                                <div class="flex min-w-[248px] flex-1 flex-col gap-0.5 rounded-lg bg-brand-50 p-2">
-                                    <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $tiket->updated_at->format('d M Y, H:i') }}</span>
-                                    <span class="pt-0.5 text-xs font-bold tracking-[0.24px] text-ink">Tindak Lanjut</span>
-                                    <span class="text-[13px] leading-[18px] text-brand-600">Status terakhir: {{ $tiket->status->label() }}</span>
-                                </div>
-
-                                <div class="flex min-w-[248px] flex-1 flex-col gap-0.5 rounded-lg bg-brand-50 p-2">
-                                    <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Status SLA</span>
-                                    <span class="pt-0.5 text-xs font-bold tracking-[0.24px]">
-                                        <span @class(['rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.33px]', $tiket->zonaSla()->badge()])>{{ $tiket->zonaSla()->label() }}</span>
-                                    </span>
-                                    <span class="text-[13px] leading-[18px] text-brand-600">
-                                        @if ($tiket->status->selesai())
-                                            Ditutup pada {{ $tiket->selesai_at?->format('d M Y') }}
-                                        @elseif ($tiket->sisaHariSla() > 0)
-                                            Sisa {{ $tiket->sisaHariSla() }} hari kerja, target {{ $tiket->targetSla()->format('d M Y') }}
-                                        @else
-                                            Lewat target {{ $tiket->targetSla()->format('d M Y') }}
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- End of Catatan Disposisi Struktural Terbuka -->
                     </div>
                     <!-- End of Riwayat Tanggapan Dua Arah -->
                 @else
-                    {{-- Tiket hanya tampil bila kode dan NRM sama-sama cocok --}}
+                    {{-- Tiket hanya tampil bila kode tiket sudah diverifikasi --}}
                     <div class="rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                         <h3 class="text-lg font-semibold text-ink">
                             @if ($errors->has('kode'))
                                 Tiket Tidak Ditemukan
                             @else
-                                Lengkapi Kode Tiket dan NRM
+                                Lengkapi Kode Tiket
                             @endif
                         </h3>
                         <p class="mt-1 text-[13px] leading-[18px] text-ink-muted">
                             @if ($errors->has('kode'))
-                                Kode tiket atau nomor rekam medis tidak sesuai dengan data kami. Karena keduanya wajib, data pengaduan orang lain tidak dapat dibuka dari halaman ini.
+                                Kode tiket tidak sesuai dengan data kami. Pastikan kode diketik dengan benar.
                             @else
-                                Isi kolom kode tiket dan nomor rekam medis di atas. Data pribadi pengaduan hanya ditampilkan bila keduanya cocok dengan data kami.
+                                Isi kolom kode tiket di atas untuk membuka detail pengaduan Anda.
                             @endif
                         </p>
                     </div>
-                    <!-- End of Tiket Tidak Cocok -->
                 @endif
             </div>
-            <!-- End of Kolom Detail Tiket -->
-
-            {{-- Panel pendukung masih kosong, tidak ada isi yang bisa ditampilkan. --}}
         </div>
     </section>
     <!-- End of Isi Detail Tiket -->

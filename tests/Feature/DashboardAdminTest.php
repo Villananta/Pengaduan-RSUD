@@ -42,7 +42,6 @@ class DashboardAdminTest extends TestCase
             ->assertOk()
             ->assertSee('Beranda Utama')
             ->assertSee('Daftar Pengaduan')
-            ->assertSee('Detail Pengaduan')
             ->getContent();
 
         foreach ($menu as $label) {

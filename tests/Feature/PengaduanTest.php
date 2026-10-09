@@ -44,7 +44,6 @@ class PengaduanTest extends TestCase
     {
         $this->post(route('pengaduan.verifikasi'), [
             'kode' => $pengaduan->kode_tiket,
-            'nrm' => $pengaduan->nrm,
         ])->assertRedirect(route('pengaduan.lacak'));
     }
 
@@ -240,11 +239,11 @@ class PengaduanTest extends TestCase
         $this->get(route('pengaduan.lacak'))
             ->assertOk()
             ->assertSee('Lacak Status Pengaduan')
-            ->assertSee('Lengkapi Kode Tiket dan NRM')
+            ->assertSee('Lengkapi Kode Tiket')
             ->assertDontSee('Prosedur & SLA 12 Hari Kerja');
     }
 
-    public function test_rincian_tiket_hanya_terbuka_bila_nrm_cocok(): void
+    public function test_rincian_tiket_hanya_terbuka_bila_kode_cocok(): void
     {
         $pengaduan = Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-20260925-NRMM1',
@@ -254,16 +253,15 @@ class PengaduanTest extends TestCase
             'status' => StatusPengaduan::Revisi,
         ]);
 
-        // Kode saja tidak cukup.
+        // Tanpa verifikasi, kode yang dipasang di URL tetap tidak cukup.
         $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
             ->assertOk()
             ->assertDontSee('Siti Aminah')
             ->assertDontSee('99-88-77-66');
 
-        // NRM salah tetap ditolak.
+        // Kode salah tetap ditolak.
         $this->post(route('pengaduan.verifikasi'), [
-            'kode' => $pengaduan->kode_tiket,
-            'nrm' => '11-11-11-11',
+            'kode' => 'ADUAN-20260925-SALAH',
         ])->assertRedirect(route('pengaduan.lacak'));
 
         $this->get(route('pengaduan.lacak'))
@@ -272,10 +270,9 @@ class PengaduanTest extends TestCase
             ->assertSee('tidak sesuai dengan data kami')
             ->assertDontSee('Siti Aminah');
 
-        // Kode + NRM benar membuka rincian.
+        // Kode benar membuka rincian.
         $this->post(route('pengaduan.verifikasi'), [
             'kode' => $pengaduan->kode_tiket,
-            'nrm' => '99887766',
         ])->assertRedirect(route('pengaduan.lacak'))->assertSessionHasNoErrors();
 
         $this->get(route('pengaduan.lacak'))->assertOk()
@@ -286,7 +283,7 @@ class PengaduanTest extends TestCase
             ->assertSee('Tindakan Diperlukan: Unggah Bukti Tambahan');
     }
 
-    public function test_nrm_tidak_pernah_muncul_di_url(): void
+    public function test_kode_tiket_tidak_pernah_muncul_di_url(): void
     {
         $pengaduan = Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-20260925-URLAMAN',
@@ -295,15 +292,14 @@ class PengaduanTest extends TestCase
 
         $respons = $this->post(route('pengaduan.verifikasi'), [
             'kode' => $pengaduan->kode_tiket,
-            'nrm' => '99-88-77-66',
         ]);
 
         $respons->assertRedirect(route('pengaduan.lacak'));
-        $this->assertStringNotContainsString('nrm', $respons->headers->get('Location'));
-        $this->assertStringNotContainsString('99-88-77-66', $respons->headers->get('Location'));
+        $this->assertStringNotContainsString('kode=', $respons->headers->get('Location'));
+        $this->assertStringNotContainsString('ADUAN-20260925', $respons->headers->get('Location'));
 
         $halaman = $this->get(route('pengaduan.lacak'));
-        $this->assertStringNotContainsString('nrm=', $halaman->headers->get('Location') ?? '');
+        $this->assertStringNotContainsString('kode=', $halaman->headers->get('Location') ?? '');
     }
 
     public function test_lacak_tiket_menampilkan_detail(): void
@@ -365,7 +361,7 @@ class PengaduanTest extends TestCase
         $this->assertSame(StatusPengaduan::Diterima, $pengaduan->fresh()->status);
     }
 
-    public function test_pesan_hanya_bisa_dikirim_setelah_nrm_diverifikasi(): void
+    public function test_pesan_hanya_bisa_dikirim_setelah_kode_diverifikasi(): void
     {
         $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-20260925-GATE1']);
 
@@ -585,14 +581,13 @@ class PengaduanTest extends TestCase
 
         $this->get(route('pengaduan.lacak'))
             ->assertOk()
-            ->assertSee('Lengkapi Kode Tiket dan NRM')
+            ->assertSee('Lengkapi Kode Tiket')
             ->assertDontSee($pengaduan->kode_tiket)
             ->assertDontSee($pengaduan->subjek)
             ->assertDontSee($pengaduan->nama_lengkap);
 
         $this->post(route('pengaduan.verifikasi'), [
             'kode' => 'ADUAN-20260925-SALAH',
-            'nrm' => '0000',
         ])->assertRedirect(route('pengaduan.lacak'));
 
         $this->get(route('pengaduan.lacak'))
@@ -619,13 +614,11 @@ class PengaduanTest extends TestCase
         for ($i = 0; $i < 10; $i++) {
             $this->post(route('pengaduan.verifikasi'), [
                 'kode' => 'ADUAN-20260925-XXXXX',
-                'nrm' => '0000',
             ]);
         }
 
         $this->post(route('pengaduan.verifikasi'), [
             'kode' => 'ADUAN-20260925-XXXXX',
-            'nrm' => '0000',
         ])->assertStatus(429);
     }
 }

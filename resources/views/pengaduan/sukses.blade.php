@@ -25,7 +25,7 @@
         </span>
 
         <h1 class="mt-3 text-[32px] font-bold leading-10 tracking-[-0.8px] text-ink">Terima kasih, aduan Anda telah kami terima.</h1>
-        <p class="mt-2 max-w-[520px] text-base leading-[26px] text-ink-muted">Pengaduan Anda sudah tercatat resmi dan akan diverifikasi oleh Tim Pengaduan. Simpan kode tiket dan nomor rekam medis Anda untuk memantau progres, karena keduanya dibutuhkan untuk membuka halaman lacak.</p>
+        <p class="mt-2 max-w-[520px] text-base leading-[26px] text-ink-muted">Pengaduan Anda sudah tercatat resmi dan akan diverifikasi oleh Tim Pengaduan. Simpan kode tiket Anda baik-baik, karena kode inilah yang dibutuhkan untuk membuka halaman lacak.</p>
 
         <!-- Nomor Tiket dan Posisi SLA -->
         <div class="mt-6 w-full rounded-xl bg-brand-light p-5">

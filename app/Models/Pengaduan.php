@@ -286,12 +286,4 @@ class Pengaduan extends Model
     {
         return strtoupper(preg_replace('/[^0-9A-Z]/', '', (string) $nrm));
     }
-
-    /** True bila NRM yang diberikan pelapor cocok dengan data pengaduan. */
-    public function nrmCocok(?string $nrm): bool
-    {
-        $dimasukkan = self::normalisasiNrm($nrm);
-
-        return $dimasukkan !== '' && hash_equals(self::normalisasiNrm($this->nrm), $dimasukkan);
-    }
 }

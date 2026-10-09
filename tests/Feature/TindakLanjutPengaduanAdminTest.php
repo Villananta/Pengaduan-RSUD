@@ -587,12 +587,11 @@ class TindakLanjutPengaduanAdminTest extends TestCase
             ->create(['kode_tiket' => $kode]);
     }
 
-    /** Verifikasi NRM seperti langkah pelapor supaya sesi boleh mengirim pesan. */
+    /** Verifikasi kode tiket seperti langkah pelapor supaya sesi boleh mengirim pesan. */
     private function verifikasiPelapor(Pengaduan $pengaduan): void
     {
         $this->post(route('pengaduan.verifikasi'), [
             'kode' => $pengaduan->kode_tiket,
-            'nrm' => $pengaduan->nrm,
         ])->assertRedirect(route('pengaduan.lacak'));
     }
 }

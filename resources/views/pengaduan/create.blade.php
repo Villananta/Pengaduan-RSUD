@@ -52,9 +52,6 @@
                 <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" id="form-aduan" class="flex flex-col gap-8 rounded-2xl bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     @csrf
 
-                    <!-- Form Header -->
-                    
-
                     <!-- Step 1: Pilihan Kategori -->
                     <div class="flex flex-col gap-3">
                         <div class="flex items-center gap-2">

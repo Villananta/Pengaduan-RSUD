@@ -56,11 +56,10 @@ class PengaduanController extends Controller
         StatistikDashboard::lupaCache();
         StatistikPengaduan::lupaCache();
 
-        // Pelapor baru saja membuktikan kepemilikan NRM, jadi tiketnya
-        // langsung ditandai terverifikasi tanpa perlu mengetik ulang.
+        // Pelapor baru saja membuat tiketnya sendiri, jadi tiketnya langsung
+        // ditandai terverifikasi tanpa perlu mengetik kode tiket ulang.
         $request->session()->put(self::SESI_TERVERIFIKASI, [
             'kode' => $pengaduan->kode_tiket,
-            'nrm' => $pengaduan->nrm,
         ]);
 
         return redirect()->route('pengaduan.sukses', $pengaduan->kode_tiket);
@@ -76,32 +75,30 @@ class PengaduanController extends Controller
     /**
      * Verifikasi kepemilikan tiket.
      *
-     * NRM sengaja dikirim lewat POST, bukan query string, supaya tidak
-     * tersimpan di riwayat browser, log server, maupun header referer.
-     * Hasil verifikasi disimpan di session, bukan di URL.
+     * Kode tiket sengaja dikirim lewat POST, bukan query string, supaya
+     * tidak tersimpan di riwayat browser, log server, maupun header
+     * referer. Hasil verifikasi disimpan di session, bukan di URL.
      */
     public function verifikasi(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'kode' => ['required', 'string', 'max:64'],
-            'nrm' => ['required', 'string', 'min:4', 'max:64'],
         ]);
 
         $kode = strtoupper(trim($validated['kode']));
         $kandidat = Pengaduan::where('kode_tiket', $kode)->first();
 
-        if (! $kandidat || ! $kandidat->nrmCocok($validated['nrm'])) {
+        if (! $kandidat) {
             $request->session()->forget(self::SESI_TERVERIFIKASI);
 
             return redirect()
                 ->route('pengaduan.lacak')
-                ->withErrors(['kode' => 'Kode tiket atau NRM tidak cocok dengan data yang kami simpan.'])
+                ->withErrors(['kode' => 'Kode tiket tidak sesuai dengan data kami. Pastikan kode diketik dengan benar.'])
                 ->withInput(['kode' => $kode]);
         }
 
         $request->session()->put(self::SESI_TERVERIFIKASI, [
             'kode' => $kandidat->kode_tiket,
-            'nrm' => $kandidat->nrm,
         ]);
 
         return redirect()->route('pengaduan.lacak');
@@ -111,8 +108,8 @@ class PengaduanController extends Controller
      * Lacak tiket.
      *
      * Rincian tiket yang memuat data pribadi hanya dibuka untuk sesi yang
-     * sudah memverifikasi kode tiket dan NRM, sehingga data pasien lain
-     * tidak bisa dibaca hanya dengan mencoba-tebak kode acak.
+     * sudah memverifikasi kode tiket, sehingga data pasien lain tidak bisa
+     * dibaca hanya dengan mencoba-tebak kode acak.
      */
     public function lacak(Request $request): View
     {
@@ -147,13 +144,13 @@ class PengaduanController extends Controller
     {
         $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
 
-        // Balasan hanya boleh dikirim dari sesi yang sudah memverifikasi NRM.
+        // Balasan hanya boleh dikirim dari sesi yang sudah memverifikasi kode tiket.
         $terverifikasi = $request->session()->get(self::SESI_TERVERIFIKASI, []);
 
         if (($terverifikasi['kode'] ?? null) !== $pengaduan->kode_tiket) {
             return redirect()
                 ->route('pengaduan.lacak')
-                ->withErrors(['kode' => 'Verifikasi kode tiket dan NRM terlebih dahulu sebelum mengirim pesan.']);
+                ->withErrors(['kode' => 'Verifikasi kode tiket terlebih dahulu sebelum mengirim pesan.']);
         }
 
         $validated = $request->validate([

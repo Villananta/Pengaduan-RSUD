@@ -105,22 +105,21 @@ class InputAduanAdminTest extends TestCase
         $this->assertStringContainsString($pengaduan->kode_tiket, $pesan->isi);
     }
 
-    public function test_tiket_dari_admin_bisa_dilacak_pelapor_lewat_nrm(): void
+    public function test_tiket_dari_admin_bisa_dilacak_pelapor_lewat_kode(): void
     {
         $this->post(route('admin.pengaduan.store'), $this->form());
 
         $pengaduan = Pengaduan::first();
 
         // Admin yang membuat tiket tidak punya sesi verifikasi pelapor,
-        // jadi halaman lacak tetap harus menolak sampai NRM dicocokkan.
+        // jadi halaman lacak tetap harus menolak sampai kode tiket dicocokkan.
         $this->get(route('pengaduan.lacak', ['kode' => $pengaduan->kode_tiket]))
             ->assertOk()
-            ->assertSee('Lengkapi Kode Tiket dan NRM')
+            ->assertSee('Lengkapi Kode Tiket')
             ->assertDontSee($pengaduan->subjek);
 
         $this->post(route('pengaduan.verifikasi'), [
             'kode' => $pengaduan->kode_tiket,
-            'nrm' => $pengaduan->nrm,
         ])->assertRedirect(route('pengaduan.lacak'));
 
         $this->get(route('pengaduan.lacak'))
