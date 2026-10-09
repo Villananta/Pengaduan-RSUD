@@ -217,8 +217,8 @@ class DaftarPengaduanAdminTest extends TestCase
             ->getContent();
 
         // Halaman detail sudah ada, jadi "Buka Detail" boleh tautan.
-        // Nudging dan penentuan penanganan belum dibangun, jadi sisanya
-        // tetap tombol mati dan tidak boleh muncul tautan palsu.
+        // Nudging belum dibangun, jadi sisanya tetap tombol mati dan tidak
+        // boleh muncul tautan palsu.
         $this->assertStringContainsString(
             'href="'.route('admin.pengaduan.show', 'ADUAN-AKSI-01').'"',
             $tampilan

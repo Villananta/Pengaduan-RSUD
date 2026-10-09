@@ -265,7 +265,7 @@
                 <div class="flex items-center gap-space-sm">
                     <span class="hidden xl:flex items-center gap-1.5 text-on-surface-variant bg-surface-container-lowest px-2 py-0.5 rounded border border-outline-variant/20">
                         <x-symbol nama="notifications_active" class="text-[14px] text-secondary" />
-                        Lonceng = eskalasi manual di luar pengingat hari ke-{{ $ringkas['hari_investigasi'] }}
+                        Lonceng = nudge manual ke unit di luar pengingat hari ke-{{ $ringkas['hari_investigasi'] }}
                     </span>
                     <span>
                         Menampilkan <strong class="text-on-surface">{{ $tabel->count() }} dari {{ $ringkas['aktif'] }}</strong> tiket aktif

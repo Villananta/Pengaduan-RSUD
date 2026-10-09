@@ -396,20 +396,9 @@ final class DaftarPengaduan
 
         $aksi = [];
 
-        if ($pengaduan->status->diterima()) {
-            $aksi[] = [
-                'label' => 'Tentukan Penanganan',
-                'ikon' => 'forward_to_inbox',
-                'nada' => 'bg-secondary text-on-secondary',
-                'url' => null,
-            ];
-        }
-
         if (! $pengaduan->status->selesai() && ! $pengaduan->status->perluAksi()) {
             $aksi[] = [
-                'label' => Sla::lewatInvestigasi($pengaduan->created_at)
-                    ? 'Nudge (Eskalasi)'
-                    : 'Nudge Unit',
+                'label' => 'Nudge Unit',
                 'ikon' => 'notifications_active',
                 'nada' => 'bg-surface-container text-on-surface-variant',
                 'url' => null,
