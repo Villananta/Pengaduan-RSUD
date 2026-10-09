@@ -28,22 +28,27 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class MonitorDisposisi
 {
-    /** Jumlah tiket yang ditampilkan pada tiap kolom kanban. */
-    private const KARTU_PER_KOLOM = 2;
+    /**
+     * Jumlah tiket yang tampil langsung pada tiap kolom kanban.
+     *
+     * Sisanya tetap dikirim ke view, tapi disembunyikan sampai petugas
+     * menekan tautan "tiket lainnya" pada kolom itu, sehingga papan tidak
+     * membanjir kartu sekaligus namun tidak ada tiket yang benar-benar
+     * hilang dari pandangan.
+     */
+    private const KARTU_PER_KOLOM = 4;
 
     /**
-     * @param  array<int, array<string, mixed>>  $kartu  Empat kartu angka di bawah banner.
      * @param  array<int, array<string, mixed>>  $papan  Kolom kanban status disposisi unit.
      */
     public function __construct(
-        public readonly array $kartu,
         public readonly array $papan,
         public readonly int $ditugaskan,
         public readonly int $hariInvestigasi,
     ) {}
 
     /**
-     * Susun halaman monitor dari data statistik yang sudah terhitung.
+     * Susun papan monitor.
      *
      * Halaman ini tidak punya filter query sendiri. Semua yang tampil
      * ditentukan oleh status tiket, jadi tidak ada parameter URL yang
@@ -51,11 +56,7 @@ final class MonitorDisposisi
      */
     public static function dariRequest(): self
     {
-        $kritis = StatistikDashboard::ringkasanKritis();
-        $aktif = StatistikDashboard::aktif();
-
         return new self(
-            kartu: self::kartu($kritis, $aktif),
             papan: self::papan(),
             // Angka ini hanya menghitung tiket aktif yang sudah ditautkan ke
             // unit, karena papan kanban ini tidak memuat tiket yang masih
@@ -63,97 +64,6 @@ final class MonitorDisposisi
             ditugaskan: Pengaduan::query()->aktif()->whereNotNull('master_unit_id')->count(),
             hariInvestigasi: Sla::hariInvestigasi(),
         );
-    }
-
-    /**
-     * Empat kartu angka di atas papan kanban.
-     *
-     * Angka diambil dari StatistikDashboard supaya kartu ini sama dengan
-     * yang terlihat di beranda. Nama unit yang disebut pada kartu tiket lewat
-     * batas diambil dari daftar tiket terlambat supaya kartu itu langsung
-     * menunjuk unit yang perlu ditegur, bukan hanya angkanya.
-     *
-     * @param  array<string, mixed>  $kritis  Hasil StatistikDashboard::ringkasanKritis().
-     * @param  int  $aktif  Jumlah pengaduan yang masih berjalan, untuk menghitung porsi tiap kartu.
-     * @return array<int, array<string, mixed>>
-     */
-    private static function kartu(array $kritis, int $aktif): array
-    {
-        $kepatuhan = StatistikDashboard::kepatuhanSlaPersen();
-        $standar = (int) config('pengaduan.kepatuhan_standar_persen', 90);
-        $rataRata = StatistikDashboard::rataRataHariKerja();
-        $terlambat = $kritis['total_lewat'];
-
-        $unitBermasalah = collect($kritis['lewat'])
-            ->pluck('unit')
-            ->unique()
-            ->take(2)
-            ->all();
-
-        return [
-            [
-                'label' => 'Kepatuhan SLA Pengaduan',
-                'ikon' => 'verified',
-                'nilai' => $kepatuhan,
-                'satuan' => '%',
-                'desimal' => 1,
-                'persen' => min(100, $kepatuhan ?? 0),
-                'nadaAngka' => $kepatuhan === null || $kepatuhan < $standar ? 'text-error' : 'text-on-surface',
-                'nadaIkon' => 'bg-surface-container-low text-secondary',
-                'nadaBar' => $kepatuhan === null || $kepatuhan < $standar ? 'bg-error' : 'bg-secondary',
-                'sisi' => match (true) {
-                    $kepatuhan === null => 'Belum ada pengaduan selesai',
-                    $kepatuhan >= $standar => 'Memenuhi ambang Kemenkes',
-                    default => 'Di bawah ambang Kemenkes',
-                },
-                'ket' => 'Ambang Kemenkes &ge; '.$standar.'%, dihitung dari pengaduan yang sudah selesai.',
-            ],
-            [
-                'label' => 'Tiket Lewat Batas Investigasi',
-                'ikon' => 'crisis_alert',
-                'nilai' => $terlambat,
-                'satuan' => 'Tiket',
-                'desimal' => 0,
-                'persen' => $aktif > 0 ? (int) round($terlambat / $aktif * 100) : 0,
-                'nadaAngka' => 'text-error',
-                'nadaIkon' => 'bg-error-container text-on-error-container',
-                'nadaBar' => 'bg-error',
-                'sisi' => $terlambat > 0 ? 'Perlu eskalasi ke pimpinan' : 'Semua unit masih di bawah batas',
-                'ket' => $unitBermasalah === []
-                    ? 'Batas investigasi internal unit '.Sla::hariInvestigasi().' hari kerja.'
-                    : 'Unit bermasalah: '.implode(' dan ', $unitBermasalah).'.',
-            ],
-            [
-                'label' => 'Menunggu Racikan Humas',
-                'ikon' => 'rate_review',
-                'nilai' => $kritis['telaah'],
-                'satuan' => 'Tiket',
-                'desimal' => 0,
-                'persen' => $aktif > 0 ? (int) round($kritis['telaah'] / $aktif * 100) : 0,
-                'nadaAngka' => 'text-on-surface',
-                'nadaIkon' => 'bg-tertiary-fixed text-on-tertiary-fixed',
-                'nadaBar' => 'bg-tertiary-fixed-dim',
-                'sisi' => 'Telaah unit sudah masuk',
-                'ket' => 'Jawaban unit sudah diterima, tinggal diracik menjadi jawaban resmi.',
-            ],
-            [
-                'label' => 'Rata-rata Penyelesaian',
-                'ikon' => 'speed',
-                'nilai' => $rataRata,
-                'satuan' => 'Hari Kerja',
-                'desimal' => 1,
-                'persen' => $rataRata === null || Sla::hariKerja() === 0
-                    ? 0
-                    : (int) round($rataRata / Sla::hariKerja() * 100),
-                'nadaAngka' => 'text-on-surface',
-                'nadaIkon' => 'bg-surface-container-low text-primary-container',
-                'nadaBar' => 'bg-secondary',
-                'sisi' => $rataRata === null
-                    ? 'Belum ada pengaduan selesai'
-                    : 'Batas SLA '.Sla::hariKerja().' hari kerja',
-                'ket' => 'Dihitung dari pengaduan selesai, kasus berat memakai targetnya sendiri.',
-            ],
-        ];
     }
 
     /**
@@ -256,14 +166,12 @@ final class MonitorDisposisi
 
                 unset($data['syarat']);
 
-                $sisa = $daftar->count() - self::KARTU_PER_KOLOM;
-
                 return [
                     ...$data,
                     'total' => $daftar->count(),
-                    'sisa' => max(0, $sisa),
+                    'sisa' => max(0, $daftar->count() - self::KARTU_PER_KOLOM),
+                    'batas' => self::KARTU_PER_KOLOM,
                     'tiket' => $daftar
-                        ->take(self::KARTU_PER_KOLOM)
                         ->map(fn (Pengaduan $pengaduan): array => self::kartuTiket($pengaduan))
                         ->all(),
                 ];
@@ -274,12 +182,18 @@ final class MonitorDisposisi
     /**
      * Satu kartu tiket di dalam kolom kanban.
      *
+     * Kedua tombol di sini menuju halaman yang benar-benar ada. Tautan
+     * "Lihat Tiket Unit" membuka daftar pengaduan yang sudah tersaring ke
+     * unit tiket ini, jadi admin bisa melihat seluruh beban unit tanpa
+     * berpindah-pindah halaman detail.
+     *
      * @return array<string, mixed>
      */
     private static function kartuTiket(Pengaduan $pengaduan): array
     {
         $sudahDibalas = (bool) $pengaduan->sudah_dibalas;
         $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
+        $unit = $pengaduan->masterUnit;
 
         return [
             'kode' => $pengaduan->kode_tiket,
@@ -302,14 +216,12 @@ final class MonitorDisposisi
                     'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
                 ],
                 [
-                    // Nudge unit belum jadi endpoint mana pun. Menampilkan
-                    // tombol yang menggoda tapi tidak pernah menghubungi
-                    // siapa pun membuat admin percaya tiket sudah dikejar,
-                    // jadi tombolnya sengaja dimatikan.
-                    'label' => 'Nudge Unit',
-                    'ikon' => 'notifications_active',
+                    'label' => 'Lihat Tiket Unit',
+                    'ikon' => 'list_alt',
                     'nada' => 'bg-surface-container-high text-on-surface-variant',
-                    'url' => null,
+                    'url' => $unit === null
+                        ? null
+                        : route('admin.pengaduan.index', ['unit' => $unit->kode]),
                 ],
             ],
         ];

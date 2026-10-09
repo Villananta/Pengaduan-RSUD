@@ -18,7 +18,7 @@
             </div>
         @endif
 
-        <!-- Strip Konteks: posisi halaman, aturan status, dan metrik cepat. -->
+        <!-- Strip Konteks: posisi halaman dan aturan tenggat investigasi. -->
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md bg-surface-container-lowest p-space-lg rounded-lg shadow-sm">
             <div class="flex items-start gap-space-md">
                 <span class="w-12 h-12 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shadow-sm shrink-0">
@@ -62,40 +62,10 @@
         </div>
         <!-- End of Strip Konteks -->
 
-        <!-- Empat Kartu Metrik: kepatuhan, tiket lewat, antrean racik, dan kecepatan. -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md">
-            @foreach ($monitor->kartu as $k)
-                <div class="bg-surface-container-lowest p-space-md rounded-lg shadow-sm flex flex-col justify-between gap-space-sm">
-                    <div class="flex items-center justify-between gap-space-sm">
-                        <span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">{{ $k['label'] }}</span>
-                        <span class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $k['nadaIkon'] }}">
-                            <x-symbol :nama="$k['ikon']" class="text-[18px]" />
-                        </span>
-                    </div>
-
-                    <div class="flex items-baseline gap-space-xs">
-                        <span class="font-display-lg text-display-lg font-bold leading-none {{ $k['nadaAngka'] }}">
-                            {{ $k['nilai'] === null ? '—' : number_format($k['nilai'], $k['desimal'], ',', '.') }}
-                        </span>
-                        @if ($k['nilai'] !== null)
-                            <span class="font-title-sm text-title-sm text-on-surface-variant font-medium">{{ $k['satuan'] }}</span>
-                        @endif
-                    </div>
-
-                    <div class="w-full bg-surface-container rounded-full h-1.5 overflow-hidden">
-                        <div class="{{ $k['nadaBar'] }} h-full rounded-full" style="width: {{ $k['persen'] }}%"></div>
-                    </div>
-
-                    <div class="flex flex-col">
-                        <span class="font-label-sm text-label-sm font-semibold text-on-surface-variant">{{ $k['sisi'] }}</span>
-                        <span class="font-body-sm text-body-sm text-outline mt-1">{{ $k['ket'] }}</span>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-        <!-- End of Empat Kartu Metrik -->
-
         <!-- Papan Disposisi: empat kolom status investigasi unit. -->
+        {{-- Kartu metrik sengaja tidak digandakan di sini. Kepatuhan, tiket
+             lewat batas, antrean racik, dan kecepatan sudah tersaji di
+             dasbor utama, jadi angkanya cukup punya satu sumber saja. --}}
         <div class="flex flex-col gap-space-sm">
             <div class="flex items-center justify-between gap-space-sm">
                 <div class="flex items-center gap-space-xs">
@@ -110,7 +80,8 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md items-start">
                 @foreach ($monitor->papan as $kolom)
-                    <div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col gap-space-md h-full">
+                    <div data-monitor-kolom class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col gap-space-md h-full">
+
                         <div class="flex items-center justify-between pb-space-xs {{ $kolom['latar'] }} p-space-sm rounded-lg">
                             <div class="flex items-center gap-space-xs">
                                 <span class="w-3 h-3 rounded-full {{ $kolom['titik'] }}" aria-hidden="true"></span>
@@ -127,8 +98,11 @@
                         </p>
 
                         <div class="flex flex-col gap-space-sm flex-1">
-                            @forelse ($kolom['tiket'] as $tiket)
-                                <div class="p-space-sm rounded-lg bg-surface-container-low shadow-sm flex flex-col gap-space-xs relative overflow-hidden">
+                            @forelse ($kolom['tiket'] as $i => $tiket)
+                                {{-- Kartu di atas batas tetap dirender supaya admin bisa
+                                     membukanya di tempat; class hidden hanya menyembunyikan. --}}
+                                <div class="p-space-sm rounded-lg bg-surface-container-low shadow-sm flex flex-col gap-space-xs relative overflow-hidden {{ $i >= $kolom['batas'] ? 'hidden monitor-ekstra' : '' }}">
+
                                     <div class="absolute left-0 top-0 bottom-0 w-1.5 {{ $tiket['nadaGaris'] }}" aria-hidden="true"></div>
 
                                     <div class="flex items-center justify-between gap-space-sm pl-1">
@@ -162,7 +136,7 @@
                                             @else
                                                 <span
                                                     class="px-2 py-1 rounded text-label-sm font-label-sm font-semibold cursor-not-allowed select-none flex items-center gap-1 {{ $tombol['nada'] }}"
-                                                    title="Belum ada kanal otomatis ke unit, tangani lewat halaman detail tiket"
+                                                    title="Tautan belum tersedia untuk tiket ini"
                                                 >
                                                     <x-symbol :nama="$tombol['ikon']" class="text-[14px]" />
                                                     {{ $tombol['label'] }}
@@ -180,11 +154,16 @@
                             @endforelse
 
                             @if ($kolom['sisa'] > 0)
-                                <p class="text-center py-1 mt-auto">
-                                    <span class="font-body-sm text-body-sm text-outline">
+                                <button
+                                    type="button"
+                                    class="text-center py-1 mt-auto rounded-sm hover:bg-surface-container transition-colors"
+                                    data-monitor-toggle
+                                    aria-expanded="false"
+                                >
+                                    <span class="font-body-sm text-body-sm text-outline monitor-toggle-label">
                                         + {{ number_format($kolom['sisa'], 0, ',', '.') }} Tiket Lainnya pada Kolom Ini
                                     </span>
-                                </p>
+                                </button>
                             @endif
                         </div>
                     </div>
@@ -196,3 +175,27 @@
     </div>
 
 @endsection
+
+{{-- Penanda kolom yang menyembunyikan tiket sisanya sampai admin menekan
+     "+ N Tiket Lainnya". Tiap tombol hanya membuka kolomnya sendiri supaya
+     satu kolom panjang tidak ikut memanjangkan kolom lain. --}}
+@push('scripts')
+    <script>
+        document.querySelectorAll('[data-monitor-toggle]').forEach(function (tombol) {
+            var kolom = tombol.closest('[data-monitor-kolom]');
+            var label = tombol.querySelector('.monitor-toggle-label');
+            var teksBuka = label.textContent.trim();
+
+            tombol.addEventListener('click', function () {
+                var terbuka = tombol.getAttribute('aria-expanded') === 'true';
+
+                kolom.querySelectorAll('.monitor-ekstra').forEach(function (kartu) {
+                    kartu.classList.toggle('hidden', terbuka);
+                });
+
+                tombol.setAttribute('aria-expanded', String(!terbuka));
+                label.textContent = terbuka ? teksBuka : 'Sembunyikan Tiket';
+            });
+        });
+    </script>
+@endpush

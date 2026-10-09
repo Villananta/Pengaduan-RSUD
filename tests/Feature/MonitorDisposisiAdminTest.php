@@ -114,7 +114,7 @@ class MonitorDisposisiAdminTest extends TestCase
             ->assertSee('Lewat Batas Unit');
     }
 
-    public function test_aksi_yang_belum_ada_tidak_dibuat_menjadi_tautan_palsu(): void
+    public function test_kanban_menautkan_ke_halaman_yang_benar_benar_ada(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
@@ -129,12 +129,11 @@ class MonitorDisposisiAdminTest extends TestCase
         $tampilan = $this->get(route('admin.monitor.index'))
             ->assertOk()
             ->assertSee('href="'.route('admin.pengaduan.show', 'ADUAN-AKSI-01').'"', false)
+            ->assertSee('href="'.route('admin.pengaduan.index', ['unit' => $unit->kode]).'"', false)
             ->getContent();
 
-        // Eskalasi ke pimpinan dan kirim dokumen ke unit belum punya
-        // endpoint, jadi keduanya harus tampil sebagai tombol nonaktif.
-        $this->assertStringNotContainsString('href="#', $tampilan);
-        $this->assertStringContainsString('cursor-not-allowed', $tampilan);
+        // Tidak ada lagi tombol fitur yang dipalsukan dengan href="#".
+        $this->assertStringNotContainsString('href="#"', $tampilan);
     }
 
     public function test_permintaan_keputusan_menautkan_ke_endpoint_tahap_yang_benar(): void
@@ -151,32 +150,6 @@ class MonitorDisposisiAdminTest extends TestCase
             ->assertOk()
             ->assertDontSee('Permintaan Keputusan Humas')
             ->assertSee('ADUAN-REVISI-01');
-    }
-
-    public function test_empat_kartu_metrik_diisi_dan_terbaca(): void
-    {
-        $monitor = MonitorDisposisi::dariRequest();
-
-        $this->assertCount(4, $monitor->kartu);
-
-        $this->assertSame(
-            [
-                'Kepatuhan SLA Pengaduan',
-                'Tiket Lewat Batas Investigasi',
-                'Menunggu Racikan Humas',
-                'Rata-rata Penyelesaian',
-            ],
-            array_column($monitor->kartu, 'label'),
-        );
-
-        // Templat mengloop kartu ini, jadi halaman harus benar-benar
-        // menampilkan keempatnya.
-        $this->get(route('admin.monitor.index'))
-            ->assertOk()
-            ->assertSee('Kepatuhan SLA Pengaduan')
-            ->assertSee('Tiket Lewat Batas Investigasi')
-            ->assertSee('Menunggu Racikan Humas')
-            ->assertSee('Rata-rata Penyelesaian');
     }
 
     /**
