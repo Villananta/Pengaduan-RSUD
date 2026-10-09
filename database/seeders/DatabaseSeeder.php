@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(MasterUnitSeeder::class);
         $this->call(PengaduanDemoSeeder::class);
+        $this->call(PengaduanDummySeeder::class);
 
         // Akun contoh dibuat satu kali saja supaya `db:seed` berulang
         // tidak bentrok dengan batasan unik email.

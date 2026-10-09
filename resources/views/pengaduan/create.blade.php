@@ -53,19 +53,7 @@
                     @csrf
 
                     <!-- Form Header -->
-                    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-brand-200/40 pb-4">
-                        <div>
-                            <h2 class="text-2xl font-semibold leading-8 text-ink">Buat Aduan Baru</h2>
-                            <p class="text-[13px] leading-[18px] text-ink-muted">Lengkapi seluruh isian bertanda bintang (*) untuk mempercepat proses verifikasi.</p>
-                        </div>
-                        <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold tracking-[0.24px] text-ink">
-                            <svg class="h-3 w-3 text-brand-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="4" y="11" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/>
-                                <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                            </svg>
-                            Riwayat Aman &amp; Kerahasiaan Dijamin
-                        </span>
-                    </div>
+                    
 
                     <!-- Step 1: Pilihan Kategori -->
                     <div class="flex flex-col gap-3">
