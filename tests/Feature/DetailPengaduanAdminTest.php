@@ -7,6 +7,7 @@ use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Support\DetailPengaduan;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -90,6 +91,11 @@ class DetailPengaduanAdminTest extends TestCase
 
         $this->assertStringContainsString($unit->namaLengkap(), $humas);
         $this->assertStringContainsString($unit->namaLengkap(), $racikan);
+
+        // Tiket tanpa unit memakai Humas sebagai Unit Tujuan, sedangkan tiket
+        // yang bertaut tetap menampilkan nama unitnya.
+        $this->assertSame('Hubungan Masyarakat', DetailPengaduan::dariKode($tanpaUnit->kode_tiket)->unit['nama']);
+        $this->assertSame($unit->namaLengkap(), DetailPengaduan::dariKode($denganUnit->kode_tiket)->unit['nama']);
     }
 
     public function test_percakapan_kosong_menampilkan_pesan_bukan_kotak_kosong(): void
@@ -112,10 +118,10 @@ class DetailPengaduanAdminTest extends TestCase
             ->assertSee('Proses')
             ->getContent();
 
-        // Disposisi unit dan penandaan kasus berat belum punya endpoint,
-        // jadi tidak boleh muncul tautan palsu.
+        // Disposisi unit kini punya endpoint sendiri; pastikan formulirnya
+        // menunjuk rute asli dan tidak ada tautan palsu yang tersisa.
         $this->assertStringNotContainsString('href="#', $tampilan);
-        $this->assertStringContainsString('cursor-not-allowed', $tampilan);
+        $this->assertStringContainsString('action="'.route('admin.pengaduan.disposisi', 'ADUAN-AKSI-01').'"', $tampilan);
     }
 
     public function test_tiket_yang_tidak_ada_menghasilkan_halaman_not_found(): void

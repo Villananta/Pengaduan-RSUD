@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
+use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use Illuminate\Http\UploadedFile;
@@ -88,6 +89,104 @@ final class TindakLanjutPengaduan
             ]);
 
             $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
+        });
+
+        self::segarkanStatistik();
+    }
+
+    /**
+     * Aksi C: tugaskan tiket ke satu instalasi teknis.
+     *
+     * Penugasan menyentuh dua baris sekaligus. Tiket menyimpan master_unit_id
+     * supaya masuk daftar unit yang bersangkutan, sedangkan unitnya ditandai
+     * menunggu investigasi agar papan disposisi sisi unit langsung memuat
+     * tiket ini. Tahap tiket ikut naik ke Diproses, karena disposisi hanya
+     * berguna kalau tiketnya memang sedang berjalan.
+     *
+     * Tiket yang sudah Diproses tidak dipindah lagi; yang berubah hanya unit
+     * tujuannya, dan pengalihannya tetap dicatat di riwayat supaya jejaknya
+     * tidak hilang.
+     *
+     * @throws RuntimeException bila tiket sudah selesai atau unit tujuannya tidak siap
+     */
+    public static function disposisiKeUnit(
+        Pengaduan $pengaduan,
+        MasterUnit $unit,
+        ?string $catatan = null,
+        ?int $adminId = null,
+    ): void {
+        if ($pengaduan->status->selesai()) {
+            throw new RuntimeException('Tiket ini sudah selesai sehingga tidak bisa didisposisikan lagi.');
+        }
+
+        if (! $unit->bisaDitugaskan()) {
+            throw new RuntimeException('Unit '.$unit->namaLengkap().' sedang tidak aktif atau koneksinya terputus.');
+        }
+
+        DB::transaction(function () use ($pengaduan, $unit, $catatan, $adminId): void {
+            $pengaduan->master_unit_id = $unit->id;
+
+            if ($pengaduan->status === StatusPengaduan::Diproses) {
+                $pengaduan->save();
+                $pengaduan->riwayatStatus()->create([
+                    'dari' => $pengaduan->status,
+                    'ke' => $pengaduan->status,
+                    'catatan' => $catatan ?? 'Disposisi dialihkan ke '.$unit->namaLengkap().'.',
+                    'admin_id' => $adminId,
+                ]);
+            } else {
+                $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
+            }
+
+            $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
+        });
+
+        self::segarkanStatistik();
+    }
+
+    /**
+     * Jalur 2: humas menangani tiket sendiri tanpa unit teknis.
+     *
+     * Tiket dilepas dari unit dengan mengosongkan master_unit_id, karena
+     * kolom itulah satu-satunya penanda yang dipakai dashboard dan daftar
+     * disposisi unit. Begitu kosong, tiket otomatis hilang dari konsol unit
+     * dan berpindah ke hitungan "ditangani langsung humas".
+     *
+     * Tahapnya ikut naik ke Diproses. Kalau tiket tadi sudah menempel ke unit,
+     * pelepasan itu dicatat tersendiri di riwayat supaya keputusan humas tidak
+     * menghapus jejak penugasan sebelumnya.
+     *
+     * @throws RuntimeException bila tahap sekarang bukan tahap yang boleh ditangani langsung
+     */
+    public static function tanganiLangsung(
+        Pengaduan $pengaduan,
+        ?string $catatan = null,
+        ?int $adminId = null,
+    ): void {
+        if (! in_array(StatusPengaduan::Diproses, self::tujuanTersedia($pengaduan), true)) {
+            throw new RuntimeException(
+                $pengaduan->status->selesai()
+                    ? 'Tiket ini sudah selesai sehingga tidak bisa ditangani langsung lagi.'
+                    : 'Tahap '.$pengaduan->status->label().' tidak menawarkan penanganan langsung oleh humas.'
+            );
+        }
+
+        DB::transaction(function () use ($pengaduan, $catatan, $adminId): void {
+            // Relasi dibaca lebih dulu karena save() di pindahTahap() sekalian
+            // menyimpan master_unit_id yang sudah dikosongkan.
+            $unitDilepas = $pengaduan->masterUnit;
+
+            $pengaduan->master_unit_id = null;
+            $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
+
+            if ($unitDilepas !== null) {
+                $pengaduan->riwayatStatus()->create([
+                    'dari' => StatusPengaduan::Diproses,
+                    'ke' => StatusPengaduan::Diproses,
+                    'catatan' => 'Disposisi ke '.$unitDilepas->namaLengkap().' dilepas; penanganan diambil alih humas.',
+                    'admin_id' => $adminId,
+                ]);
+            }
         });
 
         self::segarkanStatistik();

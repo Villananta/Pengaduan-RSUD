@@ -160,6 +160,18 @@ final class DetailPengaduan
     }
 
     /**
+     * True bila humas masih boleh menangani tiket ini tanpa unit teknis.
+     *
+     * Penanganan langsung memakai perpindahan tahap biasa ke Diproses, jadi
+     * syaratnya mengikuti tujuanTersedia(). Dengan begitu tombol Jalur 2 dan
+     * tombol Proses di bawah halaman tidak pernah berbeda pendapat.
+     */
+    public function bisaTanganiLangsung(): bool
+    {
+        return in_array(StatusPengaduan::Diproses, $this->tujuanTersedia(), true);
+    }
+
+    /**
      * Label, ikon, dan warna tombol untuk satu tahap tujuan.
      *
      * @return array{label: string, ikon: string, warna: string}
@@ -218,7 +230,10 @@ final class DetailPengaduan
         if ($unit === null) {
             return [
                 'tertaut' => false,
-                'nama' => $pengaduan->unit,
+                // Tiket tanpa unit berarti ditangani humas, jadi kolom "Unit
+                // Tujuan" dan lencana atas menyebut Humas, bukan unit yang
+                // pelapor sebut (nama itu tetap terbaca di kronologi).
+                'nama' => 'Hubungan Masyarakat',
                 'status' => $investigasi->label(),
                 'ringkas' => $investigasi->ringkas(),
                 'nada' => $investigasi->nada(),

@@ -398,40 +398,7 @@
                         </span>
                     </div>
 
-                    {{-- Dua jalur penanganan. Jalur tanpa unit teknis sengaja
-                         dinonaktifkan supaya tidak ada pilihan yang bohong. --}}
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm bg-surface-container-low p-space-xs rounded-lg" role="tablist">
-                        <button
-                            type="button"
-                            disabled
-                            @class([
-                                'py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 cursor-not-allowed',
-                                'bg-surface-container-lowest text-secondary shadow-sm ring-1 ring-secondary/30' => $unit['tertaut'],
-                                'text-on-surface-variant opacity-60' => ! $unit['tertaut'],
-                            ])
-                        >
-                            <x-symbol nama="forward_to_inbox" class="text-[18px]" />
-                            Jalur 1: Disposisi ke Unit
-                        </button>
-
-                        <button
-                            type="button"
-                            disabled
-                            title="Penanganan langsung humas belum punya alur pengesahan"
-                            @class([
-                                'py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 cursor-not-allowed',
-                                'bg-surface-container-lowest text-secondary shadow-sm ring-1 ring-secondary/30' => ! $unit['tertaut'],
-                                'text-on-surface-variant opacity-60' => $unit['tertaut'],
-                            ])
-                        >
-                            <x-symbol nama="support_agent" class="text-[18px]" />
-                            Jalur 2: Tangani Langsung
-                        </button>
-                    </div>
-
-                    {{-- Ringkasan unit yang sudah ditugaskan. --}}
-
+                    {{-- Ringkasan unit yang sedang ditugaskan. --}}
                     <div class="p-space-sm rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col gap-space-sm">
                         <div class="flex items-center justify-between gap-space-sm">
                             <div class="flex items-center gap-2">
@@ -456,30 +423,92 @@
                         </div>
                     </div>
 
-                    {{-- Daftar master unit. Formulir disposisi belum punya endpoint,
-                         jadi pilihan unit ditampilkan nonaktif. --}}
-
-                    <div class="flex flex-col gap-1 pt-1 border-t border-outline-variant/30">
-                        <label for="pilihanUnit" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center justify-between gap-space-sm">
-                            <span>Pilih Instalasi / Unit Tujuan (Master Data)</span>
-                            <span class="text-secondary text-[11px] font-semibold">Hanya Unit Aktif</span>
-                        </label>
-
-                        <select
-                            id="pilihanUnit"
-                            disabled
-                            class="w-full py-2.5 px-space-md rounded-lg bg-surface-container-low font-body-sm text-body-sm text-on-surface border border-outline-variant opacity-70 cursor-not-allowed"
+                    {{-- Jalur 1: disposisi ke unit teknis. Tidak ditampilkan saat
+                         tiket sudah selesai karena penugasan unit tak lagi relevan. --}}
+                    @if (! $tiket->status->selesai())
+                        <form
+                            method="POST"
+                            action="{{ route('admin.pengaduan.disposisi', $kode) }}"
+                            class="flex flex-col gap-space-sm pt-space-sm border-t border-outline-variant/30"
                         >
-                            @foreach ($detail->pilihanUnit as $pilihan)
-                                <option value="{{ $pilihan->kode }}" @selected($tiket->master_unit_id === $pilihan->id)>
-                                    {{ $pilihan->namaLengkap() }}
-                                </option>
-                            @endforeach
-                        </select>
+                            @csrf
 
-                        <span class="font-label-sm text-label-sm text-outline">
-                            Pengalihan disposisi dan instruksi kerja internal ke PIC belum dibangun, jadi kolom ini belum bisa diisi.
+                            <span class="font-title-sm text-title-sm text-on-surface font-bold flex items-center gap-1.5">
+                                <x-symbol nama="forward_to_inbox" class="text-[18px] text-secondary" />
+                                Jalur 1: Disposisi ke Unit
+                            </span>
+
+                            <label for="pilihanUnit" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center justify-between gap-space-sm">
+                                <span>Pilih Instalasi / Unit Tujuan (Master Data)</span>
+                                <span class="text-secondary text-[11px] font-semibold">Hanya Unit Aktif</span>
+                            </label>
+
+                            <select
+                                id="pilihanUnit"
+                                name="unit"
+                                required
+                                class="w-full py-2.5 px-space-md rounded-lg bg-surface-container-low font-body-sm text-body-sm text-on-surface border border-outline-variant outline-none transition-colors focus:border-secondary focus:ring-1 focus:ring-secondary/40"
+                            >
+                                <option value="" disabled @selected(! $unit['tertaut'])>
+                                    Pilih unit tujuan disposisi
+                                </option>
+
+                                @foreach ($detail->pilihanUnit as $pilihan)
+                                    <option value="{{ $pilihan->kode }}" @selected($tiket->master_unit_id === $pilihan->id)>
+                                        {{ $pilihan->namaLengkap() }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            @error('unit')
+                                <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                            @enderror
+
+                            <button
+                                type="submit"
+                                class="py-3 px-space-md rounded-lg bg-primary text-on-primary font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 transition-opacity hover:opacity-90"
+                            >
+                                <x-symbol nama="send" class="text-[18px]" />
+                                Disposisi ke Unit
+                            </button>
+                        </form>
+                    @endif
+
+                    {{-- Jalur 2: humas menangani tiket sendiri. Tiketnya dilepas
+                         dari unit supaya tidak muncul lagi di konsol unit. --}}
+                    <div class="flex flex-col gap-space-sm pt-space-sm border-t border-outline-variant/30">
+                        <span class="font-title-sm text-title-sm text-on-surface font-bold flex items-center gap-1.5">
+                            <x-symbol nama="support_agent" class="text-[18px] text-secondary" />
+                            Jalur 2: Tangani Langsung
                         </span>
+
+                        <p class="font-body-sm text-body-sm text-on-surface-variant">
+                            Klarifikasi dikerjakan Customer Care humas tanpa melibatkan unit teknis.
+                        </p>
+
+                        @if ($detail->bisaTanganiLangsung())
+                            <form method="POST" action="{{ route('admin.pengaduan.tangani-langsung', $kode) }}">
+                                @csrf
+
+                                <button
+                                    type="submit"
+                                    class="w-full py-3 px-space-md rounded-lg bg-surface-container-high text-on-surface font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 transition-colors hover:bg-surface-container"
+                                >
+                                    <x-symbol nama="play_arrow" class="text-[18px]" />
+                                    Tangani Langsung
+                                </button>
+                            </form>
+
+                            @error('catatan')
+                                <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                            @enderror
+                        @else
+                            <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                {{ $tiket->status->selesai()
+                                    ? 'Tiket sudah selesai, penanganan langsung tidak diperlukan lagi.'
+                                    : 'Jalur ini hanya untuk tiket yang masih di tahap Diterima.' }}
+                            </span>
+                        @endif
                     </div>
                 </article>
                 <!-- End of Kartu 3 -->

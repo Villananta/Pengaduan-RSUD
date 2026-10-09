@@ -150,6 +150,92 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame(StatusPengaduan::Revisi, $pengaduan->status);
     }
 
+    public function test_aksi_c_menugaskan_unit_dan_memindahkan_tiket_ke_diproses(): void
+    {
+        $unit = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-DISPOSISI-01', StatusPengaduan::Diterima);
+
+        $this->post(route('admin.pengaduan.disposisi', $pengaduan->kode_tiket), [
+            'unit' => $unit->kode,
+            'catatan' => 'Tolong periksa serah terima resep di depo.',
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $pengaduan->refresh();
+
+        $this->assertTrue($pengaduan->status->diproses());
+        $this->assertSame($unit->id, $pengaduan->master_unit_id);
+        $this->assertTrue($unit->fresh()->disposisi === DisposisiUnit::MenungguInvestigasi);
+
+        $penugasan = $pengaduan->riwayatStatus()->latest('id')->first();
+        $this->assertSame(StatusPengaduan::Diterima, $penugasan->dari);
+        $this->assertSame(StatusPengaduan::Diproses, $penugasan->ke);
+    }
+
+    public function test_aksi_c_menolak_unit_yang_koneksinya_terputus(): void
+    {
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-DISPOSISI-02', StatusPengaduan::Diterima);
+        $pengaduan->update(['master_unit_id' => null]);
+
+        $this->from(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->post(route('admin.pengaduan.disposisi', $pengaduan->kode_tiket), [
+                'unit' => $unit->kode,
+            ])
+            ->assertSessionHasErrors('unit');
+
+        $pengaduan->refresh();
+
+        $this->assertSame(StatusPengaduan::Diterima, $pengaduan->status);
+        $this->assertNull($pengaduan->master_unit_id);
+    }
+
+    public function test_aksi_c_menolak_tiket_yang_sudah_selesai(): void
+    {
+        $unit = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-DISPOSISI-03', StatusPengaduan::Selesai);
+
+        $this->from(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->post(route('admin.pengaduan.disposisi', $pengaduan->kode_tiket), [
+                'unit' => $unit->kode,
+            ])
+            ->assertSessionHasErrors('unit');
+
+        $this->assertSame(StatusPengaduan::Selesai, $pengaduan->fresh()->status);
+    }
+
+    public function test_jalur_2_melepas_unit_dan_menghilangkan_tiket_dari_daftar_disposisi_unit(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-LANGSUNG-01', StatusPengaduan::Diterima);
+        $pengaduan->update(['master_unit_id' => $unit->id]);
+
+        // Sebelum diambil alih humas, tiket masih terlihat di daftar unit.
+        $this->get(route('unit.disposisi.index', $unit))
+            ->assertOk()
+            ->assertSee($pengaduan->kode_tiket);
+
+        $this->post(route('admin.pengaduan.tangani-langsung', $pengaduan->kode_tiket))
+            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $pengaduan->refresh();
+
+        $this->assertTrue($pengaduan->status->diproses());
+        $this->assertNull($pengaduan->master_unit_id);
+
+        // Pelepasan unit tetap terekam di riwayat, bukan hilang begitu saja.
+        $pelepasan = $pengaduan->riwayatStatus->last();
+        $this->assertStringContainsString($unit->namaLengkap(), $pelepasan->catatan);
+
+        // Sesudah dilepas, tiket tidak lagi muncul di konsol unit.
+        $this->get(route('unit.disposisi.index', $unit))
+            ->assertOk()
+            ->assertDontSee($pengaduan->kode_tiket);
+    }
+
     public function test_tiket_diterima_hanya_menawarkan_tombol_proses(): void
     {
         $pengaduan = $this->tiketDiproses('ADUAN-TAHAP-01', StatusPengaduan::Diterima);
@@ -360,8 +446,9 @@ class TindakLanjutPengaduanAdminTest extends TestCase
             ->assertSee('Tiket ini sudah selesai, tidak perlu jawaban resmi lagi.')
             ->getContent();
 
-        // Alasannya tampil sebagai teks, tombolnya sendiri tetap nonaktif.
-        $this->assertStringContainsString('disabled', $tampilan);
+        // Untuk tiket yang sudah tutup, alasan tampil sebagai teks dan tidak
+        // ada formulir disposisi maupun tombol tahap yang masih bisa ditekan.
+        $this->assertStringNotContainsString('action="'.route('admin.pengaduan.disposisi', $pengaduan->kode_tiket).'"', $tampilan);
     }
 
     public function test_aksi_a_membuang_cache_angka_dashboard_setelah_menutup_tiket(): void
@@ -577,6 +664,8 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->post(route('admin.pengaduan.draf', $kode), ['draf' => 'x'])->assertNotFound();
         $this->post(route('admin.pengaduan.jawaban', $kode), ['isi' => 'x'])->assertNotFound();
         $this->post(route('admin.pengaduan.kembalikan', $kode), [])->assertNotFound();
+        $this->post(route('admin.pengaduan.disposisi', $kode), ['unit' => 'IFP-01'])->assertNotFound();
+        $this->post(route('admin.pengaduan.tangani-langsung', $kode))->assertNotFound();
         $this->post(route('admin.pengaduan.kasus-berat', $kode), ['aktif' => 1])->assertNotFound();
     }
 

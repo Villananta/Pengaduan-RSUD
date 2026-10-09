@@ -6,6 +6,7 @@ use App\Enums\KanalPengaduan;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Http\Controllers\Controller;
+use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Support\DaftarPengaduan;
@@ -189,6 +190,64 @@ class PengaduanController extends Controller
         TindakLanjutPengaduan::kembalikanKeUnit($pengaduan, $validated['catatan'] ?? null);
 
         return $this->kembali($pengaduan, 'Tiket dikembalikan ke unit untuk klarifikasi ulang.');
+    }
+
+    /** Aksi C: tugaskan tiket ke instalasi teknis yang dipilih admin. */
+    public function disposisi(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'unit' => ['required', 'string', 'exists:master_units,kode'],
+            'catatan' => ['nullable', 'string', 'max:500'],
+        ], [
+            'unit.required' => 'Pilih unit tujuan lebih dulu.',
+            'unit.exists' => 'Unit tujuan tidak ditemukan pada master data.',
+            'catatan.max' => 'Catatan untuk unit maksimal 500 karakter.',
+        ]);
+
+        $unit = MasterUnit::where('kode', $validated['unit'])->firstOrFail();
+
+        try {
+            TindakLanjutPengaduan::disposisiKeUnit(
+                $pengaduan,
+                $unit,
+                $validated['catatan'] ?? null,
+            );
+        } catch (RuntimeException $alasan) {
+            // Alasan penolakan diarahkan ke field unit supaya muncul di dalam
+            // kartu keputusan, dekat dengan pilihan unitnya.
+            throw ValidationException::withMessages([
+                'unit' => $alasan->getMessage(),
+            ]);
+        }
+
+        return $this->kembali($pengaduan, 'Pengaduan didisposisikan ke '.$unit->namaLengkap().'.');
+    }
+
+    /** Jalur 2: humas menangani tiket langsung tanpa melibatkan unit teknis. */
+    public function tanganiLangsung(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'catatan' => ['nullable', 'string', 'max:500'],
+        ], [
+            'catatan.max' => 'Catatan penanganan maksimal 500 karakter.',
+        ]);
+
+        try {
+            TindakLanjutPengaduan::tanganiLangsung(
+                $pengaduan,
+                $validated['catatan'] ?? null,
+            );
+        } catch (RuntimeException $alasan) {
+            throw ValidationException::withMessages([
+                'catatan' => $alasan->getMessage(),
+            ]);
+        }
+
+        return $this->kembali($pengaduan, 'Pengaduan ditangani langsung humas dan dilepas dari disposisi unit.');
     }
 
     /**

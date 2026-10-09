@@ -67,6 +67,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/pengaduan/{kode}/draf', [AdminPengaduanController::class, 'simpanDraf'])->name('pengaduan.draf');
         Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])->name('pengaduan.jawaban');
         Route::post('/pengaduan/{kode}/kembalikan', [AdminPengaduanController::class, 'kembalikan'])->name('pengaduan.kembalikan');
+        Route::post('/pengaduan/{kode}/disposisi', [AdminPengaduanController::class, 'disposisi'])->name('pengaduan.disposisi');
+        Route::post('/pengaduan/{kode}/tangani-langsung', [AdminPengaduanController::class, 'tanganiLangsung'])->name('pengaduan.tangani-langsung');
         Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])->name('pengaduan.kasus-berat');
     });
 
