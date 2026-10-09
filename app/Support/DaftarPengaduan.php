@@ -84,6 +84,10 @@ final class DaftarPengaduan
         $kategori = self::kategori($request->query('kategori'));
         $unit = $terkunci ?? self::unit($request->query('unit'));
         $cari = trim((string) $request->query('q', ''));
+        // NRM pada kolom masih mentah, sedangkan yang tampil sudah dinormalkan.
+        // Bentuk normal ini yang dipakai untuk mencari NRM, supaya kata kunci
+        // seperti "12 34 56 78" tetap menemukan tiketnya.
+        $nrmCari = Pengaduan::normalisasiNrm($cari);
         $perHalaman = self::perHalaman($request->query('per_halaman'));
 
         // Closure ini adalah query dasar tanpa filter dimensinya sendiri,
@@ -94,7 +98,15 @@ final class DaftarPengaduan
                     ->where('kode_tiket', 'like', '%'.$cari.'%')
                     ->orWhere('subjek', 'like', '%'.$cari.'%')
                     ->orWhere('nama_lengkap', 'like', '%'.$cari.'%')
-                    ->orWhere('nrm', 'like', '%'.$cari.'%')
+                    // NRM yang tampil sudah dinormalkan, jadi pencariannya harus
+                    // membandingkan bentuk yang sama. Kolomnya masih menyimpan
+                    // ketikan mentah, karena itu tanda pemisah dibuang di sini.
+                    // Bentuk normal yang kosong dilewati: kalau tidak, pola "%%"
+                    // justru cocok dengan semua baris.
+                    ->when($nrmCari !== '', fn (Builder $x): Builder => $x->orWhereRaw(
+                        "UPPER(REPLACE(REPLACE(REPLACE(REPLACE(nrm, '-', ''), ' ', ''), '/', ''), '.', '')) like ?",
+                        ['%'.$nrmCari.'%'],
+                    ))
                     ->orWhere('unit', 'like', '%'.$cari.'%')
             ))
             ->when($unit !== null, fn (Builder $q): Builder => $q->where('master_unit_id', $unit->id))
@@ -204,7 +216,7 @@ final class DaftarPengaduan
             'kode' => $pengaduan->kode_tiket,
             'prioritas' => $this->prioritas($pengaduan),
             'pelapor' => $pengaduan->nama_lengkap,
-            'nrm' => $pengaduan->nrm,
+            'nrm' => Pengaduan::normalisasiNrm($pengaduan->nrm),
             'unit' => $pengaduan->masterUnit?->namaLengkap() ?? $pengaduan->unit,
             'tertaut' => $pengaduan->master_unit_id !== null,
             'kategori' => $pengaduan->kategori,

@@ -12,10 +12,12 @@ use Illuminate\View\View;
 /**
  * Dashboard unit layanan melalui pintu masuk /unit.
  *
- * Prototype ini sengaja tidak memakai login, jadi unit yang dibuka
- * ditentukan dari kode unit di URL. Seluruh penghitungan diserahkan ke
- * App\Support\StatistikUnit supaya template tidak menyimpan query, dan
- * angkanya tetap memakai rumus SLA yang sama dengan konsol admin.
+ * Rute masih terbuka tanpa login, jadi unit yang dibuka ditentukan dari
+ * kode unit di URL. Selama auth belum dipasang, unit non-aktif ditolak
+ * lewat middleware App\Http\Middleware\PastikanUnitAktif supaya URL
+ * langsung ke unit yang dinonaktifkan tetap 404. Seluruh penghitungan
+ * diserahkan ke App\Support\StatistikUnit supaya template tidak menyimpan
+ * query, dan angkanya tetap memakai rumus SLA yang sama dengan konsol admin.
  */
 class DashboardController extends Controller
 {

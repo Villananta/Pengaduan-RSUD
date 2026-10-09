@@ -307,7 +307,11 @@
                                             @else
                                                 {{-- Tindakan yang belum dibangun tetap tampil sebagai
                                                      penanda pekerjaan, bukan sebagai tautan palsu. --}}
-                                                <span class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold cursor-not-allowed">
+                                                <span
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold cursor-not-allowed"
+                                                    role="button"
+                                                    aria-disabled="true"
+                                                >
                                                     <x-symbol :nama="$aksi['ikon']" class="text-[14px]" />
                                                     {{ $aksi['label'] }}
                                                 </span>

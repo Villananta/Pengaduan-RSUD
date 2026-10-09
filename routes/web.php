@@ -32,14 +32,15 @@ Route::post('/buat-aduan', [PengaduanController::class, 'store'])
     ->middleware('throttle:5,10')
     ->name('pengaduan.store');
 
-Route::get('/buat-aduan/sukses/{kode}', [PengaduanController::class, 'sukses'])->name('pengaduan.sukses');
+Route::get('/buat-aduan/sukses', [PengaduanController::class, 'sukses'])->name('pengaduan.sukses');
 
 // Konsol admin.
 //
-// Catatan keamanan: seluruh rute di bawah masih terbuka tanpa login,
-// mengikuti halaman beranda dan daftar yang lebih dulu dibuat. Begitu
-// auth admin dipasang, grup ini cukup diberi middleware auth.admin
-// tanpa mengubah nama rute yang sudah dipakai template.
+// Catatan keamanan: seluruh rute di bawah masih terbuka tanpa login dan
+// baru akan ditutup setelah auth admin dipasang. Sambil menunggu, laju
+// tiap endpoint tulisnya dibatasi throttle:60,1 supaya konsol yang terbuka
+// tidak bisa dibanjiri permintaan. Begitu auth siap, grup ini cukup diberi
+// middleware auth.admin tanpa mengubah nama rute yang dipakai template.
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/monitor', [AdminMonitorController::class, 'index'])->name('monitor.index');
@@ -88,10 +89,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 // Dashboard unit layanan (pintu masuk /unit).
 //
-// Prototype ini sengaja dibuat tanpa login: satu halaman /unit menampilkan
-// daftar unit, lalu kode unit di URL menentukan dashboard mana yang dibuka.
-// Begitu akun PIC unit diaktifkan, grup ini cukup diberi middleware auth
-// tanpa harus mengubah nama rute yang sudah dipakai template.
+// Rute masih terbuka tanpa login seperti konsol humas: satu halaman /unit
+// menampilkan daftar unit, lalu kode unit di URL menentukan dashboard mana
+// yang dibuka. Selama auth belum dipasang, rute ber-{unit} sudah dijaga
+// middleware PastikanUnitAktif supaya unit non-aktif tidak bisa dibuka lewat
+// URL langsung, dan endpoint tulis jawaban dibatasi throttle:20,1. Begitu
+// auth unit siap, grup ini cukup diberi middleware auth tanpa mengubah nama
+// rute yang dipakai template.
 Route::prefix('unit')->name('unit.')->group(function () {
     Route::get('/', [UnitDashboardController::class, 'pilih'])->name('pilih');
 

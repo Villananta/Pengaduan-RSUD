@@ -144,6 +144,8 @@
                                  tidak boleh berpura-pura menjadi tautan. --}}
                             <span
                                 class="flex items-center rounded-full px-3 py-1.5 text-outline cursor-not-allowed font-title-sm text-title-sm font-semibold"
+                                role="button"
+                                aria-disabled="true"
                             >{{ $item['label'] }}</span>
                         @else
                             <a

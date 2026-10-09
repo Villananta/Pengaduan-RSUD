@@ -342,7 +342,7 @@
                     @if ($unit)
                         Kode unit <strong class="text-on-surface">{{ $unit->kode }}</strong> tidak bisa diubah.
                     @else
-                        Kode unit wajib lima huruf kapital dan tidak boleh sama dengan milik unit lain.
+                        Kode unit maksimal 10 karakter, boleh huruf/angka dan tanda hubung, serta tidak boleh sama dengan milik unit lain.
                     @endif
                 </span>
 

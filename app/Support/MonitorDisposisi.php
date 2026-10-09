@@ -4,10 +4,8 @@ namespace App\Support;
 
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
-use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 
 /**
  * Data tampilan untuk halaman Monitor Disposisi & SLA Unit.
@@ -30,91 +28,41 @@ use Illuminate\Http\Request;
  */
 final class MonitorDisposisi
 {
-    /** Pilihan saring tabel eskalasi, urut dari yang paling umum. */
-    private const SARING = ['semua', 'lewat', 'mendek'];
-
     /** Jumlah tiket yang ditampilkan pada tiap kolom kanban. */
     private const KARTU_PER_KOLOM = 2;
-
-    /** Jumlah baris tabel eskalasi sebelum dipangkas. */
-    private const BATAS_ESKALASI = 10;
 
     /**
      * @param  array<int, array<string, mixed>>  $kartu  Empat kartu angka di bawah banner.
      * @param  array<int, array<string, mixed>>  $papan  Kolom kanban status disposisi unit.
-     * @param  array{baris: array<int, array<string, mixed>>, jumlah: array<string, int>, saring: string}  $eskalasi
      */
     public function __construct(
         public readonly array $kartu,
         public readonly array $papan,
-        public readonly array $eskalasi,
-        public readonly int $aktif,
         public readonly int $ditugaskan,
-        public readonly int $telaah,
-        public readonly int $unitTerhubung,
-        public readonly int $unitTotal,
-        public readonly int $hariKerja,
         public readonly int $hariInvestigasi,
-        public readonly int $standarKepatuhan,
     ) {}
 
     /**
-     * Susun halaman monitor dari parameter query.
+     * Susun halaman monitor dari data statistik yang sudah terhitung.
      *
-     * Saring yang tidak dikenal jatuh ke "semua" supaya tautan lama atau
-     * crafted tidak membuat tabel kosong tanpa penjelasan.
+     * Halaman ini tidak punya filter query sendiri. Semua yang tampil
+     * ditentukan oleh status tiket, jadi tidak ada parameter URL yang
+     * perlu dibaca.
      */
-    public static function dariRequest(Request $request): self
+    public static function dariRequest(): self
     {
-        $diminta = (string) $request->query('saring', 'semua');
-        $saring = in_array($diminta, self::SARING, true) ? $diminta : 'semua';
-
         $kritis = StatistikDashboard::ringkasanKritis();
         $aktif = StatistikDashboard::aktif();
-        $eskalasi = self::eskalasi($saring);
 
         return new self(
             kartu: self::kartu($kritis, $aktif),
             papan: self::papan(),
-            eskalasi: $eskalasi,
-            aktif: $aktif,
             // Angka ini hanya menghitung tiket aktif yang sudah ditautkan ke
             // unit, karena papan kanban ini tidak memuat tiket yang masih
             // di tangan humas dan belum punya unit tujuan.
-            ditugaskan: (int) ($eskalasi['jumlah']['semua'] ?? 0),
-            telaah: (int) ($kritis['telaah'] ?? 0),
-            unitTerhubung: StatistikDashboard::unitTerhubung(),
-            unitTotal: MasterUnit::query()->count(),
-            hariKerja: Sla::hariKerja(),
+            ditugaskan: Pengaduan::query()->aktif()->whereNotNull('master_unit_id')->count(),
             hariInvestigasi: Sla::hariInvestigasi(),
-            standarKepatuhan: (int) config('pengaduan.kepatuhan_standar_persen', 90),
         );
-    }
-
-    /** Pilihan saring beserta jumlah tiket yang dipilihnya. */
-    public function pilihanSaring(): array
-    {
-        $jumlah = $this->eskalasi['jumlah'];
-
-        return [
-            'semua' => 'Semua Tiket Ditugaskan ('.$jumlah['semua'].')',
-            'lewat' => 'Lewat Batas '.$this->hariInvestigasi.' Hari Kerja ('.$jumlah['lewat'].')',
-            'mendek' => 'Mendekati Batas ('.$jumlah['mendek'].')',
-        ];
-    }
-
-    /** URL tabel eskalasi dengan satu pilihan saring. */
-    public function urlSaring(string $nilai): string
-    {
-        return $nilai === 'semua'
-            ? route('admin.monitor.index')
-            : route('admin.monitor.index', ['saring' => $nilai]);
-    }
-
-    /** Total tiket yang cocok dengan saring aktif, sebelum dipangkas. */
-    public function totalEskalasi(): int
-    {
-        return $this->eskalasi['jumlah'][$this->eskalasi['saring']];
     }
 
     /**
@@ -365,136 +313,5 @@ final class MonitorDisposisi
                 ],
             ],
         ];
-    }
-
-    /**
-     * Baris tabel eskalasi beserta jumlah tiap pilihan saring.
-     *
-     * Zona SLA dihitung dengan diffInWeekdays yang tidak bisa diterjemahkan
-     * ke SQL, jadi penyaringan dan pengurutan dikerjakan di dalam memori
-     * seperti yang dilakukan StatistikDashboard::perluTindakan.
-     *
-     * @return array{baris: array<int, array<string, mixed>>, jumlah: array<string, int>, saring: string}
-     */
-    private static function eskalasi(string $saring): array
-    {
-        $terpantau = Pengaduan::query()
-            ->aktif()
-            ->whereNotNull('master_unit_id')
-            ->with('masterUnit')
-            ->get();
-
-        $lewat = $terpantau->filter(fn (Pengaduan $p): bool => Sla::lewatInvestigasi($p->created_at));
-        $mendek = $terpantau->filter(fn (Pengaduan $p): bool => self::dekatBatas($p));
-
-        $jumlah = [
-            'semua' => $terpantau->count(),
-            'lewat' => $lewat->count(),
-            'mendek' => $mendek->count(),
-        ];
-
-        $baris = $terpantau
-            ->filter(fn (Pengaduan $p): bool => match ($saring) {
-                'lewat' => Sla::lewatInvestigasi($p->created_at),
-                'mendek' => self::dekatBatas($p),
-                default => true,
-            })
-            // Yang lewat batas didahulukan, lalu yang paling mepet.
-            ->sortByDesc(fn (Pengaduan $p): bool => Sla::lewatInvestigasi($p->created_at))
-            ->sortByDesc(fn (Pengaduan $p): int => Sla::hariKerjaLewat($p->created_at))
-            ->take(self::BATAS_ESKALASI)
-            ->values();
-
-        return [
-            'baris' => $baris
-                ->map(fn (Pengaduan $pengaduan): array => self::barisEskalasi($pengaduan))
-                ->all(),
-            'jumlah' => $jumlah,
-            'saring' => $saring,
-        ];
-    }
-
-    /**
-     * Satu baris tabel eskalasi.
-     *
-     * @return array<string, mixed>
-     */
-    private static function barisEskalasi(Pengaduan $pengaduan): array
-    {
-        $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
-        $hariKe = Sla::hariKe($pengaduan->created_at);
-        $sisa = $pengaduan->sisaHariSla();
-
-        return [
-            'kode' => $pengaduan->kode_tiket,
-            'pelapor' => $pengaduan->nama_lengkap,
-            'unit' => $pengaduan->namaUnit(),
-            'kategori' => $pengaduan->kategori->label(),
-            'lewat' => $lewat,
-            'kasus_berat' => (bool) $pengaduan->kasus_berat,
-            'hari' => $hariKe,
-            'sisa' => $sisa,
-            'persen' => min(100, (int) round(
-                Sla::hariKerjaLewat($pengaduan->created_at) / Sla::hariInvestigasi() * 100
-            )),
-            'nadaAngka' => $lewat ? 'text-error' : 'text-secondary',
-            'nadaLencana' => $pengaduan->kasus_berat
-                ? 'bg-primary-fixed text-primary-container'
-                : ($lewat ? 'bg-error text-on-error' : 'bg-secondary-container text-on-secondary-container'),
-            'lencana' => $pengaduan->kasus_berat
-                ? 'Kasus Berat (+'.Sla::tambahanKasusBerat().' Hari Kerja)'
-                : ($lewat ? 'Lewat Batas Unit' : 'Sisa '.$sisa.' Hari Kerja'),
-            'subjek' => $pengaduan->subjek,
-            'kendala' => $lewat
-                ? 'Belum ada progres sejak disposisi diteruskan, sudah melewati batas '
-                    .Sla::hariInvestigasi().' hari kerja investigasi internal.'
-                : 'Menunggu telaah unit, masih aman karena '.Sla::hariInvestigasi().' hari kerja belum habis.',
-            'tombol' => [
-                [
-                    'label' => 'Buka Detail',
-                    'ikon' => 'open_in_new',
-                    'nada' => 'bg-primary-container text-on-primary',
-                    'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
-                ],
-                [
-                    // Eskalasi ke Wadir dan Komite Medis adalah tindakan ke
-                    // atasan yang harus punya catatan dan notifikasi, sedangkan
-                    // di aplikasi ini belum ada salah satu pun. Karena itu
-                    // tombolnya ditampilkan sebagai teguran nonaktif, bukan
-                    // tautan yang tidak mengerjakan apa pun.
-                    'label' => $lewat ? 'Eskalasi Wadir' : 'Teguran Unit',
-                    'ikon' => $lewat ? 'outgoing_mail' : 'campaign',
-                    'nada' => 'bg-surface-container-high text-on-surface-variant',
-                    'url' => null,
-                ],
-            ],
-        ];
-    }
-
-    /** Margin peringatan SLA dalam hari kerja. */
-    private static function peringatan(): int
-    {
-        return (int) config('pengaduan.sla.peringatan_hari_kerja', 2);
-    }
-
-    /**
-     * True bila tiket masih di dalam batas investigasi tetapi sudah mepet.
-     *
-     * Yang dihitung di sini adalah siklus investigasi, bukan SLA penyelesaian
-     * akhir. Memakai sisaHariSla() akan membuat tiket berumur tiga hari lolos
-     * sebagai "mendek" padahal batas investigasinya lima hari kerja, sehingga
-     * tabel eskalasi gagal memperingatkan unit yang sudah harus dugung.
-     * Tiket yang sudah lewat batasnya dipisahkan oleh lewatInvestigasi
-     * supaya tidak terhitung dua kali.
-     */
-    private static function dekatBatas(Pengaduan $pengaduan): bool
-    {
-        if (Sla::lewatInvestigasi($pengaduan->created_at)) {
-            return false;
-        }
-
-        $sisa = Sla::hariInvestigasi() - Sla::hariKerjaLewat($pengaduan->created_at);
-
-        return $sisa <= self::peringatan();
     }
 }

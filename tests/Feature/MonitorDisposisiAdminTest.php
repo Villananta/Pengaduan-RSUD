@@ -10,7 +10,6 @@ use App\Support\MonitorDisposisi;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
 
@@ -95,7 +94,7 @@ class MonitorDisposisiAdminTest extends TestCase
         $this->assertStringNotContainsString('ADUAN-BELUM-DIBUKA', $this->dariTab('Sedang Investigasi', $tampilan));
     }
 
-    public function test_tiket_yang_lewat_batas_masuk_ke_saring_khusus(): void
+    public function test_tiket_yang_lewat_batas_ditandai_di_kanban(): void
     {
         $unit = MasterUnit::where('kode', 'IRS-03')->firstOrFail();
 
@@ -109,21 +108,10 @@ class MonitorDisposisiAdminTest extends TestCase
             'updated_at' => now()->subWeeks(4),
         ]);
 
-        $semua = $this->get(route('admin.monitor.index'))->assertOk();
-        $lewat = $this->get(route('admin.monitor.index', ['saring' => 'lewat']))->assertOk();
-
-        $semua->assertSee('ADUAN-LEWAT-BATAS');
-        $lewat->assertSee('ADUAN-LEWAT-BATAS');
-        $lewat->assertSee('Lewat Batas Unit');
-    }
-
-    public function test_saring_tidak_dikenal_jatuh_ke_semua(): void
-    {
-        Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-SARING-01']);
-
-        $this->get(route('admin.monitor.index', ['saring' => 'crafted-tidak-ada']))
+        $this->get(route('admin.monitor.index'))
             ->assertOk()
-            ->assertSee('ADUAN-SARING-01');
+            ->assertSee('ADUAN-LEWAT-BATAS')
+            ->assertSee('Lewat Batas Unit');
     }
 
     public function test_aksi_yang_belum_ada_tidak_dibuat_menjadi_tautan_palsu(): void
@@ -167,7 +155,7 @@ class MonitorDisposisiAdminTest extends TestCase
 
     public function test_empat_kartu_metrik_diisi_dan_terbaca(): void
     {
-        $monitor = MonitorDisposisi::dariRequest(Request::create('/admin/monitor'));
+        $monitor = MonitorDisposisi::dariRequest();
 
         $this->assertCount(4, $monitor->kartu);
 

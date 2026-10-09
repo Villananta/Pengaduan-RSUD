@@ -71,8 +71,6 @@
                 </div>
             @endforeach
 
-          
-         
         </div>
         <!-- End of Baris Statistik -->
 
@@ -182,7 +180,7 @@
         <!-- End of Status Tiket di Unit Layanan -->
 
         <!-- Isi Utama -->
-        <div class="w-full grid grid-cols-1 lg:grid-full gap-space-lg">
+        <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
             <div class="lg:col-span-8 flex flex-col gap-space-md">
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-sm border-b border-outline-variant/30">
@@ -196,25 +194,6 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-space-sm shrink-0">
-                            <div class="relative">
-                                <x-symbol nama="search" class="absolute left-3 top-2.5 text-outline text-[18px]" />
-                                <input
-                                    type="text"
-                                    placeholder="Cari nomor tiket, RM, kata kunci..."
-                                    class="pl-9 pr-3 py-1.5 rounded-sm border border-outline-variant text-body-sm text-on-surface bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-secondary w-56 sm:w-64"
-                                    disabled
-                                >
-                            </div>
-
-                            <button
-                                type="button"
-                                class="px-3 py-1.5 rounded-sm border border-outline-variant bg-surface-container-low text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1"
-                            >
-                                <x-symbol nama="filter_list" class="text-[16px] text-outline" />
-                                Filter
-                            </button>
-                        </div>
                     </div>
 
                     <div class="flex flex-col gap-space-sm">

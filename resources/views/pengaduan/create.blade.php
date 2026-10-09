@@ -46,7 +46,7 @@
         <div class="grid w-full grid-cols-12 items-start gap-6">
 
             <!-- Kiri: Form 8 Kolom -->
-            <div class="col-span-12 flex flex-full gap-6 lg:full-span-8">
+            <div class="col-span-12 flex flex-col gap-6">
 
                 <!-- Form Canvas Card -->
                 <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" id="form-aduan" class="flex flex-col gap-8 rounded-2xl bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">

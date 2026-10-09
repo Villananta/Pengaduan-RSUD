@@ -157,7 +157,7 @@ class PesanPengaduan extends Model
 
     public function urlLampiran(string $path): string
     {
-        return Storage::disk(config('pengaduan.disk_lampiran', 'public'))->url($path);
+        return Storage::disk(config('pengaduan.disk_lampiran'))->url($path);
     }
 
     // Gambar ditampilkan langsung di dalam gelembung pesan, berkas lain lewat tautan unduh.
@@ -185,7 +185,7 @@ class PesanPengaduan extends Model
                 continue;
             }
 
-            $path = $file->store('lampiran', config('pengaduan.disk_lampiran', 'public'));
+            $path = $file->store('lampiran', config('pengaduan.disk_lampiran'));
 
             if ($path !== false) {
                 $daftar[] = $path;

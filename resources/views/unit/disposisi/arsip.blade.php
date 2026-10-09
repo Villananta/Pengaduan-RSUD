@@ -73,7 +73,13 @@
             <div class="flex flex-col">
                 <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">Rata-rata Lama Telaah</span>
                 <span class="font-headline-sm text-headline-sm font-bold text-on-surface mt-0.5">
-                    {{ number_format($ringkas['rata_rata_hari_kerja'], 1, ',', '.') }} hari kerja
+                    @if ($ringkas['rata_rata_hari_kerja'] !== null)
+
+                        {{ number_format($ringkas['rata_rata_hari_kerja'], 1, ',', '.') }} hari kerja
+                    @else
+
+                        Belum ada data
+                    @endif
                 </span>
             </div>
 
@@ -214,12 +220,20 @@
                                 </td>
 
                                 <td class="py-space-sm px-space-md align-top">
+                                    @php
+                                        // Stempel penutupan yang sah adalah selesai_at, bukan
+                                        // updated_at yang ikut berubah saat berkas disunting.
+                                        // updated_at hanya cadangan untuk tiket lama yang belum
+                                        // pernah mengisi selesai_at, supaya tanggal tetap terisi.
+                                        $tutupArsip = $pengaduan->selesai_at ?? $pengaduan->updated_at;
+                                    @endphp
+
                                     <span class="font-label-md text-label-md font-semibold text-on-surface">
-                                        {{ $pengaduan->updated_at->format('d M Y') }}
+                                        {{ $tutupArsip->format('d M Y') }}
                                     </span>
 
                                     <span class="block text-outline font-label-sm text-label-sm mt-0.5">
-                                        {{ $pengaduan->updated_at->format('H:i') }} WIB
+                                        {{ $tutupArsip->format('H:i') }} WIB
                                     </span>
                                 </td>
 
@@ -237,7 +251,11 @@
                                         @else
                                             {{-- Tindakan yang belum dibangun tetap tampil sebagai
                                                  penanda pekerjaan, bukan sebagai tautan palsu. --}}
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold cursor-not-allowed">
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold cursor-not-allowed"
+                                                role="button"
+                                                aria-disabled="true"
+                                            >
                                                 <x-symbol :nama="$aksi['ikon']" class="text-[14px]" />
                                                 {{ $aksi['label'] }}
                                             </span>

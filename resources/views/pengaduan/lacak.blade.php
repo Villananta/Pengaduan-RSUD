@@ -142,8 +142,8 @@
 
     <!-- Isi Detail Tiket -->
     <section class="w-full px-8 pb-10 pt-6">
-        <div class="grid grid-cols-1 gap-6 lg:grid-full">
-            <div class="flex flex-col gap-6 lg:full-span">
+        <div class="grid grid-cols-1 gap-6">
+            <div class="flex flex-col gap-6">
                 @if ($tiket)
                     <!-- Pemberitahuan Sesuai Tahap Pengaduan -->
                     @php

@@ -334,5 +334,6 @@ final class TindakLanjutPengaduan
     {
         StatistikDashboard::lupaCache();
         StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
     }
 }

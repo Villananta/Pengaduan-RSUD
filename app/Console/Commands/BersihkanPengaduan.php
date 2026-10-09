@@ -60,7 +60,7 @@ class BersihkanPengaduan extends Command
 
         $terhapus = 0;
         $berkas = 0;
-        $disk = Storage::disk(config('pengaduan.disk_lampiran', 'public'));
+        $disk = Storage::disk(config('pengaduan.disk_lampiran'));
 
         Pengaduan::query()
             ->where('created_at', '<', $batas)

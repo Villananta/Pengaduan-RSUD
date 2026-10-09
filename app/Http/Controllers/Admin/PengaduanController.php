@@ -14,6 +14,7 @@ use App\Support\PengaduanMasuk;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
+use App\Support\StatistikUnit;
 use App\Support\TindakLanjutPengaduan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,6 +92,7 @@ class PengaduanController extends Controller
 
         StatistikDashboard::lupaCache();
         StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
 
         return $this->kembali(
             $pengaduan,

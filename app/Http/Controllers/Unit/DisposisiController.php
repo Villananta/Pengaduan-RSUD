@@ -24,9 +24,14 @@ use RuntimeException;
  * dilakukan lewat parameter unit pada App\Support\DaftarPengaduan dan
  * App\Support\DetailPengaduan, bukan lewat query di template.
  *
+ * Aksesnya masih mengikuti konsol yang terbuka tanpa login: yang memisahkan
+ * unit satu dan unit lain adalah middleware PastikanUnitAktif pada rute
+ * ber-{unit}, bukan identitas pemakai. Selama auth unit belum dipasang,
+ * satu-satunya perintah tulis, yaitu mengirim jawaban lewat
+ * App\Support\JawabanUnit, dibatasi throttle:20,1.
+ *
  * Kewenangannya berbeda dari konsol humas: unit tidak memindahkan tahap,
- * tidak menutup tiket, dan tidak mengubah disposisi unit lain. Satu-satunya
- * perintah tulis adalah mengirim jawaban lewat App\Support\JawabanUnit.
+ * tidak menutup tiket, dan tidak mengubah disposisi unit lain.
  */
 class DisposisiController extends Controller
 {

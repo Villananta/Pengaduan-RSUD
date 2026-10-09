@@ -268,7 +268,7 @@ class Pengaduan extends Model
 
     public function urlLampiran(string $path): string
     {
-        return Storage::disk(config('pengaduan.disk_lampiran', 'public'))->url($path);
+        return Storage::disk(config('pengaduan.disk_lampiran'))->url($path);
     }
 
     public function namaLampiran(string $path): string

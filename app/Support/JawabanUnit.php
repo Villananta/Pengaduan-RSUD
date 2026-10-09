@@ -71,5 +71,6 @@ final class JawabanUnit
     {
         StatistikDashboard::lupaCache();
         StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
     }
 }

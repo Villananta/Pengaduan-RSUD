@@ -37,7 +37,7 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertSee('Daftar Pengaduan Pasien &amp; Disposisi Medis', false)
             ->assertSee('ADUAN-DAFTAR-01')
             ->assertSee('Siti Aminah')
-            ->assertSee('12-34-56-78')
+            ->assertSee('12345678')
             ->assertSee('Lapis 1: Status Utama')
             ->assertSee('Lapis 2: Status di Unit');
     }

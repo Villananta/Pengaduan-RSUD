@@ -51,7 +51,7 @@ class PengaduanTest extends TestCase
     {
         $this->get(route('pengaduan.create'))
             ->assertOk()
-            ->assertSee('Buat Aduan Baru')
+            ->assertSee('Sampaikan Pengaduan Layanan Secara Terbuka')
             ->assertSee('Pilihan Kategori Masalah');
     }
 
@@ -67,7 +67,7 @@ class PengaduanTest extends TestCase
         $this->assertSame(StatusPengaduan::Diterima, $pengaduan->status);
         $this->assertNull($pengaduan->selesai_at);
 
-        $this->get(route('pengaduan.sukses', $pengaduan->kode_tiket))
+        $this->get(route('pengaduan.sukses'))
             ->assertOk()
             ->assertSee($pengaduan->kode_tiket);
     }
@@ -193,7 +193,7 @@ class PengaduanTest extends TestCase
         $pengaduan = Pengaduan::first();
         $waktu = $pengaduan->created_at->translatedFormat('d F Y H:i').' WIB';
 
-        $this->get(route('pengaduan.sukses', $pengaduan->kode_tiket))
+        $this->get(route('pengaduan.sukses'))
             ->assertOk()
             ->assertSee($waktu);
     }

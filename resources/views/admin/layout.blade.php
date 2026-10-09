@@ -106,26 +106,6 @@
                             ])
                             @if ($aktif) aria-current="page" @endif
                         >{{ $item['label'] }}</a>
-                    @elseif ($item['pola'] ?? false)
-                       
-                        <span
-                            @class([
-                                'flex items-center rounded-full px-3 py-1.5 font-title-sm text-title-sm font-semibold',
-                                'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                'text-ink-muted' => ! $aktif,
-                            ])
-                            @if ($aktif) aria-current="page" @endif
-                        >{{ $item['label'] }}</span>
-                    @else
-                        <span
-                            @class([
-                                'flex items-center rounded-full px-3 py-1.5 font-title-sm text-title-sm font-semibold',
-                                'select-none',
-                                'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                'text-ink-muted/50 cursor-not-allowed' => ! $aktif,
-                            ])
-                            @if (! $aktif) title="Fitur sedang dirancang" aria-disabled="true" @endif
-                        >{{ $item['label'] }}</span>
                     @endif
                 @endforeach
             </nav>

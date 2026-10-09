@@ -9,6 +9,7 @@ use App\Models\PesanPengaduan;
 use App\Support\PengaduanMasuk;
 use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
+use App\Support\StatistikUnit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -55,6 +56,7 @@ class PengaduanController extends Controller
 
         StatistikDashboard::lupaCache();
         StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
 
         // Pelapor baru saja membuat tiketnya sendiri, jadi tiketnya langsung
         // ditandai terverifikasi tanpa perlu mengetik kode tiket ulang.
@@ -62,11 +64,27 @@ class PengaduanController extends Controller
             'kode' => $pengaduan->kode_tiket,
         ]);
 
-        return redirect()->route('pengaduan.sukses', $pengaduan->kode_tiket);
+        return redirect()->route('pengaduan.sukses');
     }
 
-    public function sukses(string $kode): View
+    /**
+     * Halaman konfirmasi setelah tiket dibuat.
+     *
+     * Kode tiket sengaja tidak lagi ditempel di URL, supaya kode yang
+     * berfungsi sebagai kunci membuka tiket ini tidak bocor lewat riwayat
+     * browser, header referer, atau log server. Kode dibaca dari session
+     * yang baru saja diisi langkah store, dan halaman ini hanya bisa
+     * dibuka oleh pelapor yang barusan membuat tiketnya.
+     */
+    public function sukses(Request $request): View|RedirectResponse
     {
+        $terverifikasi = $request->session()->get(self::SESI_TERVERIFIKASI, []);
+        $kode = $terverifikasi['kode'] ?? null;
+
+        if ($kode === null) {
+            return redirect()->route('pengaduan.create');
+        }
+
         $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
 
         return view('pengaduan.sukses', compact('pengaduan'));

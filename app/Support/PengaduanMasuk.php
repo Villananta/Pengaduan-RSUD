@@ -175,7 +175,7 @@ final class PengaduanMasuk
         $lampiran = [];
 
         foreach ($berkas as $file) {
-            $lampiran[] = $file->store('lampiran', config('pengaduan.disk_lampiran', 'public'));
+            $lampiran[] = $file->store('lampiran', config('pengaduan.disk_lampiran'));
         }
 
         return $lampiran;

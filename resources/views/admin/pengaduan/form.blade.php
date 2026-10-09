@@ -447,10 +447,15 @@
                 const el = document.createElement('div');
                 el.className = 'flex items-center gap-2 rounded-lg bg-surface-container-low px-3 py-2 text-label-md';
                 const size = (file.size / 1024 / 1024).toFixed(2) + ' MB';
-                el.innerHTML = '<span class="max-w-[220px] truncate font-bold text-on-surface">' + file.name.replace(/"/g, '&quot;') + '</span>' +
+                el.innerHTML = '<span class="max-w-[220px] truncate font-bold text-on-surface"></span>' +
                     '<span class="ml-auto shrink-0 text-label-sm text-outline">' + size + '</span>' +
                     '<button type="button" class="shrink-0 text-error" data-i="' + i + '" aria-label="Hapus">' +
                     '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
+
+                // Nama berkas diisi lewat textContent, bukan dirangkai ke
+                // innerHTML. Nama berasal dari pengguna dan bisa memuat tanda
+                // HTML, jadi menuliskannya sebagai teks mencegahnya dieksekusi.
+                el.querySelector('span').textContent = file.name;
                 el.querySelector('button').addEventListener('click', function () {
                     const dt = new DataTransfer();
                     Array.from(inputFile.files).forEach(function (f, fi) { if (fi !== i) dt.items.add(f); });

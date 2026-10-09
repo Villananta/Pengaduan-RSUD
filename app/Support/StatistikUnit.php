@@ -7,6 +7,7 @@ use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Angka pengaduan milik satu unit layanan untuk dashboard unit kerja.
@@ -20,7 +21,21 @@ use Illuminate\Support\Collection;
 final class StatistikUnit
 {
     /**
+     * Cache ringkasan disimpan per unit. Kuncinya memuat sebuah nomor versi
+     * yang dinaikkan setiap kali lupaCache() dipanggil, sehingga seluruh
+     * entri unit lama sekaligus dianggap basi tanpa perlu menghapusnya satu
+     * per satu dan tanpa menanyakan daftar unit ke database.
+     */
+    private const KUNCI_VERSI = 'statistik-unit-versi';
+
+    /** Umur cache, disamakan dengan cache dashboard admin supaya konsisten. */
+    private const TTL = 60;
+
+    /**
      * Ringkasan angka untuk kartu status dan panel ringkas.
+     *
+     * Hasilnya disimpan singkat di cache karena dashboard unit dan daftar
+     * pengaduan unit menghitung angka yang sama tiap kali dibuka.
      *
      * @return array{
      *     per_tahap: array<string, int>,
@@ -33,6 +48,36 @@ final class StatistikUnit
      * }
      */
     public static function ringkasan(MasterUnit $unit): array
+    {
+        $versi = (int) Cache::get(self::KUNCI_VERSI, 0);
+
+        return Cache::remember(
+            self::KUNCI_VERSI.'-'.$versi.'-'.$unit->id,
+            self::TTL,
+            fn (): array => self::hitung($unit),
+        );
+    }
+
+    /** Buang cache ringkasan semua unit, dipanggil saat ada pengaduan berubah. */
+    public static function lupaCache(): void
+    {
+        Cache::forever(self::KUNCI_VERSI, (int) Cache::get(self::KUNCI_VERSI, 0) + 1);
+    }
+
+    /**
+     * Hitung ringkasan dari database, tanpa cache.
+     *
+     * @return array{
+     *     per_tahap: array<string, int>,
+     *     total: int,
+     *     aktif: int,
+     *     terlambat: int,
+     *     mendek: int,
+     *     rata_rata_hari_kerja: ?float,
+     *     selesai_bulan_ini: int,
+     * }
+     */
+    private static function hitung(MasterUnit $unit): array
     {
         $perTahap = Pengaduan::query()
             ->where('master_unit_id', $unit->id)
