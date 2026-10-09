@@ -10,6 +10,7 @@ use Database\Factories\MasterUnitFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MasterUnit extends Model
@@ -82,6 +83,19 @@ class MasterUnit extends Model
     public function pengaduan(): HasMany
     {
         return $this->hasMany(Pengaduan::class, 'master_unit_id');
+    }
+
+    /**
+     * Akun pengguna yang mengurus unit ini.
+     *
+     * Kebalikan dari User::unit(), dipakai halaman master data untuk meninjau
+     * siapa saja yang berhak membuka konsol unit ini.
+     */
+    public function pengguna(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'master_unit_user')
+            ->withPivot('peran_akses')
+            ->withTimestamps();
     }
 
     /** Nama unit lengkap dengan kode, misalnya "Instalasi Farmasi Pusat [IFP-01]". */

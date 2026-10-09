@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
 use App\Http\Controllers\Unit\DisposisiController as UnitDisposisiController;
+use App\Http\Middleware\PastikanUnitAktif;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/buat-aduan');
@@ -49,27 +50,40 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Rute ini wajib didaftarkan sebelum /pengaduan/{kode} supaya kata
     // "buat" tidak tertangkap sebagai kode tiket yang tidak ada.
     Route::get('/pengaduan/buat', [AdminPengaduanController::class, 'create'])->name('pengaduan.create');
-    Route::post('/pengaduan/buat', [AdminPengaduanController::class, 'store'])->name('pengaduan.store');
+    Route::post('/pengaduan/buat', [AdminPengaduanController::class, 'store'])
+        ->middleware('throttle:60,1')
+        ->name('pengaduan.store');
 
     Route::get('/pengaduan/{kode}', [AdminPengaduanController::class, 'show'])->name('pengaduan.show');
 
-    Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])->name('pengaduan.balas');
-    Route::post('/pengaduan/{kode}/koordinasi', [AdminPengaduanController::class, 'koordinasi'])->name('pengaduan.koordinasi');
-    Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])->name('pengaduan.tahap');
-    Route::post('/pengaduan/{kode}/draf', [AdminPengaduanController::class, 'simpanDraf'])->name('pengaduan.draf');
-    Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])->name('pengaduan.jawaban');
-    Route::post('/pengaduan/{kode}/kembalikan', [AdminPengaduanController::class, 'kembalikan'])->name('pengaduan.kembalikan');
-    Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])->name('pengaduan.kasus-berat');
+    // Endpoint tulis paling rawan disalahgunakan karena konsol masih tanpa
+    // login. Lajunya dibatasi sekarang supaya peredaman tetap ada walau
+    // auth belum dipasang.
+    Route::middleware('throttle:60,1')->group(function () {
+        Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])->name('pengaduan.balas');
+        Route::post('/pengaduan/{kode}/koordinasi', [AdminPengaduanController::class, 'koordinasi'])->name('pengaduan.koordinasi');
+        Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])->name('pengaduan.tahap');
+        Route::post('/pengaduan/{kode}/draf', [AdminPengaduanController::class, 'simpanDraf'])->name('pengaduan.draf');
+        Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])->name('pengaduan.jawaban');
+        Route::post('/pengaduan/{kode}/kembalikan', [AdminPengaduanController::class, 'kembalikan'])->name('pengaduan.kembalikan');
+        Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])->name('pengaduan.kasus-berat');
+    });
 
     // Master data unit. Kode unit dipakai sebagai parameter rute karena
     // kode itulah yang dikenal petugas, bukan id angka yang tidak pernah
     // tampil di layar.
     Route::get('/unit', [AdminUnitController::class, 'index'])->name('unit.index');
     Route::get('/unit/tambah', [AdminUnitController::class, 'create'])->name('unit.create');
-    Route::post('/unit', [AdminUnitController::class, 'store'])->name('unit.store');
+    Route::post('/unit', [AdminUnitController::class, 'store'])
+        ->middleware('throttle:60,1')
+        ->name('unit.store');
     Route::get('/unit/{unit}/ubah', [AdminUnitController::class, 'edit'])->name('unit.edit');
-    Route::post('/unit/{unit}/perbarui', [AdminUnitController::class, 'update'])->name('unit.update');
-    Route::post('/unit/{unit}/status', [AdminUnitController::class, 'status'])->name('unit.status');
+    Route::post('/unit/{unit}/perbarui', [AdminUnitController::class, 'update'])
+        ->middleware('throttle:60,1')
+        ->name('unit.update');
+    Route::post('/unit/{unit}/status', [AdminUnitController::class, 'status'])
+        ->middleware('throttle:60,1')
+        ->name('unit.status');
 });
 
 // Dashboard unit layanan (pintu masuk /unit).
@@ -80,13 +94,23 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // tanpa harus mengubah nama rute yang sudah dipakai template.
 Route::prefix('unit')->name('unit.')->group(function () {
     Route::get('/', [UnitDashboardController::class, 'pilih'])->name('pilih');
-    Route::get('/{unit}/dashboard', [UnitDashboardController::class, 'index'])->name('dashboard');
 
-    // Halaman disposisi sisi unit. Sengaja terpisah dari rute admin.pengaduan
-    // karena pemiliknya berbeda: di sini kode unit mengunci isi halaman, jadi
-    // satu unit tidak bisa membuka daftar atau detail tiket milik unit lain.
-    Route::get('/{unit}/disposisi', [UnitDisposisiController::class, 'index'])->name('disposisi.index');
-    Route::get('/{unit}/arsip', [UnitDisposisiController::class, 'arsip'])->name('disposisi.arsip');
-    Route::get('/{unit}/pengaduan/{kode}', [UnitDisposisiController::class, 'show'])->name('disposisi.show');
-    Route::post('/{unit}/pengaduan/{kode}/jawaban', [UnitDisposisiController::class, 'kirim'])->name('disposisi.kirim');
+    // Unit non-aktif hanya hilang dari daftar pemilih, jadi rute ber-{unit}
+    // dijaga terpisah supaya URL langsungnya ikut ditolak.
+    Route::middleware(PastikanUnitAktif::class)->group(function () {
+        Route::get('/{unit}/dashboard', [UnitDashboardController::class, 'index'])->name('dashboard');
+
+        // Halaman disposisi sisi unit. Sengaja terpisah dari rute admin.pengaduan
+        // karena pemiliknya berbeda: di sini kode unit mengunci isi halaman, jadi
+        // satu unit tidak bisa membuka daftar atau detail tiket milik unit lain.
+        Route::get('/{unit}/disposisi', [UnitDisposisiController::class, 'index'])->name('disposisi.index');
+        Route::get('/{unit}/arsip', [UnitDisposisiController::class, 'arsip'])->name('disposisi.arsip');
+        Route::get('/{unit}/pengaduan/{kode}', [UnitDisposisiController::class, 'show'])->name('disposisi.show');
+
+        // Jawaban unit membalik sinyal disposisi yang dibaca konsol humas, jadi
+        // lajunya dibatasi meski konsol masih tanpa login.
+        Route::post('/{unit}/pengaduan/{kode}/jawaban', [UnitDisposisiController::class, 'kirim'])
+            ->middleware('throttle:20,1')
+            ->name('disposisi.kirim');
+    });
 });

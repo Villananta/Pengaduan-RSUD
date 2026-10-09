@@ -329,4 +329,43 @@ class DisposisiUnitTest extends TestCase
             $tampilan,
         );
     }
+
+    public function test_unit_nonaktif_tidak_dapat_membuka_disposisi(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        $farmasi->update(['aktif' => false]);
+
+        // Sama seperti dashboard, seluruh rute disposisi harus menolak unit
+        // yang sudah dinonaktifkan, bukan sekadar menghilangkannya dari daftar.
+        $this->get(route('unit.disposisi.index', $farmasi))->assertNotFound();
+        $this->get(route('unit.disposisi.arsip', $farmasi))->assertNotFound();
+        $this->get(route('unit.disposisi.show', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]))
+            ->assertNotFound();
+        $this->post(route('unit.disposisi.kirim', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]), [
+            'isi' => 'Jawaban dari unit yang sudah dinonaktifkan.',
+        ])->assertNotFound();
+
+        $this->assertCount(0, $tiket->pesan()->where('peran', 'unit')->get());
+    }
+
+    public function test_kirim_jawaban_unit_dibatasi_lajunya(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        $url = route('unit.disposisi.kirim', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]);
+
+        // Batasnya 20 permintaan per menit; permintaan ke-21 harus ditolak.
+        for ($i = 0; $i < 20; $i++) {
+            $this->post($url, ['isi' => 'Jawaban ke-'.$i])->assertRedirect();
+        }
+
+        $this->post($url, ['isi' => 'Jawaban ke-21'])->assertStatus(429);
+    }
 }

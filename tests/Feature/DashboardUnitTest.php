@@ -60,6 +60,14 @@ class DashboardUnitTest extends TestCase
         );
     }
 
+    public function test_dashboard_unit_nonaktif_menghasilkan_404(): void
+    {
+        MasterUnit::updateOrCreate(['kode' => 'IFP-01'], ['aktif' => false]);
+
+        // Menyembunyikan tautan saja tidak cukup; URL langsungnya ikut ditolak.
+        $this->get(route('unit.dashboard', 'IFP-01'))->assertNotFound();
+    }
+
     public function test_kode_unit_membuka_dashboard_yang_sesuai(): void
     {
         $this->get(route('unit.dashboard', 'IFP-01'))
