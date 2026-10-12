@@ -350,7 +350,7 @@ class DisposisiUnitTest extends TestCase
         }
     }
 
-    public function test_menu_unit_memiliki_empat_item_dan_workspace_tanpa_tautan_di_luar_detail(): void
+    public function test_menu_unit_memiliki_tiga_item_tanpa_workspace(): void
     {
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
@@ -367,12 +367,10 @@ class DisposisiUnitTest extends TestCase
         // memancing orang pindah unit tanpa sengaja.
         $this->assertStringNotContainsString('Pilih Unit', $tampilan);
 
-        // Di luar halaman detail belum ada tiket yang dituju, jadi menu
-        // workspace tampil sebagai label mati, bukan sebagai tautan.
-        $this->assertMatchesRegularExpression(
-            '/<span[^>]*cursor-not-allowed[^>]*>\s*Workspace &amp; Form Jawaban\s*<\/span>/',
-            $tampilan,
-        );
+        // Workspace tiket tidak berdiri sendiri di topbar; halamannya dibuka
+        // dari tombol detail pada beranda unit dan daftar disposisi, sama
+        // seperti konsol admin.
+        $this->assertStringNotContainsString('Workspace &amp; Form Jawaban', $tampilan);
     }
 
     public function test_unit_nonaktif_tidak_dapat_membuka_disposisi(): void

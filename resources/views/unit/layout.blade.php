@@ -30,6 +30,9 @@
             $navigasi = [];
 
             if ($unit !== null) {
+                // Workspace tiket tidak berdiri sendiri di topbar: halamannya
+                // dibuka dari tombol detail pada beranda unit dan daftar
+                // disposisi, sama seperti konsol admin.
                 $navigasi[] = [
                     'label' => 'Beranda Unit',
                     'pola' => 'unit.dashboard',
@@ -40,20 +43,6 @@
                     'label' => 'Daftar Disposisi Masuk',
                     'pola' => 'unit.disposisi.index',
                     'url' => route('unit.disposisi.index', $unit),
-                ];
-
-                // Workspace selalu menunjuk satu tiket tertentu. Di luar
-                // halaman detail tujuannya belum bisa ditentukan, jadi
-                // menunya ditampilkan tanpa tautan, bukan diarahkan ke daftar
-                // yang isinya berbeda dengan yang dijanjikan menu.
-                $kodeTiket = request()->route('kode');
-
-                $navigasi[] = [
-                    'label' => 'Workspace & Form Jawaban',
-                    'pola' => 'unit.disposisi.show',
-                    'url' => is_string($kodeTiket) && $kodeTiket !== ''
-                        ? route('unit.disposisi.show', ['unit' => $unit, 'kode' => $kodeTiket])
-                        : null,
                 ];
 
                 $navigasi[] = [
@@ -138,26 +127,15 @@
 
                         {{-- Menu aktif memakai pill mint, jadi penanda halaman
                              terbaca tanpa memotong tinggi bilah navigasi. --}}
-                        @if ($item['url'] === null)
-                            {{-- Menu tanpa tujuan tetap ditampilkan sebagai label
-                                 supaya urutan menu sama dengan halaman lain, tapi
-                                 tidak boleh berpura-pura menjadi tautan. --}}
-                            <span
-                                class="flex items-center rounded-full px-3 py-1.5 text-outline cursor-not-allowed font-title-sm text-title-sm font-semibold"
-                                role="button"
-                                aria-disabled="true"
-                            >{{ $item['label'] }}</span>
-                        @else
-                            <a
-                                href="{{ $item['url'] }}"
-                                @class([
-                                    'flex items-center rounded-full px-3 py-1.5 transition-colors',
-                                    'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                    'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
-                                ])
-                                @if ($aktif) aria-current="page" @endif
-                            >{{ $item['label'] }}</a>
-                        @endif
+                        <a
+                            href="{{ $item['url'] }}"
+                            @class([
+                                'flex items-center rounded-full px-3 py-1.5 transition-colors',
+                                'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
+                                'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
+                            ])
+                            @if ($aktif) aria-current="page" @endif
+                        >{{ $item['label'] }}</a>
                     @endforeach
                 </nav>
 
