@@ -187,6 +187,19 @@ class Pengaduan extends Model
         ]);
     }
 
+    /**
+     * Tiket yang sudah diteruskan Humas, bukan sekadar tertaut ke unit.
+     *
+     * Pilihan unit pada formulir pelapor sudah mengisi master_unit_id sejak
+     * tiket masih 'Diterima', padahal Humas belum memprosesnya. Semua query
+     * sisi unit memakai penyaring ini supaya antrean unit tidak diisi tiket
+     * yang keputusannya masih di tangan Humas.
+     */
+    public function scopeSudahDiteruskanHumas(Builder $query): Builder
+    {
+        return $query->where('status', '!=', StatusPengaduan::Diterima->value);
+    }
+
     public function scopeSelesai(Builder $query): Builder
     {
         return $query->where('status', StatusPengaduan::Selesai->value);

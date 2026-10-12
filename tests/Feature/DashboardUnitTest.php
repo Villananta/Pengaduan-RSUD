@@ -108,12 +108,12 @@ class DashboardUnitTest extends TestCase
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
         $radiologi = MasterUnit::where('kode', 'IRS-03')->firstOrFail();
 
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'master_unit_id' => $farmasi->id,
             'kode_tiket' => 'ADUAN-FARMASI-1',
         ]);
 
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'master_unit_id' => $radiologi->id,
             'kode_tiket' => 'ADUAN-RADIOLOGI-1',
         ]);
@@ -137,7 +137,7 @@ class DashboardUnitTest extends TestCase
                 ]);
             });
 
-        Pengaduan::factory()->create(['master_unit_id' => $farmasi->id]);
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create(['master_unit_id' => $farmasi->id]);
 
         $this->get(route('unit.dashboard', 'IFP-01'))
             ->assertOk()
@@ -172,7 +172,7 @@ class DashboardUnitTest extends TestCase
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         // Hari ke-11, tersisa satu hari kerja lagi sebelum batas SLA.
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'master_unit_id' => $farmasi->id,
             'kode_tiket' => 'ADUAN-UNIT-MENDEK',
             'created_at' => now()->subWeekdays(10)->setTime(8, 0),
@@ -190,7 +190,7 @@ class DashboardUnitTest extends TestCase
     {
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'master_unit_id' => $farmasi->id,
             'kode_tiket' => 'ADUAN-UNIT-AMAN',
             'created_at' => now()->subDay(),

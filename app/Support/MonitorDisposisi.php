@@ -77,7 +77,9 @@ final class MonitorDisposisi
      * 1. Sudah selesai, apa pun isi pesannya, masuk Jawaban di Humas. Tiket
      *    bisa ditutup tanpa balasan apa pun karena tombol Selesaikan memang
      *    tidak memaksa pesan.
-     * 2. Masih Diterima dan belum ada jawaban unit, masuk Belum Dibuka Unit.
+     * 2. Masih Diterima dan belum ada jawaban unit, masuk Menunggu Diproses
+     *    Humas. Pelapor boleh menunjuk unitnya sejak awal, tapi tiket baru
+     *    benar-benar jadi beban unit setelah Humas memprosesnya.
      * 3. Sudah ada jawaban PIC unit, masuk Menunggu Racikan. Syarat ini yang
      *    mencegah tiket Diterima muncul di kolom pertama sekaligus ketiga.
      *    Balasan humas tidak dihitung, karena humas menulis justru tanpa
@@ -108,10 +110,10 @@ final class MonitorDisposisi
 
         $kolom = [
             [
-                'kunci' => 'belum_dibuka',
-                'judul' => 'Belum Dibuka Unit',
-                'ringkas' => 'Disposisi sudah turun, unit belum membuka tiket.',
-                'ikon' => 'visibility_off',
+                'kunci' => 'menunggu_diproses',
+                'judul' => 'Menunggu Diproses Humas',
+                'ringkas' => 'Pelapor sudah menunjuk unitnya, Humas belum meneruskan tiket.',
+                'ikon' => 'inbox',
                 'titik' => 'bg-error',
                 'latar' => 'bg-error-container/40',
                 'nadaJudul' => 'text-on-error-container',

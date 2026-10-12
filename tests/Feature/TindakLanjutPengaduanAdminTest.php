@@ -246,17 +246,18 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame(StatusPengaduan::Selesai, $pengaduan->fresh()->status);
     }
 
-    public function test_jalur_2_melepas_unit_dan_menghilangkan_tiket_dari_daftar_disposisi_unit(): void
+    public function test_jalur_2_melepas_unit_dari_tiket_yang_ditangani_langsung_humas(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $pengaduan = $this->tiketDiproses('ADUAN-LANGSUNG-01', StatusPengaduan::Diterima);
         $pengaduan->update(['master_unit_id' => $unit->id]);
 
-        // Sebelum diambil alih humas, tiket masih terlihat di daftar unit.
+        // Pilihan unit dari pelapor belum diteruskan Humas, jadi tiketnya
+        // belum muncul di daftar unit.
         $this->get(route('unit.disposisi.index', $unit))
             ->assertOk()
-            ->assertSee($pengaduan->kode_tiket);
+            ->assertDontSee($pengaduan->kode_tiket);
 
         $this->post(route('admin.pengaduan.tangani-langsung', $pengaduan->kode_tiket))
             ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
@@ -270,7 +271,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $pelepasan = $pengaduan->riwayatStatus->last();
         $this->assertStringContainsString($unit->namaLengkap(), $pelepasan->catatan);
 
-        // Sesudah dilepas, tiket tidak lagi muncul di konsol unit.
+        // Setelah Humas menangani sendiri, tautan unit tetap bersih.
         $this->get(route('unit.disposisi.index', $unit))
             ->assertOk()
             ->assertDontSee($pengaduan->kode_tiket);

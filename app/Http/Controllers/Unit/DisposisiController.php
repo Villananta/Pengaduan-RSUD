@@ -83,6 +83,9 @@ class DisposisiController extends Controller
     {
         $pengaduan = Pengaduan::query()
             ->where('master_unit_id', $unit->id)
+            // Sama seperti halaman detail: tiket yang belum diteruskan Humas
+            // dianggap bukan milik unit ini, jadi jawabannya ditolak 404.
+            ->sudahDiteruskanHumas()
             ->where('kode_tiket', $kode)
             ->firstOrFail();
 

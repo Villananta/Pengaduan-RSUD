@@ -64,7 +64,11 @@ final class DetailPengaduan
     {
         $pengaduan = Pengaduan::query()
             ->with(['masterUnit', 'pesan', 'riwayatStatus.admin'])
-            ->when($unit !== null, fn (Builder $q): Builder => $q->where('master_unit_id', $unit->id))
+            ->when($unit !== null, fn (Builder $q): Builder => $q
+                ->where('master_unit_id', $unit->id)
+                // Tiket yang masih 'Diterima' belum diteruskan Humas, jadi
+                // unit belum berhak membukanya meski master_unit_id terisi.
+                ->sudahDiteruskanHumas())
             ->where('kode_tiket', $kode)
             ->firstOrFail();
 

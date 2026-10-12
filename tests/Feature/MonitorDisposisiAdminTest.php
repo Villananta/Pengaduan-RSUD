@@ -73,7 +73,7 @@ class MonitorDisposisiAdminTest extends TestCase
             ->assertDontSee('ADUAN-LANGSUNG-01');
     }
 
-    public function test_belum_dibuka_dipisah_dari_sedang_investigasi(): void
+    public function test_menunggu_diproses_humas_dipisah_dari_sedang_investigasi(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
@@ -85,12 +85,13 @@ class MonitorDisposisiAdminTest extends TestCase
 
         $tampilan = $this->get(route('admin.monitor.index'))
             ->assertOk()
-            ->assertSee('Belum Dibuka Unit')
+            ->assertSee('Menunggu Diproses Humas')
             ->assertSee('ADUAN-BELUM-DIBUKA')
             ->getContent();
 
-        // Kedua tiket ini berstatus investigasi yang sama pada tab Lapis 2
-        // di daftar pengaduan, jadi pemisahan hanya boleh terjadi di sini.
+        // Tiket Diterima tetap berstatus investigasi 'Sedang Investigasi'
+        // pada tab Lapis 2 di daftar pengaduan, jadi pemisahan hanya boleh
+        // terjadi di papan monitor ini.
         $this->assertStringNotContainsString('ADUAN-BELUM-DIBUKA', $this->dariTab('Sedang Investigasi', $tampilan));
     }
 
@@ -205,7 +206,7 @@ class MonitorDisposisiAdminTest extends TestCase
 
         $kolom = $this->kolomPapan();
 
-        $this->assertSame(1, $kolom['belum_dibuka'], 'Diterima tanpa balasan unit.');
+        $this->assertSame(1, $kolom['menunggu_diproses'], 'Diterima tanpa balasan unit.');
         $this->assertSame(2, $kolom['menunggu_racikan'], 'Sudah dibalas unit, tahap apa pun.');
         $this->assertSame(1, $kolom['sedang_investigasi'], 'Diproses tanpa balasan unit.');
         $this->assertSame(1, $kolom['jawaban_unit'], 'Selesai tanpa pesan tetap tampil.');
@@ -229,7 +230,7 @@ class MonitorDisposisiAdminTest extends TestCase
         // Monitor memecah kelompok yang di tab Lapis 2 masih satu status,
         // jadi angkanya boleh berbeda satu tiket, tapi tidak boleh nol.
         $this->assertSame(
-            $kolom['belum_dibuka'] + $kolom['sedang_investigasi'],
+            $kolom['menunggu_diproses'] + $kolom['sedang_investigasi'],
             $hitung(StatusInvestigasi::SedangInvestigasi),
         );
         $this->assertSame($kolom['menunggu_racikan'], $hitung(StatusInvestigasi::MenungguRacikan));

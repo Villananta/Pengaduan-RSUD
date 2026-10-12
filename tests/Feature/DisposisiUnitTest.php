@@ -105,12 +105,39 @@ class DisposisiUnitTest extends TestCase
     {
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diterima)
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['master_unit_id' => $farmasi->id]);
 
         $this->get(route('unit.disposisi.show', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]))
             ->assertOk()
             ->assertSee('Humas belum menulis catatan khusus untuk tiket ini.');
+    }
+
+    public function test_tiket_yang_belum_diproses_humas_belum_masuk_antrean_unit(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        // master_unit_id ikut terisi begitu pelapor memilih unit, tapi Humas
+        // belum menekan Proses. Tiket seperti ini belum jadi beban unit.
+        $belum = Pengaduan::factory()->status(StatusPengaduan::Diterima)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        $sudah = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        $tampilan = $this->get(route('unit.disposisi.index', $farmasi))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString($belum->kode_tiket, $tampilan);
+        $this->assertStringContainsString($sudah->kode_tiket, $tampilan);
+
+        $this->get(route('unit.disposisi.show', ['unit' => $farmasi, 'kode' => $belum->kode_tiket]))
+            ->assertNotFound();
+
+        $this->post(route('unit.disposisi.kirim', ['unit' => $farmasi, 'kode' => $belum->kode_tiket]), [
+            'isi' => 'Jawaban untuk tiket yang belum diproses Humas.',
+        ])->assertNotFound();
     }
 
     public function test_kirim_jawaban_menyimpan_pesan_dengan_peran_unit(): void

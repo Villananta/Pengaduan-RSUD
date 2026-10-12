@@ -81,6 +81,7 @@ final class StatistikUnit
     {
         $perTahap = Pengaduan::query()
             ->where('master_unit_id', $unit->id)
+            ->sudahDiteruskanHumas()
             ->selectRaw('status, count(*) as jumlah')
             ->groupBy('status')
             ->pluck('jumlah', 'status')
@@ -151,6 +152,7 @@ final class StatistikUnit
     {
         $aktif = Pengaduan::query()
             ->where('master_unit_id', $unit->id)
+            ->sudahDiteruskanHumas()
             ->aktif()
             ->get(['id', 'created_at', 'selesai_at', 'kasus_berat', 'status']);
 
@@ -182,6 +184,7 @@ final class StatistikUnit
     {
         return Pengaduan::query()
             ->where('master_unit_id', $unit->id)
+            ->sudahDiteruskanHumas()
             ->aktif()
             ->with('masterUnit')
             ->withExists(['pesan as unit_menjawab' => fn ($q) => $q->jawabanUnit()])
@@ -209,6 +212,7 @@ final class StatistikUnit
     {
         return Pengaduan::query()
             ->where('master_unit_id', $unit->id)
+            ->sudahDiteruskanHumas()
             ->with('masterUnit')
             ->withExists(['pesan as unit_menjawab' => fn ($q) => $q->jawabanUnit()])
             ->orderByRaw('case when status = ? then 1 else 0 end', [StatusPengaduan::Selesai->value])

@@ -111,6 +111,10 @@ final class DaftarPengaduan
                     ->orWhere('unit', 'like', '%'.$cari.'%')
             ))
             ->when($unit !== null, fn (Builder $q): Builder => $q->where('master_unit_id', $unit->id))
+            // Halaman sisi unit hanya memuat tiket yang sudah diteruskan
+            // Humas. master_unit_id saja belum cukup karena pilihan unit
+            // pelapor sudah mengisinya sejak tiket masih 'Diterima'.
+            ->when($terkunci !== null, fn (Builder $q): Builder => $q->sudahDiteruskanHumas())
             ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value));
 
         // Hitungan per tahap digabung dalam satu query group-by, bukan lima
