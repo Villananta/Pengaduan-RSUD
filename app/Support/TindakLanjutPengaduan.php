@@ -59,6 +59,7 @@ final class TindakLanjutPengaduan
             }
 
             $pengaduan->pindahTahap(StatusPengaduan::Selesai, $catatan, $adminId);
+            self::selaraskanDisposisi($pengaduan, StatusPengaduan::Selesai);
         });
 
         self::segarkanStatistik();
@@ -124,6 +125,10 @@ final class TindakLanjutPengaduan
         }
 
         DB::transaction(function () use ($pengaduan, $unit, $catatan, $adminId): void {
+            // Unit yang ditinggalkan dikembalikan ke terhubung supaya benderanya
+            // tidak tertinggal "menunggu investigasi" padahal tiketnya pindah.
+            $unitSebelumnya = $pengaduan->masterUnit;
+
             $pengaduan->master_unit_id = $unit->id;
 
             if ($pengaduan->status === StatusPengaduan::Diproses) {
@@ -136,6 +141,10 @@ final class TindakLanjutPengaduan
                 ]);
             } else {
                 $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
+            }
+
+            if ($unitSebelumnya !== null && $unitSebelumnya->id !== $unit->id) {
+                $unitSebelumnya->update(['disposisi' => DisposisiUnit::Terhubung]);
             }
 
             $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
@@ -180,6 +189,11 @@ final class TindakLanjutPengaduan
             $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
 
             if ($unitDilepas !== null) {
+                // Unit yang dilepas kembali siap menerima penugasan; kalau
+                // benderanya dibiarkan, konsol unit terus menampilkan disposisi
+                // terakhir yang sudah tidak berlaku.
+                $unitDilepas->update(['disposisi' => DisposisiUnit::Terhubung]);
+
                 $pengaduan->riwayatStatus()->create([
                     'dari' => StatusPengaduan::Diproses,
                     'ke' => StatusPengaduan::Diproses,
@@ -223,9 +237,39 @@ final class TindakLanjutPengaduan
 
         DB::transaction(function () use ($pengaduan, $tujuan, $catatan, $adminId): void {
             $pengaduan->pindahTahap($tujuan, $catatan, $adminId);
+            self::selaraskanDisposisi($pengaduan, $tujuan);
         });
 
         self::segarkanStatistik();
+    }
+
+    /**
+     * Selaraskan bendera disposisi unit yang menangani dengan tahap tiket.
+     *
+     * master_units.disposisi adalah satu bendera per unit, bukan per tiket,
+     * dan hanya berarti sebagai penanda "disposisi terakhir". Karena itu tiap
+     * aksi humas yang memindahkan tahap harus ikut memperbaruinya; kalau
+     * tidak, konsol unit menampilkan disposisi yang sudah basi. Tiket tanpa
+     * unit dilewati karena tidak ada bendera yang perlu diubah.
+     */
+    private static function selaraskanDisposisi(Pengaduan $pengaduan, StatusPengaduan $tahap): void
+    {
+        if ($pengaduan->master_unit_id === null) {
+            return;
+        }
+
+        $disposisi = match ($tahap) {
+            StatusPengaduan::Diproses => DisposisiUnit::MenungguInvestigasi,
+            StatusPengaduan::Revisi => DisposisiUnit::MenungguInfoTambahan,
+            StatusPengaduan::Selesai => DisposisiUnit::Terhubung,
+            StatusPengaduan::Diterima => null,
+        };
+
+        if ($disposisi === null) {
+            return;
+        }
+
+        $pengaduan->masterUnit?->update(['disposisi' => $disposisi]);
     }
 
     /**

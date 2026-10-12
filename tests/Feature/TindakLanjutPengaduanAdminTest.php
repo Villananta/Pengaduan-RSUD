@@ -212,6 +212,69 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame(StatusPengaduan::Diproses, $penugasan->ke);
     }
 
+    public function test_mengalihkan_disposisi_mengembalikan_unit_lama_ke_terhubung(): void
+    {
+        $lama = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $baru = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-DISPOSISI-03');
+        $pengaduan->update(['master_unit_id' => $lama->id]);
+        $lama->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
+
+        $this->post(route('admin.pengaduan.disposisi', $pengaduan->kode_tiket), [
+            'unit' => $baru->kode,
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        // Bendera unit lama tidak boleh tertinggal "menunggu investigasi"
+        // padahal tiketnya sudah pindah ke unit lain.
+        $this->assertSame(DisposisiUnit::Terhubung, $lama->fresh()->disposisi);
+        $this->assertSame(DisposisiUnit::MenungguInvestigasi, $baru->fresh()->disposisi);
+    }
+
+    public function test_tombol_proses_menandai_unit_menunggu_investigasi(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-TAHAP-10', StatusPengaduan::Diterima);
+        $pengaduan->update(['master_unit_id' => $unit->id]);
+
+        $this->post(route('admin.pengaduan.tahap', $pengaduan->kode_tiket), [
+            'tujuan' => StatusPengaduan::Diproses->value,
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $this->assertSame(DisposisiUnit::MenungguInvestigasi, $unit->fresh()->disposisi);
+    }
+
+    public function test_tahap_revisi_menandai_unit_butuh_info_tambahan(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-TAHAP-11');
+        $pengaduan->update(['master_unit_id' => $unit->id]);
+        $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
+
+        $this->post(route('admin.pengaduan.tahap', $pengaduan->kode_tiket), [
+            'tujuan' => StatusPengaduan::Revisi->value,
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $this->assertSame(DisposisiUnit::MenungguInfoTambahan, $unit->fresh()->disposisi);
+    }
+
+    public function test_menutup_tiket_mengembalikan_unit_ke_terhubung(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-TUTUP-05');
+        $pengaduan->update(['master_unit_id' => $unit->id]);
+        $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
+
+        $this->post(route('admin.pengaduan.jawaban', $pengaduan->kode_tiket), [
+            'isi' => 'Terima kasih atas laporannya, keluhan sudah kami tindak lanjuti.',
+        ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        $this->assertSame(DisposisiUnit::Terhubung, $unit->fresh()->disposisi);
+    }
+
     public function test_aksi_c_menolak_unit_yang_koneksinya_terputus(): void
     {
         $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
@@ -252,6 +315,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         $pengaduan = $this->tiketDiproses('ADUAN-LANGSUNG-01', StatusPengaduan::Diterima);
         $pengaduan->update(['master_unit_id' => $unit->id]);
+        $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
 
         // Pilihan unit dari pelapor belum diteruskan Humas, jadi tiketnya
         // belum muncul di daftar unit.
@@ -270,6 +334,9 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         // Pelepasan unit tetap terekam di riwayat, bukan hilang begitu saja.
         $pelepasan = $pengaduan->riwayatStatus->last();
         $this->assertStringContainsString($unit->namaLengkap(), $pelepasan->catatan);
+
+        // Unit yang dilepas kembali siap menerima penugasan.
+        $this->assertSame(DisposisiUnit::Terhubung, $unit->fresh()->disposisi);
 
         // Setelah Humas menangani sendiri, tautan unit tetap bersih.
         $this->get(route('unit.disposisi.index', $unit))
