@@ -116,6 +116,25 @@ class PengaduanTest extends TestCase
         $this->assertSame(0, StatistikDashboard::ringkasanKritis()['telaah']);
     }
 
+    public function test_unit_yang_tidak_bisa_ditugaskan_tidak_dipasang_otomatis(): void
+    {
+        $this->seed(MasterUnitSeeder::class);
+
+        // "Instalasi Rawat Jalan (Poliklinik)" memang ada di daftar pilihan
+        // pelapor dan dipetakan ke IRJ-05, tetapi unit itu sedang ditandai
+        // terputus. Pelapor tetap boleh memilihnya -- daftar unit publik
+        // tidak mengikuti koneksi SIMRS -- namun tiketnya tidak boleh
+        // langsung menempel ke unit yang Humas pun tidak boleh memilihnya.
+        $this->post(route('pengaduan.store'), $this->form([
+            'unit' => 'Instalasi Rawat Jalan (Poliklinik)',
+        ]));
+
+        $pengaduan = Pengaduan::first();
+
+        $this->assertNull($pengaduan->master_unit_id);
+        $this->assertSame('Instalasi Rawat Jalan (Poliklinik)', $pengaduan->unit);
+    }
+
     public function test_kode_tiket_tidak_bisa_dimasukkan_melalui_mass_assignment(): void
     {
         $pengaduan = Pengaduan::buat(

@@ -136,6 +136,8 @@ final class PengaduanMasuk
      *
      * Pengaduan lama atau unit yang belum dipetakan tetap boleh kosong,
      * karena kolomnya nullable dan nama pada kolom unit tetap disimpan.
+     * Unit yang sedang tidak bisa ditugaskan diperlakukan sama, supaya
+     * tiket tidak menempel ke unit yang tidak bisa menanganinya.
      */
     public static function unitMaster(?string $label): ?int
     {
@@ -146,7 +148,18 @@ final class PengaduanMasuk
             return null;
         }
 
-        return MasterUnit::where('kode', $kode)->value('id');
+        $unit = MasterUnit::where('kode', $kode)->first();
+
+        // Unit non-aktif dan unit yang koneksinya terputus ditolak dengan
+        // aturan yang sama seperti Humas saat mendisposisi. Kalau tautan
+        // tetap dibuat di sini, pelapor justru bisa menugaskan tiket ke unit
+        // yang tidak boleh dipilih Humas, dan tiketnya menggantung tanpa
+        // pihak yang bisa ditagih.
+        if ($unit === null || ! $unit->bisaDitugaskan()) {
+            return null;
+        }
+
+        return $unit->id;
     }
 
     /**
