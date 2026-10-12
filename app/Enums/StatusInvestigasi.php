@@ -96,8 +96,13 @@ enum StatusInvestigasi: string
      * berstatus ditangani langsung humas, tiket yang sudah ditutup selalu
      * berstatus arsip unit, dan hanya tiket aktif bertaut unit yang bisa
      * berstatus menunggu racikan atau sedang ditelusuri unit.
+     *
+     * Param unitMenjawab hanya bernilai benar bila PIC unit sendiri sudah
+     * menulis jawabannya. Balasan humas kepada pelapor bukan bukti unit
+     * menjawab, jadi pemanggil memakai PesanPengaduan::dariUnit() atau
+     * scopeJawabanUnit(), bukan scopeJawaban() yang sifatnya lebih lebar.
      */
-    public static function dariPengaduan(Pengaduan $pengaduan, bool $sudahDibalas = false): self
+    public static function dariPengaduan(Pengaduan $pengaduan, bool $unitMenjawab = false): self
     {
         if ($pengaduan->master_unit_id === null) {
             return self::LangsungHumas;
@@ -107,7 +112,7 @@ enum StatusInvestigasi: string
             return self::JawabanUnit;
         }
 
-        if ($sudahDibalas) {
+        if ($unitMenjawab) {
             return self::MenungguRacikan;
         }
 
@@ -137,26 +142,28 @@ enum StatusInvestigasi: string
      * Batasi query ke satu status investigasi.
      *
      * Syarat tiap status disusun saling lepas supaya jumlah pada setiap
-     * tab tidak beririsan dan masih bisa dibandingkan langsung.
+     * tab tidak beririsan dan masih bisa dibandingkan langsung. Yang
+     * menaikkan tiket ke Menunggu Racikan hanya jawaban PIC unit; balasan
+     * humas di kolom percakapan tidak ikut dihitung.
      */
     public function terapkan(Builder $query): Builder
     {
         $ditugaskan = fn (Builder $q): Builder => $q->whereNotNull('master_unit_id');
-        $sudahDibalas = fn (Builder $q): Builder => $q->whereHas(
+        $unitMenjawab = fn (Builder $q): Builder => $q->whereHas(
             'pesan',
-            fn (Builder $p): Builder => $p->jawaban()
+            fn (Builder $p): Builder => $p->jawabanUnit()
         );
-        $belumDibalas = fn (Builder $q): Builder => $q->whereDoesntHave(
+        $unitBelumMenjawab = fn (Builder $q): Builder => $q->whereDoesntHave(
             'pesan',
-            fn (Builder $p): Builder => $p->jawaban()
+            fn (Builder $p): Builder => $p->jawabanUnit()
         );
 
         return match ($this) {
             self::LangsungHumas => $query->whereNull('master_unit_id'),
             self::JawabanUnit => $ditugaskan($query)
                 ->where('status', StatusPengaduan::Selesai->value),
-            self::MenungguRacikan => $sudahDibalas($ditugaskan($query->aktif())),
-            self::SedangInvestigasi => $belumDibalas($ditugaskan($query->aktif()))
+            self::MenungguRacikan => $unitMenjawab($ditugaskan($query->aktif())),
+            self::SedangInvestigasi => $unitBelumMenjawab($ditugaskan($query->aktif()))
                 ->whereIn('status', [
                     StatusPengaduan::Diterima->value,
                     StatusPengaduan::Diproses->value,

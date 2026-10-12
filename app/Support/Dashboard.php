@@ -226,7 +226,7 @@ final class Dashboard
     public function kartuTiket(Pengaduan $pengaduan): array
     {
         $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
-        $sudahDibalas = (bool) $pengaduan->sudah_dibalas;
+        $unitMenjawab = (bool) $pengaduan->unit_menjawab;
         $hariKe = Sla::hariKe($pengaduan->created_at);
         $sisa = $pengaduan->sisaHariSla();
 
@@ -248,10 +248,10 @@ final class Dashboard
                 $pengaduan->status === StatusPengaduan::Diterima => 'bg-surface-container-highest text-on-surface',
                 default => 'bg-secondary-container text-on-secondary-container',
             },
-            'tahap' => $this->tahapTiket($lewat, $sudahDibalas, $pengaduan),
+            'tahap' => $this->tahapTiket($lewat, $unitMenjawab, $pengaduan),
             'sla' => $this->barisSla($pengaduan->zonaSla(), $hariKe, $sisa),
-            'catatan' => $this->catatanTiket($lewat, $sudahDibalas, $pengaduan),
-            'tombol' => $this->tombolTiket($lewat, $sudahDibalas, $pengaduan),
+            'catatan' => $this->catatanTiket($lewat, $unitMenjawab, $pengaduan),
+            'tombol' => $this->tombolTiket($lewat, $unitMenjawab, $pengaduan),
         ];
     }
 
@@ -274,9 +274,9 @@ final class Dashboard
      *
      * @return array{label: string, ikon: string, nada: string}
      */
-    private function tahapTiket(bool $lewat, bool $sudahDibalas, Pengaduan $pengaduan): array
+    private function tahapTiket(bool $lewat, bool $unitMenjawab, Pengaduan $pengaduan): array
     {
-        if ($sudahDibalas) {
+        if ($unitMenjawab) {
             return [
                 'label' => 'Jawaban Unit Masuk',
                 'ikon' => 'task',
@@ -328,7 +328,7 @@ final class Dashboard
      *
      * @return array{label: string, nada: string}
      */
-    private function catatanTiket(bool $lewat, bool $sudahDibalas, Pengaduan $pengaduan): array
+    private function catatanTiket(bool $lewat, bool $unitMenjawab, Pengaduan $pengaduan): array
     {
         if ($lewat) {
             return [
@@ -337,7 +337,7 @@ final class Dashboard
             ];
         }
 
-        if ($sudahDibalas) {
+        if ($unitMenjawab) {
             return [
                 'label' => 'Draf klarifikasi telaah sudah masuk dan siap diracik humas',
                 'nada' => 'text-secondary font-medium',
@@ -372,7 +372,7 @@ final class Dashboard
      *
      * @return array<int, array{label: string, ikon: string, nada: string, url: ?string}>
      */
-    private function tombolTiket(bool $lewat, bool $sudahDibalas, Pengaduan $pengaduan): array
+    private function tombolTiket(bool $lewat, bool $unitMenjawab, Pengaduan $pengaduan): array
     {
         $nudge = [
             'label' => $lewat ? 'Follow Up Unit (Nudge)' : 'Follow Up Unit (Nudge Manual)',
@@ -388,7 +388,7 @@ final class Dashboard
             'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
         ];
 
-        if ($sudahDibalas) {
+        if ($unitMenjawab) {
             return [$tinjau];
         }
 

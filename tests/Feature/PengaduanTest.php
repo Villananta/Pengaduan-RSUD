@@ -108,7 +108,7 @@ class PengaduanTest extends TestCase
 
         $this->assertSame(
             StatusInvestigasi::SedangInvestigasi,
-            StatusInvestigasi::dariPengaduan($pengaduan, sudahDibalas: false),
+            StatusInvestigasi::dariPengaduan($pengaduan, unitMenjawab: false),
         );
 
         // Tiket yang baru dibuat tidak boleh masuk hitungan tiket yang

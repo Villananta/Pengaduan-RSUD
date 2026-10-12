@@ -101,7 +101,7 @@ class DaftarPengaduanAdminTest extends TestCase
 
         $sudahDibalas = Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['kode_tiket' => 'ADUAN-RACIKAN-01', 'master_unit_id' => $unit->id]);
-        $sudahDibalas->pesan()->create(['peran' => 'admin', 'isi' => 'Jawaban farmasi sudah masuk.']);
+        $sudahDibalas->pesan()->create(['peran' => 'unit', 'isi' => 'Jawaban farmasi sudah masuk.']);
 
         Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['kode_tiket' => 'ADUAN-INVESTIGASI-01', 'master_unit_id' => $unit->id]);
@@ -240,13 +240,14 @@ class DaftarPengaduanAdminTest extends TestCase
 
         // Empat pesan tersimpan, tapi hanya dua yang benar-benar balasan unit.
         // Pesan pembuka dibuat otomatis oleh sistem dan balasan pelapor bukan
-        // jawaban unit, jadi keduanya tidak boleh menambah hitungan.
+        // jawaban unit, jadi keduanya tidak boleh menambah hitungan. Balasan
+        // humas juga tidak dihitung walaupun perannya admin.
         $pengaduan->pesan()->create([
             'peran' => 'pembuka',
             'isi' => 'Laporan Anda sudah kami terima dan sedang kami periksa.',
         ]);
         $pengaduan->pesan()->create([
-            'peran' => 'admin',
+            'peran' => 'unit',
             'isi' => 'Instalasi sudah memeriksa catatan pemberian obat.',
         ]);
         $pengaduan->pesan()->create([
@@ -254,7 +255,7 @@ class DaftarPengaduanAdminTest extends TestCase
             'isi' => 'Saya lampirkan foto resep yang saya terima.',
         ]);
         $pengaduan->pesan()->create([
-            'peran' => 'admin',
+            'peran' => 'unit',
             'isi' => 'Rekam medis sudah disesuaikan, terima kasih.',
         ]);
 

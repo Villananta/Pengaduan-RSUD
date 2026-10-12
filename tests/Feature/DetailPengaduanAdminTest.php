@@ -75,7 +75,9 @@ class DetailPengaduanAdminTest extends TestCase
             'kode_tiket' => 'ADUAN-UNIT-01',
             'master_unit_id' => $unit->id,
         ]);
-        $denganUnit->pesan()->create(['peran' => 'admin', 'isi' => 'Jawaban farmasi sudah masuk.']);
+        // Jawaban harus berperan unit. Balasan humas di kolom percakapan
+        // tidak menaikkan tiket ke Menunggu Racikan.
+        $denganUnit->pesan()->create(['peran' => 'unit', 'isi' => 'Jawaban farmasi sudah masuk.']);
 
         $humas = $this->get(route('admin.pengaduan.show', $tanpaUnit->kode_tiket))
             ->assertOk()

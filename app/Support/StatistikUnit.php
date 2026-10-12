@@ -184,7 +184,7 @@ final class StatistikUnit
             ->where('master_unit_id', $unit->id)
             ->aktif()
             ->with('masterUnit')
-            ->withExists(['pesan as sudah_dibalas' => fn ($q) => $q->jawaban()])
+            ->withExists(['pesan as unit_menjawab' => fn ($q) => $q->jawabanUnit()])
             ->get()
             ->filter(fn (Pengaduan $pengaduan): bool => $pengaduan->kasus_berat
                 || $pengaduan->zonaSla()->prioritas() >= ZonaSla::Mendek->prioritas())
@@ -210,7 +210,7 @@ final class StatistikUnit
         return Pengaduan::query()
             ->where('master_unit_id', $unit->id)
             ->with('masterUnit')
-            ->withExists(['pesan as sudah_dibalas' => fn ($q) => $q->jawaban()])
+            ->withExists(['pesan as unit_menjawab' => fn ($q) => $q->jawabanUnit()])
             ->orderByRaw('case when status = ? then 1 else 0 end', [StatusPengaduan::Selesai->value])
             ->latest('created_at')
             ->take($jumlah)

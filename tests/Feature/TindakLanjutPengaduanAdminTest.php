@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\DisposisiUnit;
+use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Support\DetailPengaduan;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use App\Support\TindakLanjutPengaduan;
@@ -531,6 +533,37 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         // Pesan koordinasi tidak mengubah tahap tiket.
         $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
+    }
+
+    /**
+     * Balasan humas tidak boleh terbaca sebagai jawaban unit.
+     *
+     * Balasan humas kepada pelapor dan sapaan humas ke jalur koordinasi
+     * sama-sama berperan admin. Kalau keduanya ikut dihitung, tiket yang
+     * unitnya masih menelusuri akan tampak selesai dan langsung melompat ke
+     * Menunggu Racikan hanya karena humas menyapa.
+     */
+    public function test_balasan_humas_tidak_terbaca_sebagai_jawaban_unit(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-HUMAS-BALAS',
+            'master_unit_id' => $farmasi->id,
+        ]);
+
+        $this->post(route('admin.pengaduan.balas', $pengaduan->kode_tiket), [
+            'isi' => 'Kami sudah menerima laporan Anda dan sedang memeriksa catatan service instalasi.',
+        ])->assertRedirect();
+
+        $this->post(route('admin.pengaduan.koordinasi', $pengaduan->kode_tiket), [
+            'isi' => 'Mohon sampaikan kronologi lengkap kejadian di kamar rawat.',
+        ])->assertRedirect();
+
+        $detail = DetailPengaduan::dariKode($pengaduan->kode_tiket);
+
+        $this->assertSame(StatusInvestigasi::SedangInvestigasi, $detail->investigasi);
+        $this->assertCount(0, $pengaduan->pesan()->where('peran', 'unit')->get());
     }
 
     public function test_koordinasi_unit_ditolak_saat_tiket_belum_ditugaskan(): void

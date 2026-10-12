@@ -68,11 +68,14 @@ final class DetailPengaduan
             ->where('kode_tiket', $kode)
             ->firstOrFail();
 
-        $sudahDibalas = $pengaduan->pesan->contains(
-            fn (PesanPengaduan $pesan): bool => $pesan->jawaban()
+        // Hanya jawaban PIC unit yang menaikkan tiket ke Menunggu Racikan.
+        // Balasan humas di kolom percakapan tidak boleh ikut terbaca sebagai
+        // jawaban unit, karena humas bisa membalas tanpa menunggu unit.
+        $unitMenjawab = $pengaduan->pesan->contains(
+            fn (PesanPengaduan $pesan): bool => $pesan->dariUnit()
         );
 
-        $investigasi = StatusInvestigasi::dariPengaduan($pengaduan, $sudahDibalas);
+        $investigasi = StatusInvestigasi::dariPengaduan($pengaduan, $unitMenjawab);
 
         return new self(
             pengaduan: $pengaduan,

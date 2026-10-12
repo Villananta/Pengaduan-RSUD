@@ -216,16 +216,19 @@ class DashboardAdminTest extends TestCase
 
     public function test_tombol_tinjau_jawaban_mengarah_ke_detail_pengaduannya(): void
     {
-        // Tombol tinjau muncul kalau admin sudah pernah membalas di kolom chat,
+        // Tombol tinjau muncul kalau PIC unit sudah menyerahkan jawabannya,
         // dan tombol itu harus membawa admin ke halaman detail tiket tersebut.
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
         $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'kode_tiket' => 'ADUAN-TINJAU-1',
+            'master_unit_id' => $farmasi->id,
             'created_at' => now()->subWeekdays(14)->setTime(8, 0),
         ]);
 
         $pengaduan->pesan()->create([
-            'peran' => 'admin',
-            'isi' => 'Jawaban unit sudah saya terima, saya racik balasan untuk pelapor.',
+            'peran' => 'unit',
+            'isi' => 'Instalasi sudah memeriksa catatan pemberian obat, tidak ditemukan kesalahan dosis.',
         ]);
 
         $tampilan = $this->get(route('admin.dashboard'))

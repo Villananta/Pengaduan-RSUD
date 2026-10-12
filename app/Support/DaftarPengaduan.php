@@ -137,14 +137,14 @@ final class DaftarPengaduan
             ->when($status !== null, fn (Builder $q): Builder => $q->where('status', $status->value))
             ->when($investigasi !== null, fn (Builder $q): Builder => $investigasi->terapkan($q))
             ->with('masterUnit')
-            // Hanya jawaban yang dihitung untuk kalimat "N balasan unit
-            // masuk". Pesan pembuka otomatis dan balasan pelapor memang ikut
-            // tersimpan di tabel pesan, tapi keduanya bukan jawaban unit,
-            // sehingga kalau ikut dihitung angkanya selalu lebih besar
+            // Hanya jawaban PIC unit yang dihitung untuk kalimat "N balasan
+            // unit masuk". Pesan pembuka, balasan pelapor, dan obrolan humas
+            // juga tersimpan di tabel pesan, tapi ketiganya bukan jawaban
+            // unit, sehingga kalau ikut dihitung angkanya selalu lebih besar
             // daripada kenyataan. Setiap tiket baru punya satu pesan pembuka,
             // jadi tanpa penyaring ini minimal selalu kelebihan satu.
-            ->withCount(['pesan as pesan_count' => fn (Builder $q): Builder => $q->jawaban()])
-            ->withExists(['pesan as sudah_dibalas' => fn (Builder $q): Builder => $q->jawaban()])
+            ->withCount(['pesan as pesan_count' => fn (Builder $q): Builder => $q->jawabanUnit()])
+            ->withExists(['pesan as unit_menjawab' => fn (Builder $q): Builder => $q->jawabanUnit()])
             // Tiket yang belum ditutup didahulukan, lalu yang terbaru.
             ->orderByRaw('case when status = ? then 1 else 0 end', [StatusPengaduan::Selesai->value])
             ->latest('created_at')
@@ -209,8 +209,8 @@ final class DaftarPengaduan
      */
     public function baris(Pengaduan $pengaduan): array
     {
-        $sudahDibalas = (bool) $pengaduan->sudah_dibalas;
-        $investigasi = StatusInvestigasi::dariPengaduan($pengaduan, $sudahDibalas);
+        $unitMenjawab = (bool) $pengaduan->unit_menjawab;
+        $investigasi = StatusInvestigasi::dariPengaduan($pengaduan, $unitMenjawab);
 
         return [
             'kode' => $pengaduan->kode_tiket,

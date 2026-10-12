@@ -77,9 +77,11 @@ final class MonitorDisposisi
      * 1. Sudah selesai, apa pun isi pesannya, masuk Jawaban di Humas. Tiket
      *    bisa ditutup tanpa balasan apa pun karena tombol Selesaikan memang
      *    tidak memaksa pesan.
-     * 2. Masih Diterima dan belum ada balasan, masuk Belum Dibuka Unit.
-     * 3. Sudah ada balasan unit, masuk Menunggu Racikan. Syarat ini yang
+     * 2. Masih Diterima dan belum ada jawaban unit, masuk Belum Dibuka Unit.
+     * 3. Sudah ada jawaban PIC unit, masuk Menunggu Racikan. Syarat ini yang
      *    mencegah tiket Diterima muncul di kolom pertama sekaligus ketiga.
+     *    Balasan humas tidak dihitung, karena humas menulis justru tanpa
+     *    menunggu unit selesai menelusuri.
      * 4. Sisanya sudah ditelusuri unit tapi belum menjawab, masuk Sedang
      *    Investigasi.
      *
@@ -93,15 +95,15 @@ final class MonitorDisposisi
         $dasar = fn (): Builder => Pengaduan::query()
             ->whereNotNull('master_unit_id')
             ->with('masterUnit')
-            ->withExists(['pesan as sudah_dibalas' => fn (Builder $q): Builder => $q->jawaban()]);
+            ->withExists(['pesan as unit_menjawab' => fn (Builder $q): Builder => $q->jawabanUnit()]);
 
-        $sudahDibalas = fn (Builder $q): Builder => $q->whereHas(
+        $unitMenjawab = fn (Builder $q): Builder => $q->whereHas(
             'pesan',
-            fn (Builder $p): Builder => $p->jawaban()
+            fn (Builder $p): Builder => $p->jawabanUnit()
         );
-        $belumDibalas = fn (Builder $q): Builder => $q->whereDoesntHave(
+        $unitBelumMenjawab = fn (Builder $q): Builder => $q->whereDoesntHave(
             'pesan',
-            fn (Builder $p): Builder => $p->jawaban()
+            fn (Builder $p): Builder => $p->jawabanUnit()
         );
 
         $kolom = [
@@ -114,7 +116,7 @@ final class MonitorDisposisi
                 'latar' => 'bg-error-container/40',
                 'nadaJudul' => 'text-on-error-container',
                 'nadaAngka' => 'bg-error text-on-error',
-                'syarat' => fn (): Builder => $belumDibalas(
+                'syarat' => fn (): Builder => $unitBelumMenjawab(
                     $dasar()->aktif()->where('status', StatusPengaduan::Diterima->value)
                 ),
             ],
@@ -127,7 +129,7 @@ final class MonitorDisposisi
                 'latar' => 'bg-secondary-container/40',
                 'nadaJudul' => 'text-on-secondary-container',
                 'nadaAngka' => 'bg-secondary text-on-secondary',
-                'syarat' => fn (): Builder => $belumDibalas(
+                'syarat' => fn (): Builder => $unitBelumMenjawab(
                     $dasar()->aktif()->whereIn('status', [
                         StatusPengaduan::Diproses->value,
                         StatusPengaduan::Revisi->value,
@@ -143,7 +145,7 @@ final class MonitorDisposisi
                 'latar' => 'bg-tertiary-container/30',
                 'nadaJudul' => 'text-tertiary',
                 'nadaAngka' => 'bg-tertiary-fixed-dim text-on-tertiary-fixed',
-                'syarat' => fn (): Builder => $sudahDibalas($dasar()->aktif()),
+                'syarat' => fn (): Builder => $unitMenjawab($dasar()->aktif()),
             ],
             [
                 'kunci' => 'jawaban_unit',
@@ -191,7 +193,7 @@ final class MonitorDisposisi
      */
     private static function kartuTiket(Pengaduan $pengaduan): array
     {
-        $sudahDibalas = (bool) $pengaduan->sudah_dibalas;
+        $unitMenjawab = (bool) $pengaduan->unit_menjawab;
         $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
         $unit = $pengaduan->masterUnit;
 
@@ -207,7 +209,7 @@ final class MonitorDisposisi
                 : 'Hari ke-'.Sla::hariKe($pengaduan->created_at).' dari '.Sla::hariKerja().' hari kerja',
             'nadaPosisi' => $lewat ? 'bg-error-container text-on-error-container' : 'bg-surface-container text-on-surface',
             'nadaGaris' => $lewat ? 'bg-error' : 'bg-outline-variant',
-            'catatan' => StatusInvestigasi::dariPengaduan($pengaduan, $sudahDibalas)->ringkas(),
+            'catatan' => StatusInvestigasi::dariPengaduan($pengaduan, $unitMenjawab)->ringkas(),
             'tombol' => [
                 [
                     'label' => 'Buka Detail',

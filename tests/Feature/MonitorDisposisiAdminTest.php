@@ -177,8 +177,10 @@ class MonitorDisposisiAdminTest extends TestCase
         ]);
 
         if ($dibalas) {
+            // Kolom Menunggu Racikan hanya dibuka oleh jawaban PIC unit,
+            // bukan oleh balasan humas yang memakai peran admin.
             $pengaduan->pesan()->create([
-                'peran' => 'admin',
+                'peran' => 'unit',
                 'isi' => 'Klarifikasi dari PIC unit.',
             ]);
         }

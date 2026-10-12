@@ -168,7 +168,7 @@ final class StatistikDashboard
         $daftar = Pengaduan::query()
             ->aktif()
             ->with('masterUnit')
-            ->withExists(['pesan as sudah_dibalas' => fn ($q) => $q->jawaban()])
+            ->withExists(['pesan as unit_menjawab' => fn ($q) => $q->jawabanUnit()])
             ->get()
             ->filter(fn (Pengaduan $p): bool => self::mendesak($p))
             ->sortByDesc(fn (Pengaduan $p): bool => $p->status->perluAksi())

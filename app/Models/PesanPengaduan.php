@@ -29,16 +29,19 @@ class PesanPengaduan extends Model
     /** Jalur koordinasi internal admin humas dengan PIC unit. */
     public const KANAL_UNIT = 'unit';
 
+    /** Peran pesan yang ditulis PIC unit sendiri. */
+    public const PERAN_UNIT = 'unit';
+
     /**
-     * Peran yang dihitung sebagai jawaban sudah masuk.
+     * Peran yang dihitung sebagai "sudah ada balasan masuk".
      *
-     * Daftar ini dipakai oleh scope maupun method baca supaya jumlah "balasan
-     * unit" di daftar pengaduan, monitor, dan dashboard tidak mungkin berbeda
-     * satu sama lain. 'admin' tetap ikut karena sejak awal balasan yang masuk
-     * lewat konsol humas memakai peran itu; 'unit' ditambahkan begitu jawaban
-     * bisa ditulis PIC unit langsung dari halamannya sendiri.
+     * Daftar ini sengaja lebar karena pesan berperan admin punya dua arti:
+     * balasan humas kepada pelapor, atau jawaban unit yang dulu dititipkan
+     * lewat konsol humas. Angka telaah di dashboard memakai arti lebar ini,
+     * sedangkan status investigasi unit butuh sinyal yang tegas, sehingga
+     * keduanya tidak boleh berbagi satu daftar peran.
      */
-    public const PERAN_JAWABAN = ['admin', 'unit'];
+    public const PERAN_JAWABAN = ['admin', self::PERAN_UNIT];
 
     protected $table = 'pesan_pengaduan';
 
@@ -60,12 +63,12 @@ class PesanPengaduan extends Model
     }
 
     /**
-     * Balasan unit yang sudah disusun admin humas.
+     * True bila pesan ditulis humas lewat konsol admin.
      *
      * Pesan pembuka otomatis memakai peran 'pembuka', jadi tidak ikut di sini.
-     * Inilah sinyal yang dipakai daftar pengaduan, monitor, dan dashboard
-     * untuk menentukan apakah sebuah tiket sudah mendapat jawaban unit. Kalau
-     * pembuka ikut terhitung, setiap tiket baru langsung terbaca terjawab.
+     * Penanda ini memisahkan suara humas dari suara PIC unit; ia bukan bukti
+     * unit sudah menjawab, karena humas memakai peran yang sama saat membalas
+     * pelapor. Sinyal "unit sudah menjawab" ada di dariUnit().
      */
     public function dariAdmin(): bool
     {
@@ -81,10 +84,10 @@ class PesanPengaduan extends Model
      */
     public function dariUnit(): bool
     {
-        return $this->peran === 'unit';
+        return $this->peran === self::PERAN_UNIT;
     }
 
-    /** True bila pesan ini termasuk jawaban yang sudah masuk. */
+    /** True bila pesan ini termasuk balasan yang sudah masuk, dari humas maupun unit. */
     public function jawaban(): bool
     {
         return in_array($this->peran, self::PERAN_JAWABAN, true);
@@ -109,15 +112,28 @@ class PesanPengaduan extends Model
     }
 
     /**
-     * Sinyal "jawaban sudah masuk" untuk withExists() dan hitungan lain.
+     * Sinyal "sudah ada balasan masuk" untuk angka telaah humas.
      *
-     * Satu scope dipakai di semua tempat karena enam file menghitung angka
-     * yang sama; kalau aturannya ditulis ulang di tiap file, satu perubahan
-     * peran bisa membuat daftar dan dashboard tidak lagi sejalan.
+     * Sifatnya lebar karena menghitung balasan humas dan jawaban unit
+     * sekaligus. Status investigasi dan papan disposisi tidak boleh memakai
+     * scope ini: balasan humas kepada pelapor akan ikut terbaca seolah-olah
+     * unit sudah menjawab. Untuk keduanya pakai scopeJawabanUnit().
      */
     public function scopeJawaban(Builder $query): Builder
     {
         return $query->whereIn('peran', self::PERAN_JAWABAN);
+    }
+
+    /**
+     * Sinyal "PIC unit sudah menjawab" untuk status investigasi dan papan disposisi.
+     *
+     * Ditempatkan berdampingan dengan scopeJawaban() supaya beda keduanya
+     * terbaca langsung: yang satu menghitung keterlibatan humas, yang ini
+     * menghitung jawaban unit yang benar-benar masuk.
+     */
+    public function scopeJawabanUnit(Builder $query): Builder
+    {
+        return $query->where('peran', self::PERAN_UNIT);
     }
 
     /** Batasi query ke pesan kanal koordinasi humas dan unit. */

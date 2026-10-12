@@ -119,7 +119,9 @@ final class DashboardUnit
     /** Status investigasi sebuah pengaduan, untuk keterangan sisi unit. */
     public function investigasi(Pengaduan $pengaduan): StatusInvestigasi
     {
-        return StatusInvestigasi::dariPengaduan($pengaduan, (bool) $pengaduan->sudah_dibalas);
+        // unit_menjawab diisi dari jawaban PIC unit saja, jadi balasan humas
+        // tidak ikut menaikkan tiket ke Menunggu Racikan di sisi unit.
+        return StatusInvestigasi::dariPengaduan($pengaduan, (bool) $pengaduan->unit_menjawab);
     }
 
     /**
