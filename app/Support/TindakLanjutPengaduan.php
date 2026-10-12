@@ -14,11 +14,11 @@ use RuntimeException;
 /**
  * Tindak lanjut admin humas terhadap satu tiket pengaduan.
  *
- * Halaman detail dapat melakukan empat hal: menyusun draf jawaban,
- * mengirim jawaban resmi sekaligus menutup tiket, mengembalikan tiket ke
- * unit untuk klarifikasi ulang, dan menyalakan penandaan kasus berat.
- * Semuanya dikumpulkan di sini supaya aturan transisinya hanya ada satu
- * tempat, tidak pecah antara controller, template, dan model.
+ * Halaman detail dapat melakukan beberapa hal: menugaskan tiket ke unit,
+ * memindahkan tahap termasuk menutupnya, menangani langsung tanpa unit,
+ * membalas pelapor, mengirim koordinasi ke unit, dan menyalakan penandaan
+ * kasus berat. Semuanya dikumpulkan di sini supaya aturan transisinya hanya
+ * ada satu tempat, tidak pecah antara controller, template, dan model.
  *
  * Daftar tujuan tahap yang sah tetap dibaca dari enum status, sehingga
  * kelas ini tidak perlu ikut diubah setiap kali alur pengaduan berubah.
@@ -26,77 +26,7 @@ use RuntimeException;
 final class TindakLanjutPengaduan
 {
     /**
-     * Aksi A: kirim jawaban resmi lalu tutup tiket.
-     *
-     * Isi jawaban boleh null karena panel formulasi sekarang hanya
-     * menyediakan tombol, jadi admin bisa menutup tiket tanpa surat.
-     * Kalau ada isinya, balasan disimpan sebagai pesan berperan admin supaya
-     * langsung muncul di kronologi percakapan yang dibaca pelapor. Baik
-     * dengan maupun tanpa balasan, tahap tiket dipindahkan ke Selesai
-     * sehingga waktu penyelesaian ikut tercatat.
-     *
-     * @throws RuntimeException bila tahap sekarang tidak mengizinkan ditutup
-     */
-    public static function kirimJawabanResmi(
-        Pengaduan $pengaduan,
-        ?string $isi = null,
-        ?string $catatan = null,
-        ?int $adminId = null,
-    ): void {
-        $alasan = self::tindakanTersedia($pengaduan)['alasanTutup'];
-
-        if ($alasan !== null) {
-            throw new RuntimeException($alasan);
-        }
-
-        DB::transaction(function () use ($pengaduan, $isi, $catatan, $adminId): void {
-            if (filled($isi)) {
-                $pengaduan->pesan()->create([
-                    'kanal' => PesanPengaduan::KANAL_PELAPOR,
-                    'peran' => 'admin',
-                    'isi' => $isi,
-                ]);
-            }
-
-            $pengaduan->pindahTahap(StatusPengaduan::Selesai, $catatan, $adminId);
-            self::selaraskanDisposisi($pengaduan, StatusPengaduan::Selesai);
-        });
-
-        self::segarkanStatistik();
-    }
-
-    /**
-     * Aksi B: kembalikan tiket ke unit untuk klarifikasi ulang.
-     *
-     * Balasan lama sengaja tidak dihapus. Yang dikembalikan hanya tahapnya,
-     * jadi unit bisa menulis jawaban baru sementara percakapan sebelumnya
-     * tetap terbaca sebagai bagian dari proses.
-     *
-     * @throws RuntimeException bila tiket belum ditugaskan ke unit atau tahapnya tidak mendukung
-     */
-    public static function kembalikanKeUnit(Pengaduan $pengaduan, ?string $catatan = null, ?int $adminId = null): void
-    {
-        $alasan = self::tindakanTersedia($pengaduan)['alasanKembalikan'];
-
-        if ($alasan !== null) {
-            throw new RuntimeException($alasan);
-        }
-
-        DB::transaction(function () use ($pengaduan, $catatan, $adminId): void {
-            // Unit yang sudah memberi jawaban ditandai menunggu investigasi lagi,
-            // supaya kembalinya tidak terlihat sebagai pekerjaan yang belum dimulai.
-            $pengaduan->masterUnit?->update([
-                'disposisi' => DisposisiUnit::MenungguInvestigasi,
-            ]);
-
-            $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
-        });
-
-        self::segarkanStatistik();
-    }
-
-    /**
-     * Aksi C: tugaskan tiket ke satu instalasi teknis.
+     * Tugaskan tiket ke satu instalasi teknis.
      *
      * Penugasan menyentuh dua baris sekaligus. Tiket menyimpan master_unit_id
      * supaya masuk daftar unit yang bersangkutan, sedangkan unitnya ditandai
@@ -204,14 +134,6 @@ final class TindakLanjutPengaduan
         });
 
         self::segarkanStatistik();
-    }
-
-    /** Simpan draf jawaban tanpa mengirim apa pun ke pelapor. */
-    public static function simpanDraf(Pengaduan $pengaduan, ?string $isi): void
-    {
-        $pengaduan->forceFill([
-            'draf_jawaban' => filled($isi) ? $isi : null,
-        ])->save();
     }
 
     /**
@@ -426,49 +348,32 @@ final class TindakLanjutPengaduan
     }
 
     /**
-     * Tindakan mana yang boleh dijalankan pada satu tiket.
+     * Alasan tiket belum bisa ditutup dari panel tahap, atau null kalau bisa.
      *
-     * Template memakai hasilnya untuk menentukan tombol mana yang hidup dan
-     * alasannya apa, sehingga aturan yang sama dipakai lagi di server saat
-     * formulir dikirim. Tiket yang sudah Selesai tidak menawarkan tindakan
-     * apa pun; membukanya kembali adalah persoalan lain, bukan aksi A atau B.
-     *
-     * @return array{tutup: bool, kembalikan: bool, alasanTutup: ?string, alasanKembalikan: ?string}
+     * Panel tahap menampilkan kalimat ini ketika tidak ada tombol tujuan yang
+     * tersisa, sedangkan penutupan sebenarnya tetap lewat pindahkanTahap().
+     * Dengan begitu penolakan di server dan keterangan di layar tetap sama.
      */
-    public static function tindakanTersedia(Pengaduan $pengaduan): array
+    public static function alasanTutup(Pengaduan $pengaduan): ?string
     {
-        $sudahSelesai = $pengaduan->status->selesai();
+        if ($pengaduan->status->selesai()) {
+            return 'Tiket ini sudah selesai sehingga tidak ada tindakan lanjutan.';
+        }
 
-        $bisaTutup = ! $sudahSelesai
-            && $pengaduan->status->bisaBerpindahKe(StatusPengaduan::Selesai);
-        $bisaKembalikan = ! $sudahSelesai
-            && $pengaduan->master_unit_id !== null
-            && $pengaduan->status->bisaBerpindahKe(StatusPengaduan::Diproses);
+        if (! $pengaduan->status->bisaBerpindahKe(StatusPengaduan::Selesai)) {
+            return 'Tahap '.$pengaduan->status->label().' belum boleh ditutup.';
+        }
 
-        return [
-            'tutup' => $bisaTutup,
-            'kembalikan' => $bisaKembalikan,
-            'alasanTutup' => match (true) {
-                $bisaTutup => null,
-                $sudahSelesai => 'Tiket ini sudah selesai, tidak perlu jawaban resmi lagi.',
-                default => 'Tahap '.$pengaduan->status->label().' belum boleh ditutup.',
-            },
-            'alasanKembalikan' => match (true) {
-                $bisaKembalikan => null,
-                $sudahSelesai => 'Tiket ini sudah selesai sehingga tidak dikembalikan ke unit.',
-                $pengaduan->master_unit_id === null => 'Pengaduan ini belum ditugaskan ke unit mana pun.',
-                default => 'Tahap '.$pengaduan->status->label().' tidak bisa dikembalikan ke unit.',
-            },
-        ];
+        return null;
     }
 
     /**
      * Buang cache angka dashboard dan daftar pengaduan.
      *
      * Kedua layar itu menyimpan hasil hitungnya supaya tidak query ulang pada
-     * setiap pembukaan. Setelah tiket ditutup, dikembalikan, atau ditandai kasus
-     * berat angkanya jadi berbeda, jadi cache wajib dibuang supaya admin tidak
-     * melihat jumlah yang sudah usang.
+     * setiap pembukaan. Setelah tiket ditutup, dipindah tahapnya, atau
+     * ditandai kasus berat angkanya jadi berbeda, jadi cache wajib dibuang
+     * supaya admin tidak melihat jumlah yang sudah usang.
      */
     private static function segarkanStatistik(): void
     {

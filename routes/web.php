@@ -78,15 +78,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])
         ->middleware('throttle:60,1,admin-tahap')
         ->name('pengaduan.tahap');
-    Route::post('/pengaduan/{kode}/draf', [AdminPengaduanController::class, 'simpanDraf'])
-        ->middleware('throttle:60,1,admin-draf')
-        ->name('pengaduan.draf');
-    Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])
-        ->middleware('throttle:60,1,admin-jawaban')
-        ->name('pengaduan.jawaban');
-    Route::post('/pengaduan/{kode}/kembalikan', [AdminPengaduanController::class, 'kembalikan'])
-        ->middleware('throttle:60,1,admin-kembalikan')
-        ->name('pengaduan.kembalikan');
     Route::post('/pengaduan/{kode}/disposisi', [AdminPengaduanController::class, 'disposisi'])
         ->middleware('throttle:60,1,admin-disposisi')
         ->name('pengaduan.disposisi');

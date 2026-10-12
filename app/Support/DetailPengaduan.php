@@ -20,9 +20,9 @@ use Illuminate\Support\Collection;
  * sini supaya template hanya membungkus data yang sudah jadi.
  *
  * Tombol yang ditampilkan tidak dihitung di sini. Ketersediaan tindakan
- * (tutup tiket, kembalikan ke unit, pindah tahap, tandai kasus berat)
- * diambil dari App\Support\TindakLanjutPengaduan supaya tombol di layar
- * dan penerimaan di server memakai satu aturan yang sama.
+ * (pindah tahap, penanganan langsung, tandai kasus berat) diambil dari
+ * App\Support\TindakLanjutPengaduan supaya tombol di layar dan penerimaan
+ * di server memakai satu aturan yang sama.
  */
 final class DetailPengaduan
 {
@@ -105,17 +105,6 @@ final class DetailPengaduan
     }
 
     /**
-     * Draf jawaban admin yang belum pernah dikirim.
-     *
-     * Disimpan sebagai nilai terpisah supaya template tidak perlu membaca
-     * kolom draf_jawaban langsung.
-     */
-    public function draf(): ?string
-    {
-        return $this->pengaduan->draf_jawaban;
-    }
-
-    /**
      * Instruksi disposisi terakhir dari humas untuk halaman sisi unit.
      *
      * Satu-satunya arahan humas yang tersimpan permanen pada tiket adalah
@@ -142,16 +131,14 @@ final class DetailPengaduan
     }
 
     /**
-     * Tindakan yang boleh dijalankan pada tiket ini.
+     * Alasan tiket belum bisa ditutup dari panel tahap, atau null kalau bisa.
      *
-     * Disalin dari App\Support\TindakLanjutPengaduan supaya template punya
-     * satu sumber kebenaran untuk menentukan tombol aktif dan alasannya.
-     *
-     * @return array{tutup: bool, kembalikan: bool, alasanTutup: ?string, alasanKembalikan: ?string}
+     * Disalin dari App\Support\TindakLanjutPengaduan supaya keterangan di
+     * layar dan aturan di server memakai satu sumber yang sama.
      */
-    public function tindakan(): array
+    public function alasanTutup(): ?string
     {
-        return TindakLanjutPengaduan::tindakanTersedia($this->pengaduan);
+        return TindakLanjutPengaduan::alasanTutup($this->pengaduan);
     }
 
     /**

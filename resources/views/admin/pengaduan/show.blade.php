@@ -10,7 +10,6 @@
         $tiket = $detail->pengaduan;
         $unit = $detail->unit;
         $sla = $detail->sla;
-        $tindakan = $detail->tindakan();
         $kode = $detail->kode();
     @endphp
 
@@ -865,7 +864,7 @@
                             </form>
                         @empty
                             <span class="font-body-sm text-body-sm text-on-surface-variant">
-                                {{ $tindakan['alasanTutup'] }}
+                                {{ $detail->alasanTutup() }}
                             </span>
                         @endforelse
                     </div>
