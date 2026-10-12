@@ -25,13 +25,18 @@ enum StatusPengaduan: string
      * Keempat sub-status itu hanya sebutan di sisi unit, dipetakan dari
      * tahap pengaduan yang sama supaya tidak ada tahap baru yang harus
      * diisi ulang setiap kali admin menangani tiket.
+     *
+     * Revisi sengaja berbunyi soal kelengkapan pelapor, bukan kebutuhan
+     * unit. Tombol yang memindahkan tiket ke tahap ini meminta data ulang
+     * dari pelapor, jadi menyebut unit sebagai pihak yang butuh info akan
+     * membalik siapa yang sebenarnya harus bertindak.
      */
     public function subStatus(): string
     {
         return match ($this) {
             self::Diterima => 'Menunggu Unit Membuka',
             self::Diproses => 'Sedang Diinvestigasi Unit',
-            self::Revisi => 'Unit Butuh Info Tambahan',
+            self::Revisi => 'Menunggu Kelengkapan Pelapor',
             self::Selesai => 'Jawaban Unit Masuk',
         };
     }

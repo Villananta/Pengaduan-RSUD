@@ -62,6 +62,20 @@ class DetailPengaduanAdminTest extends TestCase
             ->assertSee('4. Selesai');
     }
 
+    public function test_tahap_revisi_menyebut_pelapor_bukan_unit(): void
+    {
+        Pengaduan::factory()->status(StatusPengaduan::Revisi)
+            ->create(['kode_tiket' => 'ADUAN-STEP-02']);
+
+        // Tombol yang memindahkan tiket ke tahap ini meminta data ulang dari
+        // pelapor, jadi sub-statusnya harus sejalan. Kalau di sini tertulis
+        // unit yang butuh info, admin membaca lawan yang salah.
+        $this->get(route('admin.pengaduan.show', 'ADUAN-STEP-02'))
+            ->assertOk()
+            ->assertSee('Menunggu Kelengkapan Pelapor')
+            ->assertDontSee('Unit Butuh Info Tambahan');
+    }
+
     public function test_status_lapis_2_membaca_tiket_tanpa_unit_dan_tiket_unit(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
