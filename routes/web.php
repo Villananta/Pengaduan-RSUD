@@ -16,20 +16,24 @@ Route::view('/maklumat-prosedur', 'maklumat.index')->name('maklumat.index');
 
 // Batas percobaan agar kode tiket tidak bisa ditebak brute force dan
 // endpoint publik tidak bisa dipakai untuk spam.
+//
+// Tiap rute memakai awalan pembatas sendiri. Bawaan Laravel menandai
+// permintaan hanya dengan domain dan IP, jadi tanpa awalan semua rute
+// berbagi satu kunci: ramai di satu tombol ikut mengunci tombol lain.
 Route::get('/lacak-tiket', [PengaduanController::class, 'lacak'])->name('pengaduan.lacak');
 
 Route::post('/lacak-tiket/verifikasi', [PengaduanController::class, 'verifikasi'])
-    ->middleware('throttle:10,1')
+    ->middleware('throttle:10,1,lacak-verifikasi')
     ->name('pengaduan.verifikasi');
 
 Route::post('/lacak-tiket/{kode}/pesan', [PengaduanController::class, 'kirimPesan'])
-    ->middleware('throttle:20,1')
+    ->middleware('throttle:20,1,pesan-lacak')
     ->name('pengaduan.pesan');
 
 Route::get('/buat-aduan', [PengaduanController::class, 'create'])->name('pengaduan.create');
 
 Route::post('/buat-aduan', [PengaduanController::class, 'store'])
-    ->middleware('throttle:5,10')
+    ->middleware('throttle:5,10,buat-aduan')
     ->name('pengaduan.store');
 
 Route::get('/buat-aduan/sukses', [PengaduanController::class, 'sukses'])->name('pengaduan.sukses');
@@ -52,7 +56,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // "buat" tidak tertangkap sebagai kode tiket yang tidak ada.
     Route::get('/pengaduan/buat', [AdminPengaduanController::class, 'create'])->name('pengaduan.create');
     Route::post('/pengaduan/buat', [AdminPengaduanController::class, 'store'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:60,1,admin-buat-aduan')
         ->name('pengaduan.store');
 
     Route::get('/pengaduan/{kode}', [AdminPengaduanController::class, 'show'])->name('pengaduan.show');
@@ -60,17 +64,38 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Endpoint tulis paling rawan disalahgunakan karena konsol masih tanpa
     // login. Lajunya dibatasi sekarang supaya peredaman tetap ada walau
     // auth belum dipasang.
-    Route::middleware('throttle:60,1')->group(function () {
-        Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])->name('pengaduan.balas');
-        Route::post('/pengaduan/{kode}/koordinasi', [AdminPengaduanController::class, 'koordinasi'])->name('pengaduan.koordinasi');
-        Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])->name('pengaduan.tahap');
-        Route::post('/pengaduan/{kode}/draf', [AdminPengaduanController::class, 'simpanDraf'])->name('pengaduan.draf');
-        Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])->name('pengaduan.jawaban');
-        Route::post('/pengaduan/{kode}/kembalikan', [AdminPengaduanController::class, 'kembalikan'])->name('pengaduan.kembalikan');
-        Route::post('/pengaduan/{kode}/disposisi', [AdminPengaduanController::class, 'disposisi'])->name('pengaduan.disposisi');
-        Route::post('/pengaduan/{kode}/tangani-langsung', [AdminPengaduanController::class, 'tanganiLangsung'])->name('pengaduan.tangani-langsung');
-        Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])->name('pengaduan.kasus-berat');
-    });
+    //
+    // Awalan pada tiap throttle memisahkan jatah antar tombol. Kalau
+    // dibiarkan kosong, permintaan ke rute mana pun menambah hitungan yang
+    // sama (domain|ip), sehingga satu tombol yang dipakai berulang bisa
+    // menutup tombol lain yang belum tersentuh.
+    Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])
+        ->middleware('throttle:60,1,admin-balas')
+        ->name('pengaduan.balas');
+    Route::post('/pengaduan/{kode}/koordinasi', [AdminPengaduanController::class, 'koordinasi'])
+        ->middleware('throttle:60,1,admin-koordinasi')
+        ->name('pengaduan.koordinasi');
+    Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])
+        ->middleware('throttle:60,1,admin-tahap')
+        ->name('pengaduan.tahap');
+    Route::post('/pengaduan/{kode}/draf', [AdminPengaduanController::class, 'simpanDraf'])
+        ->middleware('throttle:60,1,admin-draf')
+        ->name('pengaduan.draf');
+    Route::post('/pengaduan/{kode}/jawaban', [AdminPengaduanController::class, 'kirimJawaban'])
+        ->middleware('throttle:60,1,admin-jawaban')
+        ->name('pengaduan.jawaban');
+    Route::post('/pengaduan/{kode}/kembalikan', [AdminPengaduanController::class, 'kembalikan'])
+        ->middleware('throttle:60,1,admin-kembalikan')
+        ->name('pengaduan.kembalikan');
+    Route::post('/pengaduan/{kode}/disposisi', [AdminPengaduanController::class, 'disposisi'])
+        ->middleware('throttle:60,1,admin-disposisi')
+        ->name('pengaduan.disposisi');
+    Route::post('/pengaduan/{kode}/tangani-langsung', [AdminPengaduanController::class, 'tanganiLangsung'])
+        ->middleware('throttle:60,1,admin-tangani-langsung')
+        ->name('pengaduan.tangani-langsung');
+    Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])
+        ->middleware('throttle:60,1,admin-kasus-berat')
+        ->name('pengaduan.kasus-berat');
 
     // Master data unit. Kode unit dipakai sebagai parameter rute karena
     // kode itulah yang dikenal petugas, bukan id angka yang tidak pernah
@@ -78,14 +103,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/unit', [AdminUnitController::class, 'index'])->name('unit.index');
     Route::get('/unit/tambah', [AdminUnitController::class, 'create'])->name('unit.create');
     Route::post('/unit', [AdminUnitController::class, 'store'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:60,1,admin-unit-store')
         ->name('unit.store');
     Route::get('/unit/{unit}/ubah', [AdminUnitController::class, 'edit'])->name('unit.edit');
     Route::post('/unit/{unit}/perbarui', [AdminUnitController::class, 'update'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:60,1,admin-unit-perbarui')
         ->name('unit.update');
     Route::post('/unit/{unit}/status', [AdminUnitController::class, 'status'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:60,1,admin-unit-status')
         ->name('unit.status');
 });
 
@@ -116,7 +141,7 @@ Route::prefix('unit')->name('unit.')->group(function () {
         // Jawaban unit membalik sinyal disposisi yang dibaca konsol humas, jadi
         // lajunya dibatasi meski konsol masih tanpa login.
         Route::post('/{unit}/pengaduan/{kode}/jawaban', [UnitDisposisiController::class, 'kirim'])
-            ->middleware('throttle:20,1')
+            ->middleware('throttle:20,1,unit-jawaban')
             ->name('disposisi.kirim');
     });
 });
