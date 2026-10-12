@@ -74,8 +74,8 @@
         </div>
         <!-- End of Baris Statistik -->
 
-        <!-- Banner Kepatuhan SLA -->
-        @if ($dashboard->adaPelanggaran())
+        <!-- Banner Investigasi Unit -->
+        @if ($dashboard->adaLewatInvestigasi())
             <!-- Peringatan Kritis -->
             <div class="w-full rounded-lg bg-error-container/25 border border-error/40 p-space-md shadow-sm">
                 <div class="flex items-start gap-space-sm">
@@ -84,9 +84,9 @@
                     </span>
 
                     <div class="flex flex-col gap-space-xs">
-                        <h2 class="font-title-lg text-title-lg font-bold text-on-error-container">Peringatan Kritis Kepatuhan SLA</h2>
+                        <h2 class="font-title-lg text-title-lg font-bold text-on-error-container">Peringatan Kritis Investigasi Unit</h2>
                         <p class="font-body-sm text-body-sm text-on-error-container/80">
-                            Terdapat {{ $dashboard->totalLewat() }} tiket yang melampaui batas
+                            Terdapat {{ $dashboard->totalLewatInvestigasi() }} tiket yang melampaui batas
                             {{ $dashboard->hariInvestigasi }} hari investigasi unit. Periksa daftar pengaduan butuh tindakan segera.
                         </p>
                     </div>
@@ -95,7 +95,7 @@
             <!-- End of Peringatan Kritis -->
 
         @else
-            <!-- SLA Aman -->
+            <!-- Investigasi Aman -->
             <div class="w-full rounded-lg bg-secondary-container/30 border border-secondary/40 p-space-md shadow-sm">
                 <div class="flex items-start gap-space-sm">
                     <span class="w-10 h-10 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0 mt-0.5">
@@ -111,9 +111,9 @@
                     </div>
                 </div>
             </div>
-            <!-- End of SLA Aman -->
+            <!-- End of Investigasi Aman -->
         @endif
-        <!-- End of Banner Kepatuhan SLA -->
+        <!-- End of Banner Investigasi Unit -->
 
         <!-- Status Tiket di Unit Layanan -->
         <div class="w-full rounded-lg bg-surface-container-low p-space-md shadow-sm">

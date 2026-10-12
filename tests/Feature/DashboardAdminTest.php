@@ -125,7 +125,7 @@ class DashboardAdminTest extends TestCase
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Peringatan Kritis Kepatuhan SLA')
+            ->assertSee('Peringatan Kritis Investigasi Unit')
             ->assertSee('Menunggu Unit Membuka')
             ->assertSee('ADUAN-LAMA-01')
             ->assertSee('LEWAT BATAS');

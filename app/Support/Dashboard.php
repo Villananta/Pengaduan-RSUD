@@ -54,15 +54,15 @@ final class Dashboard
     }
 
     /** Jumlah tiket yang investigasi unitnya sudah melewati batas hari kerja. */
-    public function totalLewat(): int
+    public function totalLewatInvestigasi(): int
     {
         return $this->kritis['total_lewat'];
     }
 
-    /** True bila ada tiket yang investigasinya sudah melewati batas. */
-    public function adaPelanggaran(): bool
+    /** True bila ada tiket yang investigasi unitnya sudah melewati batas. */
+    public function adaLewatInvestigasi(): bool
     {
-        return $this->totalLewat() > 0;
+        return $this->totalLewatInvestigasi() > 0;
     }
 
     /** Berapa persen lebih cepat rata-rata penyelesaian dari batas SLA. */
@@ -83,7 +83,7 @@ final class Dashboard
      */
     public function kalimatKritis(): string
     {
-        $totalLewat = $this->totalLewat();
+        $totalLewat = $this->totalLewatInvestigasi();
 
         $investigasi = $totalLewat > 0
             ? 'Terdeteksi '.$totalLewat.' tiket yang melewati batas '.$this->hariInvestigasi
@@ -453,7 +453,7 @@ final class Dashboard
             ->map(fn (array $baris): string => $baris['kode'].' di '.$baris['unit'].' ('.$baris['lewat'].' HK)')
             ->all();
 
-        $sisa = $this->totalLewat() - count($sebutan);
+        $sisa = $this->totalLewatInvestigasi() - count($sebutan);
 
         if ($sisa > 0) {
             $sebutan[] = 'dan '.$sisa.' tiket lain';
