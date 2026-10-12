@@ -75,10 +75,10 @@ final class DashboardUnit
         if ($this->adaPelanggaran()) {
             $kode = $this->kodeTerlambat();
 
-            return 'Terdeteksi '.$this->terlambat.' pengaduan melewati batas '
+            return 'Terdapat '.$this->terlambat.' pengaduan yang melampaui batas '
                 .$this->hariKerja.' hari kerja'
                 .($kode !== '' ? ' ('.$kode.')' : '')
-                .'. Periksa daftar pengaduan butuh tindakan di bawah.';
+                .'. Periksa daftar pengaduan butuh tindakan segera.';
         }
 
         if ($this->adaPeringatan()) {
@@ -87,7 +87,7 @@ final class DashboardUnit
                 .'Tuntaskan lebih dulu sebelum masuk zona terlambat.';
         }
 
-        return 'Seluruh pengaduan unit masih dalam batas '.$this->hariKerja
+        return 'Seluruh pengaduan unit dalam batas '.$this->hariKerja
             .' hari kerja, dengan '.$this->selesaiBulanIni.' pengaduan selesai bulan berjalan.';
     }
 
@@ -106,8 +106,72 @@ final class DashboardUnit
     public function ringkasMendesak(): string
     {
         return 'Menampilkan '.$this->mendesak->count()
-            .' pengaduan dari '.$this->aktif
-            .' pengaduan aktif, diurutkan dari yang paling mendesak';
+            .' pengaduan butuh tindakan dari '.$this->aktif
+            .' pengaduan aktif, tinggal dua hari kerja terakhir sebelum batas SLA';
+    }
+
+    /**
+     * Empat kartu ringkas beban dan risiko SLA unit.
+     *
+     * Dipakai panel status di bawah banner, mengikuti irama kartu "Status
+     * Tiket di Unit Layanan" pada konsol admin. Angkanya diambil dari
+     * ringkasan yang sama dengan baris statistik, jadi tidak ada
+     * penghitungan ulang di sini.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function kartuTelaah(): array
+    {
+        return [
+            [
+                'eyebrow' => 'Total Beban',
+                'judul' => 'Pengaduan Ditugaskan',
+                'ikon' => 'inventory_2',
+                'warna_ikon' => 'bg-surface-container text-primary-container',
+                'warna_angka' => 'text-on-surface',
+                'nilai' => number_format($this->total, 0, ',', '.'),
+                'satuan' => 'Pengaduan',
+                'catatan' => $this->aktif.' masih aktif • '.$this->selesai().' selesai',
+                'ikon_catatan' => null,
+            ],
+            [
+                'eyebrow' => 'Lewat Batas SLA',
+                'judul' => $this->terlambat > 0 ? 'Perlu Tindakan Segera' : 'Tidak Ada Pelanggaran',
+                'ikon' => 'warning',
+                'warna_ikon' => $this->terlambat > 0
+                    ? 'bg-error-container text-on-error-container'
+                    : 'bg-secondary-container text-on-secondary-container',
+                'warna_angka' => $this->terlambat > 0 ? 'text-error' : 'text-secondary',
+                'nilai' => number_format($this->terlambat, 0, ',', '.'),
+                'satuan' => 'Pengaduan',
+                'catatan' => 'Melewati batas '.$this->hariKerja.' hari kerja',
+                'ikon_catatan' => 'schedule',
+            ],
+            [
+                'eyebrow' => 'Mendek Batas SLA',
+                'judul' => 'Dalam Pengawasan',
+                'ikon' => 'timelapse',
+                'warna_ikon' => 'bg-tertiary-container text-on-tertiary-container',
+                'warna_angka' => $this->mendek > 0 ? 'text-on-tertiary-container' : 'text-secondary',
+                'nilai' => number_format($this->mendek, 0, ',', '.'),
+                'satuan' => 'Pengaduan',
+                'catatan' => 'Dua hari kerja terakhir sebelum batas',
+                'ikon_catatan' => 'hourglass_bottom',
+            ],
+            [
+                'eyebrow' => 'Rata-rata Investigasi',
+                'judul' => 'Kecepatan Telaah Unit',
+                'ikon' => 'hourglass_top',
+                'warna_ikon' => 'bg-secondary-container text-on-secondary-container',
+                'warna_angka' => 'text-secondary',
+                'nilai' => $this->rataRataHariKerja !== null
+                    ? number_format($this->rataRataHariKerja, 1, ',', '.')
+                    : '—',
+                'satuan' => $this->rataRataHariKerja !== null ? 'hari kerja' : 'belum ada data',
+                'catatan' => 'Ditutup '.$this->selesaiBulanIni.' tiket bulan berjalan',
+                'ikon_catatan' => null,
+            ],
+        ];
     }
 
     /** Tautan ke daftar disposisi milik unit ini, bukan ke konsol humas. */

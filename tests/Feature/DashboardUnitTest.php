@@ -74,7 +74,7 @@ class DashboardUnitTest extends TestCase
             ->assertOk()
             ->assertSee('Instalasi Farmasi Pusat [IFP-01]')
             ->assertSee('Dashboard Unit Kerja')
-            ->assertSee('Pengaduan Butuh Tindakan Unit')
+            ->assertSee('Daftar Pengaduan Butuh Tindakan Segera')
             ->assertSee('Pengaduan Terbaru');
     }
 
@@ -142,7 +142,7 @@ class DashboardUnitTest extends TestCase
         $this->get(route('unit.dashboard', 'IFP-01'))
             ->assertOk()
             ->assertSee('Semua Dalam Batas')
-            ->assertDontSee('Peringatan: Pengaduan Melewati Batas');
+            ->assertDontSee('Peringatan Kritis Kepatuhan SLA');
     }
 
     public function test_banner_mendeteksi_pengaduan_unit_yang_melewati_batas(): void
@@ -162,7 +162,7 @@ class DashboardUnitTest extends TestCase
 
         $this->get(route('unit.dashboard', 'IFP-01'))
             ->assertOk()
-            ->assertSee('Peringatan: Pengaduan Melewati Batas')
+            ->assertSee('Peringatan Kritis Kepatuhan SLA')
             ->assertSee('ADUAN-UNIT-TERLAMBAT')
             ->assertSee('LEWAT BATAS');
     }
@@ -180,7 +180,7 @@ class DashboardUnitTest extends TestCase
 
         $this->get(route('unit.dashboard', 'IFP-01'))
             ->assertOk()
-            ->assertSee('Pengaduan Mendek Batas SLA')
+            ->assertSee('Peringatan Dini Kepatuhan SLA')
             ->assertSee('ADUAN-UNIT-MENDEK')
             ->assertSee('Hari ke-11, sisa 1 hari kerja')
             ->assertDontSee('LEWAT BATAS');
