@@ -107,10 +107,15 @@ class DashboardAdminTest extends TestCase
 
     public function test_banner_mendeteksi_tiket_yang_lewat_batas_investigasi_unit(): void
     {
-        // Tiket lama yang masih diproses sudah melewati 5 hari kerja investigasi.
+        // Tiket lama yang sudah didisposisikan ke unit dan masih Diproses
+        // sudah melewati 5 hari kerja investigasi. Tanpa penugasan ke unit
+        // tiket ini tidak punya investigasi yang bisa dihitung terlambat.
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
         Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'created_at' => now()->subWeeks(3),
             'kode_tiket' => 'ADUAN-LAMA-01',
+            'master_unit_id' => $unit->id,
         ]);
 
         $ringkasan = StatistikDashboard::ringkasanKritis();
@@ -137,17 +142,38 @@ class DashboardAdminTest extends TestCase
             ->assertSee('Semua Dalam Batas');
     }
 
-    public function test_telaah_menghitung_pengaduan_aktif_yang_sudah_dibalas_admin(): void
+    public function test_tiket_tanpa_unit_tidak_dihitung_lewat_batas_investigasi(): void
     {
-        $denganBalasan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create();
-        $denganBalasan->pesan()->create(['peran' => 'admin', 'isi' => 'Jawaban unit sudah masuk.']);
+        // Tiket yang ditangani humas langsung tidak punya investigasi unit,
+        // jadi umurnya yang panjang tidak boleh masuk daftar lewat batas unit.
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'created_at' => now()->subWeeks(3),
+            'kode_tiket' => 'ADUAN-HUMAS-LAMA-01',
+            'master_unit_id' => null,
+        ]);
+
+        $ringkasan = StatistikDashboard::ringkasanKritis();
+
+        $this->assertSame(0, $ringkasan['total_lewat']);
+        $this->assertTrue($ringkasan['lewat']->isEmpty());
+    }
+
+    public function test_telaah_hanya_menghitung_jawaban_unit_di_tiket_aktif(): void
+    {
+        $dijawabUnit = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create();
+        $dijawabUnit->pesan()->create(['peran' => 'unit', 'isi' => 'Stok obat sudah diperiksa.']);
+
+        // Balasan humas ke pelapor tidak membuktikan unit sudah menjawab, jadi
+        // tiket ini tidak boleh menambah angka telaah.
+        $dibalasHumas = Pengaduan::factory()->create();
+        $dibalasHumas->pesan()->create(['peran' => 'admin', 'isi' => 'Kami sedang memeriksa laporan Anda.']);
 
         $hanyaPelapor = Pengaduan::factory()->create();
         $hanyaPelapor->pesan()->create(['peran' => 'pelapor', 'isi' => 'Saya lampirkan dokumen tambahan.']);
 
         Pengaduan::factory()->selesai()->create()->pesan()->create([
-            'peran' => 'admin',
-            'isi' => 'Sudah selesai diracik.',
+            'peran' => 'unit',
+            'isi' => 'Jawaban yang menunggu diracik humas.',
         ]);
 
         $this->assertSame(1, StatistikDashboard::ringkasanKritis()['telaah']);
@@ -406,9 +432,12 @@ class DashboardAdminTest extends TestCase
 
     public function test_data_dashboard_aman_disimpan_di_cache(): void
     {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
         Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'created_at' => now()->subWeeks(3),
             'kode_tiket' => 'ADUAN-CACHE-01',
+            'master_unit_id' => $unit->id,
         ]);
 
         $ringkasan = StatistikDashboard::ringkasanKritis();

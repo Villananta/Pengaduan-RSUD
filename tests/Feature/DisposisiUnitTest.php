@@ -9,6 +9,8 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Support\DaftarPengaduan;
+use App\Support\DetailPengaduan;
+use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -131,7 +133,7 @@ class DisposisiUnitTest extends TestCase
             'Pemeriksaan stok dan suhu lemari obat sudah dilakukan, tidak ditemukan selisih.',
             $jawaban->isi,
         );
-        $this->assertTrue($jawaban->jawaban());
+        $this->assertTrue($jawaban->dariUnit());
         $this->assertTrue($jawaban->jalurUnit());
 
         // Tahap tiket tidak berubah: unit tidak berwenang memajukan tahap.
@@ -175,6 +177,49 @@ class DisposisiUnitTest extends TestCase
 
         $this->assertSame(0, $setelah->jumlahInvestigasi[StatusInvestigasi::SedangInvestigasi->value]);
         $this->assertSame(1, $setelah->jumlahInvestigasi[StatusInvestigasi::MenungguRacikan->value]);
+    }
+
+    public function test_jawaban_unit_menambah_angka_telaah_dan_membuang_cache(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        // Angka dihangatkan lebih dulu supaya nilai lamanya masuk cache.
+        $sebelum = StatistikDashboard::ringkasanKritis()['telaah'];
+
+        $this->post(route('unit.disposisi.kirim', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]), [
+            'isi' => 'Stok obat sudah diperiksa, tidak ada selisih.',
+        ])->assertRedirect();
+
+        $this->assertSame($sebelum + 1, StatistikDashboard::ringkasanKritis()['telaah']);
+    }
+
+    public function test_penandaan_kasus_berat_bukan_arahan_disposisi_untuk_unit(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        $tiket->riwayatStatus()->create([
+            'dari' => StatusPengaduan::Diterima,
+            'ke' => StatusPengaduan::Diproses,
+            'catatan' => 'Tolong telusuri catatan pemberian obat pada tiket ini.',
+        ]);
+
+        // Penandaan kasus berat menulis baris riwayat dengan tahap asal dan
+        // tujuan yang sama, jadi baris itu tidak boleh menutupi arahan
+        // disposisi humas yang sebenarnya.
+        $tiket->tandaiKasusBerat(true);
+
+        $instruksi = DetailPengaduan::dariKode($tiket->kode_tiket)->instruksiDisposisi();
+
+        $this->assertSame(
+            'Tolong telusuri catatan pemberian obat pada tiket ini.',
+            $instruksi['catatan'],
+        );
     }
 
     public function test_chat_humas_dan_unit_berjalan_dua_arah(): void

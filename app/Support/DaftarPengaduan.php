@@ -22,9 +22,10 @@ use Illuminate\Support\Collection;
  * supaya template hanya bekerja dengan data yang sudah jadi.
  *
  * Jumlah pada tab Lapis 1 dan Lapis 2 dihitung tanpa filter dimensi itu
- * sendiri: tab Lapis 1 menampilkan sebaran seluruh pengaduan pada tiap
- * tahap, bukan sebaran dari hasil pencarian yang sedang aktif. Dengan begitu
- * angka pada tab tidak ikut berubah-ubah saat kata kunci diketik.
+ * sendiri, tetapi filter lain yang sedang aktif tetap ikut: kata kunci,
+ * unit, dan kategori. Jadi angka pada tab menyesuaikan diri dengan hasil
+ * pencarian, sementara status tab yang sedang dibuka tidak mengurangi angka
+ * tab tetangganya.
  */
 final class DaftarPengaduan
 {
@@ -256,7 +257,7 @@ final class DaftarPengaduan
             ];
         }
 
-        if (Sla::lewatInvestigasi($pengaduan->created_at)) {
+        if ($pengaduan->lewatInvestigasiUnit()) {
             return [
                 'label' => 'Lewat Batas Unit',
                 'ikon' => 'priority_high',

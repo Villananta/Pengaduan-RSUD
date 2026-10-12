@@ -116,9 +116,11 @@ final class DetailPengaduan
      *
      * Satu-satunya arahan humas yang tersimpan permanen pada tiket adalah
      * catatan pada baris riwayat perpindahan tahap, jadi halaman unit cukup
-     * menarik yang paling baru tanpa membaca kolomnya sendiri. Null ketika
-     * belum ada admin yang pernah menulis catatan, supaya template bisa
-     * menampilkan penjelas pengganti alih-alih baris kosong.
+     * menarik yang paling baru tanpa membaca kolomnya sendiri. Baris penandaan
+     * kasus berat sengaja dilewati karena kalimatnya ditulis sistem, bukan
+     * arahan kerja untuk unit. Null ketika belum ada admin yang pernah menulis
+     * catatan, supaya template bisa menampilkan penjelas pengganti alih-alih
+     * baris kosong.
      *
      * @return array<string, mixed>|null
      */
@@ -127,7 +129,7 @@ final class DetailPengaduan
         $terakhir = null;
 
         foreach ($this->audit as $baris) {
-            if (filled($baris['catatan'])) {
+            if (filled($baris['catatan']) && ! $baris['kasusBerat']) {
                 $terakhir = $baris;
             }
         }
@@ -276,7 +278,7 @@ final class DetailPengaduan
             'zona' => $zona->label(),
             'nadaZona' => $zona->badgeAdmin(),
             'ringkas' => $pengaduan->ringkasSla(),
-            'lewatUnit' => Sla::lewatInvestigasi($pengaduan->created_at),
+            'lewatUnit' => $pengaduan->lewatInvestigasiUnit(),
             'hariInvestigasi' => Sla::hariInvestigasi(),
 
             // Kasus berat menggeser target, jadi ringkasan di bawah harus
@@ -393,6 +395,7 @@ final class DetailPengaduan
                     : 'Tahap pengaduan dipindahkan dari '.$baris->dari->label().' ke '.$baris->ke->label().'.',
                 'catatan' => $baris->catatan,
                 'aktor' => $baris->admin?->name ?? 'Sistem Pengaduan',
+                'kasusBerat' => $baris->perubahanKasusBerat(),
             ])
             ->all();
     }

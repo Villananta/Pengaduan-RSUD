@@ -321,9 +321,9 @@ final class TindakLanjutPengaduan
      * sebanyak yang diperlukan, termasuk setelah tiket dinyatakan selesai,
      * karena percakapan dengan pelapor berjalan terus di luar alur tahap.
      *
-     * Angka telaah pada dashboard justru bergantung pada keberadaan balasan
-     * ini, jadi cache statistik ikut dibuang walaupun tahap tiket tidak
-     * berubah. Tanpa itu angka telaah tertinggal sampai cache-nya kedaluwarsa.
+     * Cache statistik tidak perlu dibuang: balasan humas ke pelapor tidak
+     * mengubah tahap maupun jawaban unit, sedangkan angka telaah hanya
+     * bertambah saat PIC unit mengirim jawaban lewat JawabanUnit.
      *
      * @param  array<int, UploadedFile|null>  $berkas
      */
@@ -338,8 +338,6 @@ final class TindakLanjutPengaduan
             'isi' => $isi,
             'lampiran' => PesanPengaduan::simpanBerkas($berkas),
         ]);
-
-        self::segarkanStatistik();
     }
 
     /**
@@ -351,7 +349,8 @@ final class TindakLanjutPengaduan
      * percakapan dua arah, bukan dua SALURAN terpisah.
      *
      * Tahap tiket sengaja tidak diubah; pesan ini hanya koordinasi kerja, bukan
-     * keputusan alur pengaduan.
+     * keputusan alur pengaduan. Cache statistik pun tidak dibuang karena pesan
+     * admin di kanal unit tidak menambah angka telaah maupun angka lain.
      *
      * @param  array<int, UploadedFile|null>  $berkas
      *
@@ -372,8 +371,6 @@ final class TindakLanjutPengaduan
             'isi' => $isi,
             'lampiran' => PesanPengaduan::simpanBerkas($berkas),
         ]);
-
-        self::segarkanStatistik();
     }
 
     /** Nyalakan atau matikan penandaan kasus berat beserta jejak auditnya. */

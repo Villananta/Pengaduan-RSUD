@@ -44,4 +44,20 @@ class RiwayatStatusPengaduan extends Model
     {
         return $this->dari === null;
     }
+
+    /**
+     * True bila baris ini mencatat penandaan kasus berat, bukan perpindahan tahap.
+     *
+     * Penandaan kasus berat ditulis dengan tahap asal dan tujuan yang sama,
+     * sehingga tidak ada kolom yang bisa membedakannya dari disposisi biasa.
+     * Yang tersisa hanya kalimat bawaan yang ditulis sistem, dan itulah yang
+     * dipakai untuk menyaringnya dari panel arahan disposisi halaman unit.
+     */
+    public function perubahanKasusBerat(): bool
+    {
+        return in_array($this->catatan, [
+            Pengaduan::CATATAN_KASUS_BERAT_AKTIF,
+            Pengaduan::CATATAN_KASUS_BERAT_LEPAS,
+        ], true);
+    }
 }

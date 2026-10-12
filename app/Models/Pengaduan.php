@@ -18,6 +18,19 @@ class Pengaduan extends Model
 {
     use HasFactory;
 
+    /**
+     * Catatan audit saat penandaan kasus berat dinyalakan.
+     *
+     * Kalimat ini sekaligus jadi penanda baris riwayat: penandaan kasus berat
+     * sengaja tidak mengubah tahap, jadi satu-satunya cara mengenalinya adalah
+     * teks bawaannya. Kalau kalimatnya diubah, penanda di
+     * RiwayatStatusPengaduan::perubahanKasusBerat() harus ikut diubah.
+     */
+    public const CATATAN_KASUS_BERAT_AKTIF = 'Pengaduan ditandai sebagai kasus berat oleh admin humas.';
+
+    /** Catatan audit saat penandaan kasus berat dilepas. */
+    public const CATATAN_KASUS_BERAT_LEPAS = 'Penandaan kasus berat dilepas oleh admin humas.';
+
     protected $table = 'pengaduan';
 
     /**
@@ -168,8 +181,8 @@ class Pengaduan extends Model
             'dari' => $this->status,
             'ke' => $this->status,
             'catatan' => $aktif
-                ? 'Pengaduan ditandai sebagai kasus berat oleh admin humas.'
-                : 'Penandaan kasus berat dilepas oleh admin humas.',
+                ? self::CATATAN_KASUS_BERAT_AKTIF
+                : self::CATATAN_KASUS_BERAT_LEPAS,
             'admin_id' => $adminId,
         ]);
     }
@@ -219,6 +232,20 @@ class Pengaduan extends Model
     public function zonaSla(): ZonaSla
     {
         return Sla::zona($this->created_at, $this->selesai_at, $this->kasus_berat);
+    }
+
+    /**
+     * True bila investigasi unit atas tiket ini sudah lewat batas hari kerja.
+     *
+     * Tiket yang ditangani humas langsung tidak punya investigasi unit, jadi
+     * umurnya yang panjang tidak pernah dihitung sebagai keterlambatan unit.
+     * Syarat master_unit_id ditahan di sini supaya daftar, kartu, dan detail
+     * tiket tidak lagi berbeda pendapat soal tiket mana yang terlambat.
+     */
+    public function lewatInvestigasiUnit(): bool
+    {
+        return $this->master_unit_id !== null
+            && Sla::lewatInvestigasi($this->created_at);
     }
 
     /** Sisa hari kerja menuju target, nol bila sudah lewat atau selesai. */

@@ -225,7 +225,7 @@ final class Dashboard
      */
     public function kartuTiket(Pengaduan $pengaduan): array
     {
-        $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
+        $lewat = $pengaduan->lewatInvestigasiUnit();
         $unitMenjawab = (bool) $pengaduan->unit_menjawab;
         $hariKe = Sla::hariKe($pengaduan->created_at);
         $sisa = $pengaduan->sisaHariSla();

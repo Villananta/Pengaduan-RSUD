@@ -280,11 +280,12 @@ final class StatistikDashboard
         $selesai = (int) ($perTahap[StatusPengaduan::Selesai->value] ?? 0);
         $aktif = (int) array_sum(array_diff_key($perTahap, [StatusPengaduan::Selesai->value => true]));
 
-        // Telaah: jawaban unit sudah masuk lewat balasan humas atau langsung
-        // dari PIC unit, tinggal diracik humas.
+        // Telaah: jawaban PIC unit sudah masuk dan tinggal diracik humas.
+        // Balasan humas ke pelapor tidak dihitung karena tidak membuktikan
+        // unit menjawab, jadi sinyalnya memakai jawabanUnit() yang tegas.
         $telaah = Pengaduan::query()
             ->aktif()
-            ->whereHas('pesan', fn ($q) => $q->jawaban())
+            ->whereHas('pesan', fn ($q) => $q->jawabanUnit())
             ->count();
 
         $disposisi = Pengaduan::query()
@@ -297,14 +298,15 @@ final class StatistikDashboard
         // Daftar tiket lewat harus tetap disaring di dalam PHP karena
         // diffInWeekdays tidak bisa diterjemahkan ke SQL, tapi barisnya
         // ditarik per bagian dengan lazy() supaya memori tidak ikut membesar
-        // seiring jumlah tiket aktif.
+        // seiring jumlah tiket aktif. Tiket tanpa unit tidak punya investigasi
+        // yang bisa terlambat, dan syarat itu sudah dibawa lewatInvestigasiUnit().
         Pengaduan::query()
             ->aktif()
             ->with('masterUnit')
             ->orderBy('id')
             ->select(['id', 'kode_tiket', 'unit', 'master_unit_id', 'status', 'created_at'])
             ->lazy(1000)
-            ->filter(fn (Pengaduan $pengaduan): bool => Sla::lewatInvestigasi($pengaduan->created_at))
+            ->filter(fn (Pengaduan $pengaduan): bool => $pengaduan->lewatInvestigasiUnit())
             ->each(function (Pengaduan $pengaduan) use (&$lewatTiket): void {
                 $lewatTiket->push([
                     'kode' => $pengaduan->kode_tiket,

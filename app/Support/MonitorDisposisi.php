@@ -194,7 +194,7 @@ final class MonitorDisposisi
     private static function kartuTiket(Pengaduan $pengaduan): array
     {
         $unitMenjawab = (bool) $pengaduan->unit_menjawab;
-        $lewat = Sla::lewatInvestigasi($pengaduan->created_at);
+        $lewat = $pengaduan->lewatInvestigasiUnit();
         $unit = $pengaduan->masterUnit;
 
         return [

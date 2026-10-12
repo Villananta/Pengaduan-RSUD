@@ -100,6 +100,20 @@ class DetailPengaduanAdminTest extends TestCase
         $this->assertSame($unit->namaLengkap(), DetailPengaduan::dariKode($denganUnit->kode_tiket)->unit['nama']);
     }
 
+    public function test_tiket_tanpa_unit_tidak_dihitung_lewat_batas_unit(): void
+    {
+        // Investigasi yang bisa terlambat hanya milik tiket yang memang
+        // didisposisikan ke unit. Tiket lama yang ditangani humas langsung
+        // tidak boleh ikut ditandai lewat batas pada panel SLA.
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-HUMAS-02',
+            'master_unit_id' => null,
+            'created_at' => now()->subWeeks(3),
+        ]);
+
+        $this->assertFalse(DetailPengaduan::dariKode('ADUAN-HUMAS-02')->sla['lewatUnit']);
+    }
+
     public function test_percakapan_kosong_menampilkan_pesan_bukan_kotak_kosong(): void
     {
         Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-KOSONG-01']);

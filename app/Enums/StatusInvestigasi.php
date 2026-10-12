@@ -100,7 +100,8 @@ enum StatusInvestigasi: string
      * Param unitMenjawab hanya bernilai benar bila PIC unit sendiri sudah
      * menulis jawabannya. Balasan humas kepada pelapor bukan bukti unit
      * menjawab, jadi pemanggil memakai PesanPengaduan::dariUnit() atau
-     * scopeJawabanUnit(), bukan scopeJawaban() yang sifatnya lebih lebar.
+     * scopeJawabanUnit(), bukan pesan berperan admin yang juga dipakai humas
+     * untuk membalas pelapor.
      */
     public static function dariPengaduan(Pengaduan $pengaduan, bool $unitMenjawab = false): self
     {

@@ -116,10 +116,20 @@ class MasterUnit extends Model
         return $this->aktif && $this->disposisi->siap();
     }
 
-    /** True bila koneksi SIMRS terakhir masih dalam batas menit yang berlaku. */
+    /**
+     * True bila koneksi SIMRS terakhir masih dalam batas menit yang berlaku.
+     *
+     * Unit yang ditandai putus tetap dihitung tidak terhubung walaupun
+     * heartbeat terakhirnya belum basi. Tanpa syarat itu kartu ringkasan
+     * dan jumlah baris scopeTerhubung() bisa berbeda untuk unit yang sama.
+     */
     public function koneksiAktif(): bool
     {
         if (! $this->koneksi_simrs || $this->koneksi_simrs_terakhir === null) {
+            return false;
+        }
+
+        if ($this->disposisi === DisposisiUnit::Terputus) {
             return false;
         }
 

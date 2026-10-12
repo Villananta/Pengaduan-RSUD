@@ -130,9 +130,16 @@ enum StatusPengaduan: string
         };
     }
 
+    /**
+     * True bila tahap ini boleh berpindah ke tahap tujuan.
+     *
+     * Tahap yang sama bukan perpindahan. Aksi "Kembalikan ke Unit" memakai
+     * daftar ini, jadi tiket yang sudah Diproses tidak boleh ditawari kembali
+     * ke tahap yang sedang berjalan seolah belum pernah masuk ke situ.
+     */
     public function bisaBerpindahKe(self $tujuan): bool
     {
-        return $this === $tujuan || in_array($tujuan, $this->tujuanBerikutnya(), true);
+        return in_array($tujuan, $this->tujuanBerikutnya(), true);
     }
 
     public function perluAksi(): bool

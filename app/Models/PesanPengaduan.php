@@ -32,17 +32,6 @@ class PesanPengaduan extends Model
     /** Peran pesan yang ditulis PIC unit sendiri. */
     public const PERAN_UNIT = 'unit';
 
-    /**
-     * Peran yang dihitung sebagai "sudah ada balasan masuk".
-     *
-     * Daftar ini sengaja lebar karena pesan berperan admin punya dua arti:
-     * balasan humas kepada pelapor, atau jawaban unit yang dulu dititipkan
-     * lewat konsol humas. Angka telaah di dashboard memakai arti lebar ini,
-     * sedangkan status investigasi unit butuh sinyal yang tegas, sehingga
-     * keduanya tidak boleh berbagi satu daftar peran.
-     */
-    public const PERAN_JAWABAN = ['admin', self::PERAN_UNIT];
-
     protected $table = 'pesan_pengaduan';
 
     protected $fillable = [
@@ -87,12 +76,6 @@ class PesanPengaduan extends Model
         return $this->peran === self::PERAN_UNIT;
     }
 
-    /** True bila pesan ini termasuk balasan yang sudah masuk, dari humas maupun unit. */
-    public function jawaban(): bool
-    {
-        return in_array($this->peran, self::PERAN_JAWABAN, true);
-    }
-
     /**
      * Pesan milik kanal koordinasi humas dan unit.
      *
@@ -112,24 +95,12 @@ class PesanPengaduan extends Model
     }
 
     /**
-     * Sinyal "sudah ada balasan masuk" untuk angka telaah humas.
+     * Sinyal "PIC unit sudah menjawab" untuk status investigasi, papan
+     * disposisi, dan angka telaah humas.
      *
-     * Sifatnya lebar karena menghitung balasan humas dan jawaban unit
-     * sekaligus. Status investigasi dan papan disposisi tidak boleh memakai
-     * scope ini: balasan humas kepada pelapor akan ikut terbaca seolah-olah
-     * unit sudah menjawab. Untuk keduanya pakai scopeJawabanUnit().
-     */
-    public function scopeJawaban(Builder $query): Builder
-    {
-        return $query->whereIn('peran', self::PERAN_JAWABAN);
-    }
-
-    /**
-     * Sinyal "PIC unit sudah menjawab" untuk status investigasi dan papan disposisi.
-     *
-     * Ditempatkan berdampingan dengan scopeJawaban() supaya beda keduanya
-     * terbaca langsung: yang satu menghitung keterlibatan humas, yang ini
-     * menghitung jawaban unit yang benar-benar masuk.
+     * Balasan humas kepada pelapor tidak ikut dihitung: pesan berperan admin
+     * tidak pernah membuktikan unit sudah menjawab, sekalipun dulu ada jawaban
+     * unit yang dititipkan lewat konsol humas.
      */
     public function scopeJawabanUnit(Builder $query): Builder
     {

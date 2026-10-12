@@ -116,6 +116,24 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertSame('2 unit terputus', $daftar->kartu[1]['sisi']);
     }
 
+    public function test_unit_yang_ditandai_putus_tetap_tidak_terhubung_walau_heartbeat_baru(): void
+    {
+        // Heartbeat yang masih segar tidak boleh menutupi penandaan putus.
+        // koneksiAktif() dan scopeTerhubung() harus sepakat; kalau tidak,
+        // kartu ringkasan dan filter saring bisa memberi angka berbeda untuk
+        // unit yang sama.
+        $unit = MasterUnit::factory()->create([
+            'kode' => 'UJI-91',
+            'nama' => 'Unit Putus Tapi Sehat',
+            'koneksi_simrs' => true,
+            'koneksi_simrs_terakhir' => now(),
+            'disposisi' => DisposisiUnit::Terputus,
+        ]);
+
+        $this->assertFalse($unit->koneksiAktif());
+        $this->assertFalse(MasterUnit::query()->terhubung()->whereKey($unit->id)->exists());
+    }
+
     public function test_saring_belum_ditugaskan_mengenali_unit_baru(): void
     {
         // Kolom disposisi punya nilai bawaan sehingga tidak pernah kosong,

@@ -131,7 +131,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertNull($pengaduan->selesai_at);
         $this->assertTrue($unit->fresh()->disposisi === DisposisiUnit::MenungguInvestigasi);
 
-        $pengembalian = $pengaduan->riwayatStatus()->latest('id')->first();
+        $pengembalian = $pengaduan->riwayatStatus()->reorder('id', 'desc')->first();
         $this->assertSame(StatusPengaduan::Revisi, $pengembalian->dari);
         $this->assertSame(StatusPengaduan::Diproses, $pengembalian->ke);
     }
@@ -152,6 +152,44 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame(StatusPengaduan::Revisi, $pengaduan->status);
     }
 
+    public function test_aksi_b_menolak_tiket_yang_sudah_diproses(): void
+    {
+        // Sebelum diperbaiki, permintaan ini lolos pemeriksaan tombol lalu
+        // berujung error saat pindahTahap() menolak tahap tujuan yang sama.
+        // Sekarang penolakannya berupa pesan validasi biasa.
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-KEMBALIK-04');
+        $pengaduan->update(['master_unit_id' => $unit->id]);
+
+        $this->from(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->post(route('admin.pengaduan.kembalikan', $pengaduan->kode_tiket), [
+                'catatan' => 'Mohon diperiksa ulang.',
+            ])
+            ->assertSessionHasErrors('catatan');
+
+        $this->assertSame(StatusPengaduan::Diproses, $pengaduan->fresh()->status);
+    }
+
+    public function test_tiket_diproses_bersama_unit_tidak_menawarkan_kembalikan(): void
+    {
+        // Aksi "Kembalikan ke Unit" hanya masuk akal kalau tiket belum ada di
+        // tahap Diproses. Tanpa syarat itu tiket yang sedang diinvestigasi unit
+        // malah ditawari kembali ke tahap yang sedang berjalan.
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-KEMBALIK-03');
+        $pengaduan->update(['master_unit_id' => $unit->id]);
+
+        $tindakan = TindakLanjutPengaduan::tindakanTersedia($pengaduan->fresh());
+
+        $this->assertFalse($tindakan['kembalikan']);
+        $this->assertSame(
+            'Tahap Diproses tidak bisa dikembalikan ke unit.',
+            $tindakan['alasanKembalikan'],
+        );
+    }
+
     public function test_aksi_c_menugaskan_unit_dan_memindahkan_tiket_ke_diproses(): void
     {
         $unit = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
@@ -169,7 +207,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame($unit->id, $pengaduan->master_unit_id);
         $this->assertTrue($unit->fresh()->disposisi === DisposisiUnit::MenungguInvestigasi);
 
-        $penugasan = $pengaduan->riwayatStatus()->latest('id')->first();
+        $penugasan = $pengaduan->riwayatStatus()->reorder('id', 'desc')->first();
         $this->assertSame(StatusPengaduan::Diterima, $penugasan->dari);
         $this->assertSame(StatusPengaduan::Diproses, $penugasan->ke);
     }
@@ -272,7 +310,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertTrue($pengaduan->status->diproses());
         $this->assertNull($pengaduan->selesai_at);
 
-        $perpindahan = $pengaduan->riwayatStatus()->latest('id')->first();
+        $perpindahan = $pengaduan->riwayatStatus()->reorder('id', 'desc')->first();
         $this->assertSame(StatusPengaduan::Diterima, $perpindahan->dari);
         $this->assertSame(StatusPengaduan::Diproses, $perpindahan->ke);
     }
@@ -314,7 +352,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame(StatusPengaduan::Revisi, $pengaduan->status);
         $this->assertNull($pengaduan->selesai_at);
 
-        $perpindahan = $pengaduan->riwayatStatus()->latest('id')->first();
+        $perpindahan = $pengaduan->riwayatStatus()->reorder('id', 'desc')->first();
         $this->assertSame('Hasil pemeriksaan laboratori belum dilampirkan.', $perpindahan->catatan);
     }
 
@@ -406,7 +444,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         // Jejak auditnya harus menjelaskan bahwa penandaan baru saja diubah,
         // bukan mencatat perpindahan tahap yang sebenarnya tidak terjadi.
-        $catatan = $pengaduan->riwayatStatus()->latest('id')->first();
+        $catatan = $pengaduan->riwayatStatus()->reorder('id', 'desc')->first();
         $this->assertSame($pengaduan->status, $catatan->dari);
         $this->assertSame($pengaduan->status, $catatan->ke);
     }
@@ -470,12 +508,12 @@ class TindakLanjutPengaduanAdminTest extends TestCase
     }
 
     /**
-     * Hitungan telaah diambil dari keberadaan balasan unit, bukan dari tahap.
+     * Balasan humas ke pelapor bukan jawaban unit.
      *
-     * Angkanya harus langsung berubah begitu admin menulis balasan, bukan
-     * menunggu cache dashboard yang masa berlakunya enam puluh detik.
+     * Angka telaah harus tetap karena yang membuktikan unit menjawab hanya
+     * pesan berperan unit, dan balasan humas tidak membuang cache dashboard.
      */
-    public function test_balasan_admin_membuang_cache_angka_telaah(): void
+    public function test_balasan_admin_tidak_menambah_angka_telaah(): void
     {
         $pengaduan = $this->tiketDiproses('ADUAN-CACHE-02');
 
@@ -488,7 +526,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         $sesudah = StatistikDashboard::ringkasanKritis()['telaah'];
 
-        $this->assertSame($sebelum + 1, $sesudah);
+        $this->assertSame($sebelum, $sesudah);
     }
 
     public function test_admin_bisa_membalas_di_kolom_percakapan(): void
@@ -501,7 +539,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         $pengaduan->refresh();
 
-        $balasan = $pengaduan->pesan()->where('peran', 'admin')->latest('id')->first();
+        $balasan = $pengaduan->pesan()->where('peran', 'admin')->reorder('id', 'desc')->first();
         $this->assertNotNull($balasan);
 
         // Balasan percakapan tidak boleh ikut mengubah tahap tiket.
@@ -594,7 +632,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
             ],
         ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
 
-        $balasan = $pengaduan->pesan()->where('peran', 'admin')->latest('id')->first();
+        $balasan = $pengaduan->pesan()->where('peran', 'admin')->reorder('id', 'desc')->first();
 
         $this->assertCount(2, $balasan->daftarLampiran());
 
