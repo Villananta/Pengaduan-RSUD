@@ -84,7 +84,7 @@
                     </span>
 
                     <span class="text-on-surface-variant font-label-sm text-label-sm">
-                        Masuk {{ $tiket->created_at->format('d M Y, H:i') }} WIB
+                        Masuk {{ $tiket->created_at->translatedFormat('d M Y, H:i') }} WIB
                     </span>
                 </div>
 
@@ -261,7 +261,7 @@
                         </div>
                         <div>
                             <span class="text-on-surface-variant text-[11px] block">Kejadian</span>
-                            <strong>{{ $tiket->waktu_kejadian->format('d M Y') }}</strong>
+                            <strong>{{ $tiket->waktu_kejadian->translatedFormat('d M Y') }}</strong>
                         </div>
                     </div>
 

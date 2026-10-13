@@ -75,7 +75,7 @@
                     @endif
 
                     <span class="text-on-surface-variant font-label-sm text-label-sm">
-                        Masuk {{ $tiket->created_at->format('d M Y, H:i') }} WIB
+                        Masuk {{ $tiket->created_at->translatedFormat('d M Y, H:i') }} WIB
                     </span>
                 </div>
 
@@ -96,7 +96,7 @@
                     <span aria-hidden="true">&bull;</span>
                     <span class="flex items-center gap-1">
                         <x-symbol nama="calendar_today" class="text-[16px] text-outline" />
-                        <span>Kejadian {{ $tiket->waktu_kejadian->format('d M Y') }}</span>
+                        <span>Kejadian {{ $tiket->waktu_kejadian->translatedFormat('d M Y') }}</span>
                     </span>
                     <span aria-hidden="true">&bull;</span>
                         <span>{{ $tiket->kategori->label() }}</span>
@@ -327,7 +327,7 @@
                                                 <img
                                                     src="{{ $berkas['url'] }}"
                                                     alt="Lampiran {{ $berkas['nama'] }}"
-                                                    class="w-full h-32 object-cover rounded-sm" style="width: 25% height:25% "
+                                                    class="w-full h-32 object-cover rounded-sm"
                                                 >
                                             </a>
 
@@ -723,9 +723,6 @@
 
                                             @foreach ($pesan['lampiran'] as $berkas)
 
-                                                {{-- Lampiran dibungkus gelembung yang sama seperti di halaman
-                                                     pelapor supaya tetap ringkas. Foto dibungkus tautan supaya
-                                                     bisa dibuka ukuran penuh di tab baru. --}}
                                                 @if ($berkas['gambar'])
                                                     <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener">
                                                         <img src="{{ $berkas['url'] }}" alt="Lampiran {{ $berkas['nama'] }}" class="w-full max-w-[240px] rounded-lg">

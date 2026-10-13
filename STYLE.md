@@ -34,7 +34,10 @@ sudah ada. Aturan di bawah disusun dari kebiasaan nyata di `app/`, `routes/`,
   bahasa Inggris (`pengaduan`, `master_units`).
 - Helper query memakai awalan `scope` (`scopeAktif`, `scopeTerhubung`,
   `scopeBelumDitugaskan`).
-- Warna dan kelas CSS di tempatkan di enum/support, bukan di template.
+- Warna dan kelas CSS ditempatkan di enum/support, bukan di template.
+- Import class atau enum di dalam Blade memakai direktif `@use(...)` di baris
+  atas view, bukan `use` di dalam blok `@php`. Helper teks seperti `Str`
+  diimpor lewat direktif yang sama.
 
 ## Docblock dan Komentar
 
@@ -115,6 +118,14 @@ sudah ada. Aturan di bawah disusun dari kebiasaan nyata di `app/`, `routes/`,
   }
   ```
 
+- Definisi model memakai properti `protected $fillable` dan `protected $casts`
+  (`Pengaduan`, `MasterUnit`, `PesanPengaduan`). Atribut PHP `#[Fillable]` /
+  `#[Hidden]` beserta method `casts()` hanya dipakai di `User`; jangan
+  mencampur dua gaya itu di dalam satu model.
+- Cache statistik disimpan lewat `Cache::remember` dengan konstanta `KUNCI`
+  dan `TTL`, dan dibuang oleh `lupaCache()` yang dipanggil pada setiap aksi
+  tulis. `StatistikUnit` memakai kunci versi (`KUNCI_VERSI`) supaya seluruh
+  entri per unit bisa dianggap basi sekaligus.
 - Angka ajaib (angka, label, warna, batas SLA) disimpan di
   `config/pengaduan.php`, enum, atau konstanta class. Jangan menulis angka
   yang sama di dua tempat.
@@ -199,6 +210,19 @@ sudah ada. Aturan di bawah disusun dari kebiasaan nyata di `app/`, `routes/`,
 - Konfigurasi yang tidak boleh diubah tanpa diminta ada di
   `config/pengaduan.php` dan `App\Support\Sla` (angka SLA, daftar unit, teks
   SPM, matriks investigasi).
+
+## Tanggal, Angka, dan Bahasa
+
+- Aplikasi tampil berbahasa Indonesia, tetapi `APP_LOCALE` masih `en`. Selama
+  itu belum disetel `id`, `format('d M Y')` menampilkan singkatan bulan
+  Inggris (`13 Oct 2026`) dan `translatedFormat('d F Y')` menampilkan nama
+  bulan Inggris penuh (`13 October 2026`). Jangan menambah `translatedFormat()`
+  baru sebelum locale diubah, karena dua bentuk Inggris akan muncul
+  berdampingan pada halaman yang sama.
+- Angka besar ditulis dengan `number_format($nilai, 0, ',', '.')` supaya
+  pemisah ribuan mengikuti kebiasaan Indonesia.
+- Kalimat yang dikirim ke pelapor boleh menyertakan `WIB`; di dalam tabel dan
+  kartu cukup `d M Y, H:i` tanpa nama zona.
 
 ## Yang Dilarang
 

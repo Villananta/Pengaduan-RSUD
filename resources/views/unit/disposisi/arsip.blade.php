@@ -229,7 +229,7 @@
                                     @endphp
 
                                     <span class="font-label-md text-label-md font-semibold text-on-surface">
-                                        {{ $tutupArsip->format('d M Y') }}
+                                        {{ $tutupArsip->translatedFormat('d M Y') }}
                                     </span>
 
                                     <span class="block text-outline font-label-sm text-label-sm mt-0.5">

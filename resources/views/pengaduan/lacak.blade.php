@@ -245,8 +245,8 @@
                                 'No. Rekam Medis' => $tiket->nrm,
                                 'No. WhatsApp' => $tiket->no_wa,
                                 'Unit Terdampak' => $tiket->unit,
-                                'Waktu Kejadian' => $tiket->waktu_kejadian->format('d M Y, H:i'),
-                                'Tanggal Pengajuan' => $tiket->created_at->format('d M Y'),
+                                'Waktu Kejadian' => $tiket->waktu_kejadian->translatedFormat('d M Y, H:i'),
+                                'Tanggal Pengajuan' => $tiket->created_at->translatedFormat('d M Y'),
                             ] as $label => $value)
                                 <div>
                                     <p class="text-xs text-ink-muted">{{ $label }}</p>
@@ -340,7 +340,7 @@
                                     <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                                 <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">
-                                    Pengaduan diterima sistem pada {{ $tiket->created_at->format('d M Y, H:i') }}
+                                    Pengaduan diterima sistem pada {{ $tiket->created_at->translatedFormat('d M Y, H:i') }}
                                 </span>
                             </div>
 
@@ -350,7 +350,7 @@
                                         <div class="flex items-center gap-1">
                                             <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-800 text-[11px] font-bold tracking-[0.33px] text-white">H</span>
                                             <span class="text-xs font-bold tracking-[0.24px] text-brand-800">Tim Humas</span>
-                                            <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->format('d M Y, H:i') }}</span>
+                                            <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->translatedFormat('d M Y, H:i') }}</span>
                                         </div>
 
                                         <div class="max-w-[672px] rounded-tl-none rounded-2xl bg-chat-admin px-4 py-4 text-sm leading-[23px] text-ink shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -381,7 +381,7 @@
                                 @else
                                     <div class="flex flex-col items-end gap-1 pl-10">
                                         <div class="flex items-center gap-1">
-                                            <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->format('d M Y, H:i') }}</span>
+                                            <span class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">{{ $pesan->created_at->translatedFormat('d M Y, H:i') }}</span>
                                             <span class="text-xs font-bold tracking-[0.24px] text-ink">Anda (Pelapor)</span>
                                             <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[11px] font-medium tracking-[0.33px] text-white">{{ Str::upper(Str::substr($tiket->nama_lengkap, 0, 1)) }}</span>
                                         </div>

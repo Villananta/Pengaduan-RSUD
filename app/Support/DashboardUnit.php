@@ -232,7 +232,7 @@ final class DashboardUnit
             'subjek' => $pengaduan->subjek,
             'pelapor' => $pengaduan->nama_lengkap,
             'nrm' => Pengaduan::normalisasiNrm($pengaduan->nrm),
-            'tanggal' => $pengaduan->created_at->format('d M Y, H:i'),
+            'tanggal' => $pengaduan->created_at->translatedFormat('d M Y, H:i'),
             'status' => $pengaduan->status,
             'investigasi' => $this->investigasi($pengaduan),
             'sla' => $this->barisSla($zona, Sla::hariKe($pengaduan->created_at), $pengaduan->sisaHariSla()),

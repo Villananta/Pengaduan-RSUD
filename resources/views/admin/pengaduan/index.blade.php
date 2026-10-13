@@ -317,7 +317,7 @@
                                     <div class="flex flex-col gap-1">
                                         <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $baris['kode'] }}</span>
                                         <span class="text-outline font-label-sm text-label-sm">
-                                            {{ $pengaduan->created_at->format('d M Y, H:i') }} WIB
+                                            {{ $pengaduan->created_at->translatedFormat('d M Y, H:i') }} WIB
                                         </span>
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-xl {{ $baris['prioritas']['nada'] }} font-label-sm text-label-sm font-bold w-fit">
                                             <x-symbol :nama="$baris['prioritas']['ikon']" class="text-[12px]" />

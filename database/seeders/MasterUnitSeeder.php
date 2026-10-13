@@ -127,7 +127,7 @@ class MasterUnitSeeder extends Seeder
             $this->baris(
                 kode: 'IRJ-05',
                 nama: 'Instalasi Rawat Jalan (Poliklinik)',
-                kategori: KategoriUnit::LayananRawatInap,
+                kategori: KategoriUnit::InstalasiMedis,
                 pic: 'dr. Surya N., Sp.PD',
                 jabatan: 'Kepala Poliklinik',
                 wa: '0811-3456-99',

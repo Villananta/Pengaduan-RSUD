@@ -273,11 +273,11 @@ class Pengaduan extends Model
     public function ringkasSla(): string
     {
         if ($this->status->selesai()) {
-            return 'Selesai pada '.($this->selesai_at?->format('d M Y') ?? 'tanggal tidak tercatat');
+            return 'Selesai pada '.($this->selesai_at?->translatedFormat('d M Y') ?? 'tanggal tidak tercatat');
         }
 
         $sisa = $this->sisaHariSla();
-        $target = $this->targetSla()->format('d M Y');
+        $target = $this->targetSla()->translatedFormat('d M Y');
 
         // Sisa hari nol tidak otomatis berarti lewat: di hari terakhir yang
         // masih tepat waktu sisa juga nol. Penentu terlambatnya adalah zona

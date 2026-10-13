@@ -208,7 +208,7 @@ final class DetailPengaduan
                 // berjalan dan yang belum tiba memakai ikon statusnya sendiri.
                 'ikon' => $urut < $posisi ? 'check' : $tahap->ikon(),
                 'waktu' => isset($masukTahap[$tahap->value])
-                    ? $masukTahap[$tahap->value]->format('d M Y, H:i')
+                    ? $masukTahap[$tahap->value]->translatedFormat('d M Y, H:i')
                     : null,
             ];
         }, StatusPengaduan::cases());
@@ -264,7 +264,7 @@ final class DetailPengaduan
             'hariKerja' => Sla::hariKerja(),
             'hariKe' => Sla::hariKe($pengaduan->created_at),
             'sisa' => $pengaduan->sisaHariSla(),
-            'target' => $pengaduan->targetSla()->format('d M Y'),
+            'target' => $pengaduan->targetSla()->translatedFormat('d M Y'),
             'persen' => $pengaduan->progresPersen(),
             'zona' => $zona->label(),
             'nadaZona' => $zona->badgeAdmin(),
@@ -275,7 +275,7 @@ final class DetailPengaduan
             // Kasus berat menggeser target, jadi ringkasan di bawah harus
             // menyebut total hari kerja yang benar, bukan angka default.
             'kasusBerat' => $pengaduan->kasus_berat,
-            'kasusBeratAt' => $pengaduan->kasus_berat_at?->format('d M Y, H:i'),
+            'kasusBeratAt' => $pengaduan->kasus_berat_at?->translatedFormat('d M Y, H:i'),
             'totalHariKerja' => $pengaduan->totalHariKerjaSla(),
             'tambahanHariKerja' => Sla::tambahanKasusBerat(),
         ];
@@ -353,7 +353,7 @@ final class DetailPengaduan
             // di atas: sapaan pembuka memang terbaca sebagai pesan humas.
             'peran' => $pesan->peran,
             'isi' => $pesan->isi,
-            'waktu' => $pesan->created_at->format('d M Y, H:i'),
+            'waktu' => $pesan->created_at->translatedFormat('d M Y, H:i'),
             'lampiran' => array_map(fn (string $path): array => [
                 'nama' => basename($path),
                 'url' => $pesan->urlLampiran($path),
@@ -379,7 +379,7 @@ final class DetailPengaduan
                     ? 'bg-surface-container-highest text-on-surface'
                     : 'bg-secondary-container text-on-secondary-container',
                 'ikon' => $baris->dariAwal() ? 'inbox' : 'swap_horiz',
-                'waktu' => $baris->created_at->format('d M Y, H:i').' WIB',
+                'waktu' => $baris->created_at->translatedFormat('d M Y, H:i').' WIB',
                 'judul' => $baris->ke->label(),
                 'kalimat' => $baris->dariAwal()
                     ? 'Pengaduan masuk melalui portal publik dan langsung disimpan sebagai '.$baris->ke->label().'.'

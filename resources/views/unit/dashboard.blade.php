@@ -285,7 +285,7 @@
                         <div>
                             <span class="text-on-surface-variant text-[11px] block">Pemeriksaan terakhir</span>
                             <strong>
-                                {{ $unit->koneksi_simrs_terakhir !== null ? $unit->koneksi_simrs_terakhir->format('d M Y, H:i') : 'Belum pernah' }}
+                                {{ $unit->koneksi_simrs_terakhir !== null ? $unit->koneksi_simrs_terakhir->translatedFormat('d M Y, H:i') : 'Belum pernah' }}
                             </strong>
                         </div>
                         <div>
