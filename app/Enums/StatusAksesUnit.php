@@ -15,7 +15,7 @@ enum StatusAksesUnit: string
     case UndanganTerkirim = 'undangan_terkirim';
     case AkunAktif = 'akun_aktif';
 
-    /** Conditionspeak untuk kolom Akses Dashboard. */
+    /** Sebutan kondisi untuk kolom Akses Dashboard. */
     public function label(): string
     {
         return match ($this) {

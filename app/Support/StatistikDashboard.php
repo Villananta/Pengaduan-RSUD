@@ -128,7 +128,7 @@ final class StatistikDashboard
      *
      * @return Collection<int, MasterUnit>
      */
-    public static function unitTerbebani(int $jumlah = 4)
+    public static function unitTerbebani(int $jumlah = 4): Collection
     {
         return MasterUnit::query()
             ->withCount(['pengaduan as beban_aktif' => fn ($q) => $q->aktif()])
@@ -233,7 +233,7 @@ final class StatistikDashboard
      *
      * @return Collection<int, MasterUnit>
      */
-    public static function statusKoneksi()
+    public static function statusKoneksi(): Collection
     {
         return MasterUnit::query()
             ->withCount(['pengaduan as beban_aktif' => fn ($q) => $q->aktif()])

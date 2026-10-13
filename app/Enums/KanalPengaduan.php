@@ -8,7 +8,7 @@ namespace App\Enums;
  * Pengaduan telepon, SMS, atau yang diterima langsung di loket tetap harus
  * punya tiket resmi supaya bisa dilacak dan ditagih ke unit. Kanal ini
  * dicatat pada pesan pembuka tiket karena tabel pengaduan tidak menyimpan
- * asal keluhan; kalau someday butuh disaring per kanal, barisnya tinggal
+ * asal keluhan; kalau suatu saat perlu disaring per kanal, barisnya tinggal
  * dipindahkan ke kolom tersendiri.
  */
 enum KanalPengaduan: string

@@ -175,7 +175,7 @@ class PengaduanController extends Controller
     /**
      * Tombol tahap pada panel bawah: Proses, Selesaikan, atau Revisi.
      *
-     * Semua tombol dikirim ke endpoint yang sama dan Bedanya hanya nilai
+     * Semua tombol dikirim ke endpoint yang sama; bedanya hanya nilai
      * tujuan, supaya aturan perpindahan tahap tidak tercecer di tiga
      * controller method yang berbeda.
      */

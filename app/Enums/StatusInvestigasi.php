@@ -128,7 +128,7 @@ enum StatusInvestigasi: string
     /**
      * Status investigasi yang ditandai hijau pada tabel.
      *
-     * Dipisah dari kondisi "butuh actuation" karena dua syarat ini tidak
+     * Dipisah dari kondisi "butuh tindakan" karena dua syarat ini tidak
      * selalu sama: tiket yang sudah ditutup tidak lagi butuh tindakan, tetapi
      * tetap ditandai sebagai tahap yang mencapai target.
      *

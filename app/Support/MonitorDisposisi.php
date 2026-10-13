@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
  * diambil dari App\Support\Sla dan config pengaduan supaya halaman ini
  * tidak menjadi sumber ketiga yang bisa berbeda dari beranda dan daftar.
  *
- * Kolom "Belum Dibuka Unit" sengaja dipisah dari "Sedang Investigasi"
+ * Kolom "Menunggu Diproses Humas" sengaja dipisah dari "Sedang Investigasi"
  * meski keduanya berasal dari status investigasi yang sama. Enum
  * StatusInvestigasi tidak ditambah casenya supaya tab Lapis 2 pada
  * daftar pengaduan tidak ikut berubah bentuknya.

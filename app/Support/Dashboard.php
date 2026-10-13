@@ -10,6 +10,13 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
+/**
+ * Data tampilan untuk beranda konsol admin.
+ *
+ * Angka dan daftar untuk kartu statistik, daftar butuh tindakan, dan panel
+ * samping. Seluruh isinya berasal dari query nyata lewat StatistikDashboard
+ * supaya template tidak menyusun query sendiri.
+ */
 final class Dashboard
 {
     /**
@@ -93,12 +100,6 @@ final class Dashboard
         return $investigasi
             .', dan '.$this->telaah().' telaah jawaban unit sudah masuk'
             .' siap diracik humas untuk menjaga ambang '.$this->hariKerja.' hari kerja Permenkes RI.';
-    }
-
-    /** Porsi beban unit terhadap unit tersibuk, dalam persen. */
-    public function porsi(MasterUnit $unit): int
-    {
-        return StatistikDashboard::porsiBeban($unit->beban_aktif, $this->puncakBeban);
     }
 
     /** Kepatuhan SLA unit dalam persen, null bila unit belum punya pengaduan selesai. */
@@ -248,7 +249,7 @@ final class Dashboard
                 $pengaduan->status === StatusPengaduan::Diterima => 'bg-surface-container-highest text-on-surface',
                 default => 'bg-secondary-container text-on-secondary-container',
             },
-            'tahap' => $this->tahapTiket($lewat, $unitMenjawab, $pengaduan),
+            'tahap' => $this->tahapTiket($unitMenjawab, $pengaduan),
             'sla' => $this->barisSla($pengaduan->zonaSla(), $hariKe, $sisa),
             'catatan' => $this->catatanTiket($lewat, $unitMenjawab, $pengaduan),
             'tombol' => $this->tombolTiket($lewat, $unitMenjawab, $pengaduan),
@@ -274,7 +275,7 @@ final class Dashboard
      *
      * @return array{label: string, ikon: string, nada: string}
      */
-    private function tahapTiket(bool $lewat, bool $unitMenjawab, Pengaduan $pengaduan): array
+    private function tahapTiket(bool $unitMenjawab, Pengaduan $pengaduan): array
     {
         if ($unitMenjawab) {
             return [

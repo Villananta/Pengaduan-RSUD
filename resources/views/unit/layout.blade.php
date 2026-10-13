@@ -20,46 +20,46 @@
 
 <body class="bg-surface font-body-md text-on-surface min-h-screen">
 
-        @php
-            // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL,
-            // supaya halaman pemilih unit tidak dipenuhi tautan yang tujuannya
-            // belum bisa ditentukan. Menu "Pilih Unit" justru hanya ada di
-            // halaman pemilih: begitu pengguna masuk ke dashboard unit, pintu
-            // keluar dari unit itu dihapus dari topbar supaya tidak memancing
-            // orang pindah unit tanpa sengaja.
-            $navigasi = [];
+    @php
+        // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL,
+        // supaya halaman pemilih unit tidak dipenuhi tautan yang tujuannya
+        // belum bisa ditentukan. Menu "Pilih Unit" justru hanya ada di
+        // halaman pemilih: begitu pengguna masuk ke dashboard unit, pintu
+        // keluar dari unit itu dihapus dari topbar supaya tidak memancing
+        // orang pindah unit tanpa sengaja.
+        $navigasi = [];
 
-            if ($unit !== null) {
-                // Workspace tiket tidak berdiri sendiri di topbar: halamannya
-                // dibuka dari tombol detail pada beranda unit dan daftar
-                // disposisi, sama seperti konsol admin.
-                $navigasi[] = [
-                    'label' => 'Beranda Unit',
-                    'pola' => 'unit.dashboard',
-                    'url' => route('unit.dashboard', $unit),
-                ];
+        if ($unit !== null) {
+            // Workspace tiket tidak berdiri sendiri di topbar: halamannya
+            // dibuka dari tombol detail pada beranda unit dan daftar
+            // disposisi, sama seperti konsol admin.
+            $navigasi[] = [
+                'label' => 'Beranda Unit',
+                'pola' => 'unit.dashboard',
+                'url' => route('unit.dashboard', $unit),
+            ];
 
-                $navigasi[] = [
-                    'label' => 'Daftar Disposisi Masuk',
-                    'pola' => 'unit.disposisi.index',
-                    'url' => route('unit.disposisi.index', $unit),
-                ];
+            $navigasi[] = [
+                'label' => 'Daftar Disposisi Masuk',
+                'pola' => 'unit.disposisi.index',
+                'url' => route('unit.disposisi.index', $unit),
+            ];
 
-                $navigasi[] = [
-                    'label' => 'Riwayat & Arsip Disposisi',
-                    'pola' => 'unit.disposisi.arsip',
-                    'url' => route('unit.disposisi.arsip', $unit),
-                ];
-            } else {
-                // Di halaman pemilih unit belum ada tujuan lain, jadi satu-satunya
-                // menu yang bisa diberi tautan tetap adalah pemilih unit itu sendiri.
-                $navigasi[] = [
-                    'label' => 'Pilih Unit',
-                    'pola' => 'unit.pilih',
-                    'url' => route('unit.pilih'),
-                ];
-            }
-        @endphp
+            $navigasi[] = [
+                'label' => 'Riwayat & Arsip Disposisi',
+                'pola' => 'unit.disposisi.arsip',
+                'url' => route('unit.disposisi.arsip', $unit),
+            ];
+        } else {
+            // Di halaman pemilih unit belum ada tujuan lain, jadi satu-satunya
+            // menu yang bisa diberi tautan tetap adalah pemilih unit itu sendiri.
+            $navigasi[] = [
+                'label' => 'Pilih Unit',
+                'pola' => 'unit.pilih',
+                'url' => route('unit.pilih'),
+            ];
+        }
+    @endphp
 
     <!-- Topbar -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-[0_2px_14px_rgba(26,26,46,0.08)]">
@@ -118,26 +118,26 @@
 
         <!-- Navigasi Utama -->
         <div class="bg-white border-b border-outline-variant h-12 w-full px-margin flex items-center justify-between">
-                <nav class="flex items-center h-full gap-space-sm overflow-x-auto" aria-label="Navigasi dashboard unit">
-                    @foreach ($navigasi as $item)
+            <nav class="flex items-center h-full gap-space-sm overflow-x-auto" aria-label="Navigasi dashboard unit">
+                @foreach ($navigasi as $item)
 
-                        @php
-                            $aktif = request()->routeIs($item['pola']);
-                        @endphp
+                    @php
+                        $aktif = request()->routeIs($item['pola']);
+                    @endphp
 
-                        {{-- Menu aktif memakai pill mint, jadi penanda halaman
-                             terbaca tanpa memotong tinggi bilah navigasi. --}}
-                        <a
-                            href="{{ $item['url'] }}"
-                            @class([
-                                'flex items-center rounded-full px-3 py-1.5 transition-colors',
-                                'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
-                            ])
-                            @if ($aktif) aria-current="page" @endif
-                        >{{ $item['label'] }}</a>
-                    @endforeach
-                </nav>
+                    {{-- Menu aktif memakai pill mint, jadi penanda halaman
+                         terbaca tanpa memotong tinggi bilah navigasi. --}}
+                    <a
+                        href="{{ $item['url'] }}"
+                        @class([
+                            'flex items-center rounded-full px-3 py-1.5 transition-colors',
+                            'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
+                            'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
+                        ])
+                        @if ($aktif) aria-current="page" @endif
+                    >{{ $item['label'] }}</a>
+                @endforeach
+            </nav>
 
             <div class="hidden md:flex items-center gap-space-xs text-ink-muted font-label-md text-label-md">
                 <x-symbol nama="domain" class="text-[16px] text-outline" />
