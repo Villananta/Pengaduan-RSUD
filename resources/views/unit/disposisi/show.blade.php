@@ -221,10 +221,8 @@
         </section>
         <!-- End of Stepper Empat Tahap Pengaduan -->
 
-        <!-- Kolom Kerja: kiri kronologi dan audit, kanan formulir jawaban unit. -->
-        <div class>
-            <!-- Kolom Kiri: isi pengaduan, lampiran, dan jejak audit -->
-            <div class="lg:col-span-7 flex flex-col gap-space-lg">
+        <!-- Kolom Kerja: satu kolom vertikal — kronologi, audit, chat, formulir. -->
+        <div class="w-full flex flex-col gap-space-lg">
 
                 <!-- Kartu 1: isi pengaduan dan berkas lampiran dari pelapor -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
@@ -322,7 +320,6 @@
                     @endif
                 </article>
                 <!-- End of Kartu 1 -->
-                <div class="lg:col-span-5 flex flex-col gap-space-lg">
 
                 <!-- Chat Koordinasi Humas: jawaban unit dan catatan humas duduk
                      di satu kanal, supaya unit tidak mengetik di dua tempat. -->
@@ -471,8 +468,7 @@
                     @endif
                 </article>
                 <!-- End of Chat Koordinasi Humas -->
-            </div>
-            
+
                 <!-- Panel Tindakan Mati: pekerjaan yang belum dibangun. -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-sm">
                     <div class="flex items-center gap-space-sm pb-space-sm border-b border-outline-variant/30">
@@ -497,12 +493,6 @@
                     </div>
                 </article>
                 <!-- End of Panel Tindakan Mati -->
-            </div>
-            <!-- End of Kolom Kiri -->
-
-            <!-- Kolom Kanan: chat dua arah humas dan unit -->
-            
-            <!-- End of Kolom Kanan -->
         </div>
         
         <!-- End of Kolom Kerja -->
