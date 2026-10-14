@@ -222,8 +222,7 @@
         <!-- End of Stepper Empat Tahap Pengaduan -->
 
         <!-- Kolom Kerja: kiri kronologi dan audit, kanan formulir jawaban unit. -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
-
+        <div class>
             <!-- Kolom Kiri: isi pengaduan, lampiran, dan jejak audit -->
             <div class="lg:col-span-7 flex flex-col gap-space-lg">
 
@@ -323,80 +322,7 @@
                     @endif
                 </article>
                 <!-- End of Kartu 1 -->
-
-                <!-- Kartu 2: jejak audit perpindahan tahap -->
-                <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
-                    <div class="flex items-center gap-space-sm pb-space-sm border-b border-outline-variant/30">
-                        <x-symbol nama="history" class="text-secondary text-[22px]" />
-                        <div>
-                            <h2 class="font-title-lg text-title-lg text-on-surface font-bold">Jejak Audit Tiket</h2>
-
-                            <p class="font-body-sm text-body-sm text-on-surface-variant">
-                                Perpindahan tahap yang dicatat sistem, termasuk catatan humas.
-                            </p>
-                        </div>
-                    </div>
-
-                    <ol class="flex flex-col gap-space-sm">
-                        @foreach ($detail->audit as $baris)
-
-                            <li class="flex gap-space-sm items-start">
-                                <span class="w-8 h-8 rounded-lg {{ $baris['nada'] }} flex items-center justify-center shrink-0">
-                                    <x-symbol :nama="$baris['ikon']" class="text-[16px]" />
-                                </span>
-
-                                <div class="flex flex-col gap-0.5 min-w-0">
-                                    <div class="flex flex-wrap items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant">
-                                        <strong class="text-on-surface">{{ $baris['judul'] }}</strong>
-                                        <span aria-hidden="true">&bull;</span>
-                                        <span>{{ $baris['aktor'] }}</span>
-                                        <span aria-hidden="true">&bull;</span>
-                                        <span>{{ $baris['waktu'] }}</span>
-                                    </div>
-
-                                    <p class="text-body-sm text-on-surface leading-snug">{{ $baris['kalimat'] }}</p>
-
-                                    @if (filled($baris['catatan']))
-                                        <p class="text-body-sm text-on-surface-variant italic leading-snug">
-                                            &ldquo;{{ $baris['catatan'] }}&rdquo;
-                                        </p>
-                                    @endif
-                                </div>
-                            </li>
-                        @endforeach
-                    </ol>
-                </article>
-                <!-- End of Kartu 2 -->
-
-                <!-- Panel Tindakan Mati: pekerjaan yang belum dibangun. -->
-                <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-sm">
-                    <div class="flex items-center gap-space-sm pb-space-sm border-b border-outline-variant/30">
-                        <x-symbol nama="construction" class="text-secondary text-[22px]" />
-                        <div>
-                            <h2 class="font-title-lg text-title-lg text-on-surface font-bold">Tindakan Pendukung</h2>
-
-                            <p class="font-body-sm text-body-sm text-on-surface-variant">
-                                Masih dalam pembangunan, sengaja ditampilkan mati supaya tidak menyesatkan.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap gap-space-sm">
-                        @foreach ($tombolMati as $tombol)
-
-                            <span class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-surface-container text-outline font-label-md text-label-md font-semibold cursor-not-allowed">
-                                <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
-                                {{ $tombol['label'] }}
-                            </span>
-                        @endforeach
-                    </div>
-                </article>
-                <!-- End of Panel Tindakan Mati -->
-            </div>
-            <!-- End of Kolom Kiri -->
-
-            <!-- Kolom Kanan: chat dua arah humas dan unit -->
-            <div class="lg:col-span-5 flex flex-col gap-space-lg">
+                <div class="lg:col-span-5 flex flex-col gap-space-lg">
 
                 <!-- Chat Koordinasi Humas: jawaban unit dan catatan humas duduk
                      di satu kanal, supaya unit tidak mengetik di dua tempat. -->
@@ -463,9 +389,6 @@
                     </div>
 
                     @if ($tuntas)
-                        {{-- Tiket yang sudah ditutup tidak menerima pesan lagi, jadi
-                             komposer diganti alasan pengunciannya. Riwayat pesan di
-                             atas tetap tampil sebagai arsip koordinasi. --}}
                         <div
                             role="status"
                             class="w-full bg-surface-container text-on-surface-variant rounded-lg px-space-sm py-space-sm text-body-sm leading-relaxed"
@@ -549,9 +472,39 @@
                 </article>
                 <!-- End of Chat Koordinasi Humas -->
             </div>
+            
+                <!-- Panel Tindakan Mati: pekerjaan yang belum dibangun. -->
+                <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-sm">
+                    <div class="flex items-center gap-space-sm pb-space-sm border-b border-outline-variant/30">
+                        <x-symbol nama="construction" class="text-secondary text-[22px]" />
+                        <div>
+                            <h2 class="font-title-lg text-title-lg text-on-surface font-bold">Tindakan Pendukung</h2>
+
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">
+                                Masih dalam pembangunan, sengaja ditampilkan mati supaya tidak menyesatkan.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-space-sm">
+                        @foreach ($tombolMati as $tombol)
+
+                            <span class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-surface-container text-outline font-label-md text-label-md font-semibold cursor-not-allowed">
+                                <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                {{ $tombol['label'] }}
+                            </span>
+                        @endforeach
+                    </div>
+                </article>
+                <!-- End of Panel Tindakan Mati -->
+            </div>
+            <!-- End of Kolom Kiri -->
+
+            <!-- Kolom Kanan: chat dua arah humas dan unit -->
+            
             <!-- End of Kolom Kanan -->
         </div>
+        
         <!-- End of Kolom Kerja -->
-
     </div>
 @endsection
