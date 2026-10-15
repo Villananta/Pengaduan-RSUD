@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Mail\EscalasiMail;
+use App\Models\MasterUnit;
+use App\Models\Pengaduan;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Notification;
+
+class PengaduanEscalasiNudge extends Notification
+{
+    use Queueable;
+
+    public function __construct(
+        public readonly Pengaduan $pengaduan,
+        public readonly MasterUnit $unit,
+        public readonly int $durasiJam,
+        public readonly string $catatanNudge,
+    ) {}
+
+    public function via(object $notifiable): array
+    {
+        $channels = ['database'];
+
+        if (! empty($notifiable->email)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
+    }
+
+    public function toMail(object $notifiable): EscalasiMail
+    {
+        return new EscalasiMail(
+            $this->pengaduan,
+            $this->unit,
+            'nudge_abaikan',
+            $this->durasiJam,
+            $this->catatanNudge,
+        );
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'type' => 'pengaduan_eskalasi_nudge',
+            'title' => 'ESKALASI: Nudge Diabaikan > 24 Jam',
+            'message' => "Tiket {$this->pengaduan->kode_tiket} diunit {$this->unit->namaLengkap()} tidak direspons {$this->durasiJam} jam setelah nudge admin. Diedukasikan ke atasan.",
+            'kode_tiket' => $this->pengaduan->kode_tiket,
+            'unit_id' => $this->unit->id,
+            'durasi_jam' => $this->durasiJam,
+            'jenis_eskalasi' => 'nudge_abaikan',
+            'url' => route('unit.disposisi.show', ['unit' => $this->unit->kode, 'kode' => $this->pengaduan->kode_tiket]),
+            'pengaduan_id' => $this->pengaduan->id,
+        ];
+    }
+}
