@@ -41,6 +41,7 @@ class MasterUnit extends Model
         'jabatan_pic',
         'nip',
         'kontak_wa',
+        'email',
         'ekstensi',
         'jam_layanan',
         'akun_simrs',

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Mail\NudgeUnitMail;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
@@ -19,7 +20,19 @@ class PengaduanNudgeUnit extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        // Kirim email jika notifiable punya email
+        if (! empty($notifiable->email)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
+    }
+
+    public function toMail(object $notifiable): NudgeUnitMail
+    {
+        return new NudgeUnitMail($this->pengaduan, $this->unit, $this->catatan);
     }
 
     public function toArray(object $notifiable): array

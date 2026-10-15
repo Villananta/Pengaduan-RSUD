@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Mail\SlaLewatMail;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
@@ -19,7 +20,18 @@ class PengaduanSlaLewat extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if (! empty($notifiable->email)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
+    }
+
+    public function toMail(object $notifiable): SlaLewatMail
+    {
+        return new SlaLewatMail($this->pengaduan, $this->unit, $this->lewatHari);
     }
 
     public function toArray(object $notifiable): array
