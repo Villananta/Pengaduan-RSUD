@@ -244,6 +244,164 @@
                 </div>
                 <!-- End of Daftar Pengaduan Butuh Tindakan Segera -->
 
+                <!-- Daftar Menunggu Racikan Humas -->
+                <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-sm border-b border-outline-variant/30">
+                        <div class="flex items-start gap-space-sm">
+                            <span class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 mt-0.5">
+                                <x-symbol nama="hourglass_bottom" class="text-[22px]" />
+                            </span>
+
+                            <div class="flex flex-col">
+                                <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Menunggu Racikan Humas</h2>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                                    Unit sudah mengirim jawaban, menunggu humas memproses lanjutan.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-space-sm">
+                        @forelse ($dashboard->menungguRacikan() as $pengaduan)
+
+                            @php $tiket = $dashboard->kartuMendesak($pengaduan); @endphp
+
+                            <article class="p-space-md rounded-lg {{ $tiket['kartu'] }} flex flex-col gap-space-sm shadow-sm">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs">
+                                    <div class="flex items-center gap-space-sm flex-wrap">
+                                        <span class="font-title-md text-title-md font-bold text-on-surface">#{{ $tiket['kode'] }}</span>
+
+                                        <span class="px-space-xs py-0.5 rounded-xl {{ $tiket['status']->badgeAdmin() }} font-label-sm text-label-sm font-bold">
+                                            {{ $tiket['status']->label() }}
+                                        </span>
+
+                                        @if ($tiket['kasusBerat'])
+                                            <span class="px-space-xs py-0.5 rounded-xl bg-error text-on-error font-label-sm text-label-sm font-bold">
+                                                Kasus Berat
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <div class="flex items-center gap-space-xs font-label-sm text-label-sm font-bold {{ $tiket['sla']['nada'] }}">
+                                        <x-symbol :nama="$tiket['sla']['ikon']" class="text-[16px]" />
+                                        {{ $tiket['sla']['label'] }}
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
+                                    <div class="flex flex-col max-w-xl">
+                                        <h3 class="font-title-sm text-title-sm font-bold text-on-surface">{{ $tiket['subjek'] }}</h3>
+
+                                        <div class="flex items-center gap-space-md text-on-surface-variant font-body-sm text-body-sm mt-1 flex-wrap">
+                                            <span class="flex items-center gap-1">
+                                                <x-symbol nama="badge" class="text-[15px]" />
+                                                {{ $tiket['pelapor'] }} (NRM: {{ $tiket['nrm'] }})
+                                            </span>
+                                            <span aria-hidden="true">&bull;</span>
+                                            <span class="flex items-center gap-1">
+                                                <x-symbol nama="task" class="text-[15px]" />
+                                                {{ $tiket['investigasi']->label() }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <a
+                                        href="{{ $tiket['url'] }}"
+                                        class="px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm flex items-center gap-space-xs shrink-0 hover:bg-secondary/90 transition-colors"
+                                    >
+                                        <x-symbol nama="visibility" class="text-[16px]" />
+                                        Buka Detail
+                                    </a>
+                                </div>
+                            </article>
+                        @empty
+                            <p class="rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-on-surface-variant">
+                                Tidak ada pengaduan yang menunggu racikan humas.
+                            </p>
+                        @endforelse
+                    </div>
+                </div>
+                <!-- End of Daftar Menunggu Racikan Humas -->
+
+                <!-- Daftar Sedang Telaah Unit -->
+                <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-sm border-b border-outline-variant/30">
+                        <div class="flex items-start gap-space-sm">
+                            <span class="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center shrink-0 mt-0.5">
+                                <x-symbol nama="search" class="text-[22px]" />
+                            </span>
+
+                            <div class="flex flex-col">
+                                <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Sedang Telaah Unit</h2>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                                    Pengaduan yang sudah didisposisikan ke unit ini tapi belum dikirim jawaban.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-space-sm">
+                        @forelse ($dashboard->sedangTelaah() as $pengaduan)
+
+                            @php $tiket = $dashboard->kartuMendesak($pengaduan); @endphp
+
+                            <article class="p-space-md rounded-lg {{ $tiket['kartu'] }} flex flex-col gap-space-sm shadow-sm">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs">
+                                    <div class="flex items-center gap-space-sm flex-wrap">
+                                        <span class="font-title-md text-title-md font-bold text-on-surface">#{{ $tiket['kode'] }}</span>
+
+                                        <span class="px-space-xs py-0.5 rounded-xl {{ $tiket['status']->badgeAdmin() }} font-label-sm text-label-sm font-bold">
+                                            {{ $tiket['status']->label() }}
+                                        </span>
+
+                                        @if ($tiket['kasusBerat'])
+                                            <span class="px-space-xs py-0.5 rounded-xl bg-error text-on-error font-label-sm text-label-sm font-bold">
+                                                Kasus Berat
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <div class="flex items-center gap-space-xs font-label-sm text-label-sm font-bold {{ $tiket['sla']['nada'] }}">
+                                        <x-symbol :nama="$tiket['sla']['ikon']" class="text-[16px]" />
+                                        {{ $tiket['sla']['label'] }}
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
+                                    <div class="flex flex-col max-w-xl">
+                                        <h3 class="font-title-sm text-title-sm font-bold text-on-surface">{{ $tiket['subjek'] }}</h3>
+
+                                        <div class="flex items-center gap-space-md text-on-surface-variant font-body-sm text-body-sm mt-1 flex-wrap">
+                                            <span class="flex items-center gap-1">
+                                                <x-symbol nama="badge" class="text-[15px]" />
+                                                {{ $tiket['pelapor'] }} (NRM: {{ $tiket['nrm'] }})
+                                            </span>
+                                            <span aria-hidden="true">&bull;</span>
+                                            <span class="flex items-center gap-1">
+                                                <x-symbol nama="task" class="text-[15px]" />
+                                                {{ $tiket['investigasi']->label() }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <a
+                                        href="{{ $tiket['url'] }}"
+                                        class="px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm flex items-center gap-space-xs shrink-0 hover:bg-secondary/90 transition-colors"
+                                    >
+                                        <x-symbol nama="visibility" class="text-[16px]" />
+                                        Buka Detail
+                                    </a>
+                                </div>
+                            </article>
+                        @empty
+                            <p class="rounded-sm bg-surface-container-low px-space-md py-space-lg text-center text-body-sm text-on-surface-variant">
+                                Tidak ada pengaduan yang sedang telaah di unit ini.
+                            </p>
+                        @endforelse
+                    </div>
+                </div>
+                <!-- End of Daftar Sedang Telaah Unit -->
+
             </div>
             <!-- End of Kolom Kiri -->
 

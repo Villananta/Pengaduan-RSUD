@@ -8,7 +8,6 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Models\User;
-use App\Notifications\PengaduanBalasanAdmin;
 use App\Notifications\PengaduanDisposisi;
 use App\Notifications\PengaduanKasusBerat;
 use App\Notifications\PengaduanTahapBerubah;
@@ -192,7 +191,7 @@ final class TindakLanjutPengaduan
 
         // Kirim notifikasi perubahan tahap
         $pengaduan->loadMissing('masterUnit.pengguna');
-        
+
         // Notifikasi ke pelapor (via session - akan ditangani di controller)
         // Notifikasi ke admin humas
         $admins = User::where('peran', 'admin')->get();

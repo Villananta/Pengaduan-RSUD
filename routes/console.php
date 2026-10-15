@@ -14,3 +14,7 @@ Artisan::command('inspire', function () {
 // konfirmasi tidak pernah terjawab di latar belakang, dan akibatnya
 // penghapusan selalu dibatalkan diam-diam.
 Schedule::command('pengaduan:bersihkan --force')->dailyAt('02:00');
+
+// Cek SLA setiap hari pukul 07:00 pagi (sebelum jam kerja) dan kirim notifikasi
+// ke PIC unit yang tiketnya mendekati atau lewat batas investigasi.
+Schedule::command('pengaduan:cek-sla --kirim-notifikasi')->dailyAt('07:00');

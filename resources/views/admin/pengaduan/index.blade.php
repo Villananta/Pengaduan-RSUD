@@ -5,6 +5,7 @@
 @use('App\Enums\KategoriPengaduan')
 @use('App\Enums\StatusInvestigasi')
 @use('App\Enums\StatusPengaduan')
+@use('App\Models\MasterUnit')
 @use('App\Support\DaftarPengaduan')
 @use('Illuminate\Support\Str')
 
@@ -537,4 +538,100 @@
         </div>
         <!-- End of Tabel Utama Daftar Pengaduan -->
     </div>
+</form>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('form-bulk-action');
+        const toolbar = document.getElementById('toolbar-bulk');
+        const selectAll = document.getElementById('select-all');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const bulkCount = document.getElementById('bulk-count');
+        const btnClear = document.getElementById('btn-clear-selection');
+        const submitBtn = toolbar.querySelector('button[type="submit"]');
+        const aksiSelect = toolbar.querySelector('select[name="aksi"]');
+        const disposisiFields = document.getElementById('bulk-disposisi-fields');
+        const kasusBeratFields = document.getElementById('bulk-kasus-berat-fields');
+
+        function updateToolbar() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            const count = checked.length;
+
+            if (count > 0) {
+                toolbar.classList.remove('hidden');
+                bulkCount.textContent = count;
+                submitBtn.disabled = false;
+            } else {
+                toolbar.classList.add('hidden');
+                submitBtn.disabled = true;
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+        }
+
+        function updateSelectAll() {
+            const total = rowCheckboxes.length;
+            const checked = document.querySelectorAll('.row-checkbox:checked').length;
+
+            if (checked === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else if (checked === total) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            }
+        }
+
+        function showAksiFields() {
+            const aksi = aksiSelect.value;
+            disposisiFields.classList.toggle('hidden', aksi !== 'disposisi');
+            kasusBeratFields.classList.toggle('hidden', aksi !== 'kasus_berat');
+        }
+
+        // Select all
+        selectAll.addEventListener('change', function () {
+            rowCheckboxes.forEach(cb => {
+                cb.checked = this.checked;
+                cb.closest('tr').classList.toggle('ring-2', this.checked);
+                cb.closest('tr').classList.toggle('ring-primary', this.checked);
+            });
+            updateToolbar();
+        });
+
+        // Individual checkboxes
+        rowCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                updateToolbar();
+                updateSelectAll();
+                this.closest('tr').classList.toggle('ring-2', this.checked);
+                this.closest('tr').classList.toggle('ring-primary', this.checked);
+            });
+        });
+
+        // Aksi select change
+        aksiSelect.addEventListener('change', showAksiFields);
+
+        // Clear selection
+        btnClear.addEventListener('click', function () {
+            rowCheckboxes.forEach(cb => {
+                cb.checked = false;
+                cb.closest('tr').classList.remove('ring-2', 'ring-primary');
+            });
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+            aksiSelect.value = '';
+            disposisiFields.classList.add('hidden');
+            kasusBeratFields.classList.add('hidden');
+            updateToolbar();
+        });
+
+        // Initial state
+        updateToolbar();
+    });
+</script>
+@endpush

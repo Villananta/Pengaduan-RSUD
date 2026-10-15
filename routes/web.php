@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DraftController as AdminDraftController;
+use App\Http\Controllers\Admin\ExportController as AdminExportController;
 use App\Http\Controllers\Admin\MonitorController as AdminMonitorController;
 use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
 use App\Http\Controllers\Admin\UnitController as AdminUnitController;
@@ -87,6 +89,33 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])
         ->middleware('throttle:60,1,admin-kasus-berat')
         ->name('pengaduan.kasus-berat');
+
+    // Aksi massal (bulk action) untuk daftar pengaduan
+    Route::post('/pengaduan/bulk-action', [AdminPengaduanController::class, 'bulkAction'])
+        ->middleware('throttle:20,1,admin-bulk-action')
+        ->name('pengaduan.bulk-action');
+
+    // Manajemen draf jawaban admin
+    Route::post('/pengaduan/{kode}/draf/simpan', [AdminDraftController::class, 'simpan'])
+        ->middleware('throttle:60,1,admin-draf-simpan')
+        ->name('pengaduan.draf.simpan');
+    Route::get('/pengaduan/{kode}/draf/ambil', [AdminDraftController::class, 'ambil'])
+        ->middleware('throttle:60,1,admin-draf-ambil')
+        ->name('pengaduan.draf.ambil');
+    Route::delete('/pengaduan/{kode}/draf/hapus', [AdminDraftController::class, 'hapus'])
+        ->middleware('throttle:60,1,admin-draf-hapus')
+        ->name('pengaduan.draf.hapus');
+
+    // Ekspor data
+    Route::get('/pengaduan/ekspor/excel', [AdminExportController::class, 'pengaduanExcel'])
+        ->middleware('throttle:30,1,admin-ekspor-excel')
+        ->name('pengaduan.ekspor.excel');
+    Route::get('/pengaduan/{kode}/ekspor/disposisi-pdf', [AdminExportController::class, 'lembarDisposisiPdf'])
+        ->middleware('throttle:30,1,admin-ekspor-pdf')
+        ->name('pengaduan.ekspor.disposisi-pdf');
+    Route::get('/pengaduan/{kode}/ekspor/disposisi-preview', [AdminExportController::class, 'lembarDisposisiPreview'])
+        ->middleware('throttle:30,1,admin-ekspor-preview')
+        ->name('pengaduan.ekspor.disposisi-preview');
 
     // Master data unit. Kode unit dipakai sebagai parameter rute karena
     // kode itulah yang dikenal petugas, bukan id angka yang tidak pernah

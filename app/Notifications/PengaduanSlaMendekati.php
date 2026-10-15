@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
-use App\Models\Pengaduan;
 use App\Models\MasterUnit;
+use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 

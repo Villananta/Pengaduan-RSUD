@@ -306,6 +306,86 @@ class PengaduanController extends Controller
     }
 
     /**
+     * Aksi massal (bulk action) untuk beberapa tiket sekaligus.
+     *
+     * Mendukung:
+     * - disposisi: pindahkan ke unit yang dipilih
+     * - kasus_berat: nyalakan/matikan penandaan kasus berat
+     * - hapus: hapus tiket (hanya untuk admin, hati-hati)
+     */
+    public function bulkAction(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'aksi' => ['required', 'string', 'in:disposisi,kasus_berat'],
+            'kode_tiket' => ['required', 'array', 'min:1'],
+            'kode_tiket.*' => ['string', 'exists:pengaduan,kode_tiket'],
+            'unit' => ['required_if:aksi,disposisi', 'string', 'exists:master_units,kode'],
+            'catatan' => ['nullable', 'string', 'max:500'],
+            'aktif' => ['required_if:aksi,kasus_berat', 'boolean'],
+        ], [
+            'aksi.required' => 'Pilih aksi massal yang akan dilakukan.',
+            'aksi.in' => 'Aksi massal tidak dikenal.',
+            'kode_tiket.required' => 'Pilih minimal satu tiket.',
+            'kode_tiket.array' => 'Format pilihan tiket tidak valid.',
+            'kode_tiket.min' => 'Pilih minimal satu tiket.',
+            'kode_tiket.*.exists' => 'Salah satu kode tiket tidak ditemukan.',
+            'unit.required_if' => 'Pilih unit tujuan untuk disposisi.',
+            'unit.exists' => 'Unit tujuan tidak ditemukan.',
+            'catatan.max' => 'Catatan maksimal 500 karakter.',
+            'aktif.required_if' => 'Status kasus berat wajib diisi.',
+        ]);
+
+        $aksi = $validated['aksi'];
+        $kodeTiket = $validated['kode_tiket'];
+        $berhasil = 0;
+        $gagal = [];
+
+        foreach ($kodeTiket as $kode) {
+            try {
+                $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
+
+                if ($aksi === 'disposisi') {
+                    $unit = MasterUnit::where('kode', $validated['unit'])->firstOrFail();
+
+                    if (! $unit->bisaDitugaskan()) {
+                        throw new RuntimeException('Unit tidak aktif atau koneksi terputus.');
+                    }
+
+                    if ($pengaduan->status->selesai()) {
+                        throw new RuntimeException('Tiket sudah selesai.');
+                    }
+
+                    TindakLanjutPengaduan::disposisiKeUnit(
+                        $pengaduan,
+                        $unit,
+                        $validated['catatan'] ?? null,
+                    );
+                } elseif ($aksi === 'kasus_berat') {
+                    if ($pengaduan->status->selesai()) {
+                        throw new RuntimeException('Tiket sudah selesai.');
+                    }
+
+                    TindakLanjutPengaduan::tandaiKasusBerat(
+                        $pengaduan,
+                        $request->boolean('aktif'),
+                    );
+                }
+
+                $berhasil++;
+            } catch (\Throwable $e) {
+                $gagal[] = "$kode: {$e->getMessage()}";
+            }
+        }
+
+        $pesan = "$berhasil tiket berhasil diproses.";
+        if (! empty($gagal)) {
+            $pesan .= ' Gagal: '.implode('; ', $gagal);
+        }
+
+        return back()->with('sukses', $pesan);
+    }
+
+    /**
      * Tiket yang dibuka formulir harus benar-benar ada; kalau tidak, kode
      * yang diketik admin tidak boleh sampai tersimpan sebagai balasan.
      */

@@ -26,7 +26,7 @@ class PengaduanBalasanAdmin extends Notification
         return [
             'type' => 'pengaduan_balasan_admin',
             'title' => 'Balasan Baru dari Admin Humas',
-            'message' => "Admin Humas telah membalas tiket {$this->pengaduan->kode_tiket}: " . Str::limit($this->isiBalasan, 100),
+            'message' => "Admin Humas telah membalas tiket {$this->pengaduan->kode_tiket}: ".Str::limit($this->isiBalasan, 100),
             'kode_tiket' => $this->pengaduan->kode_tiket,
             'url' => route('pengaduan.lacak'),
             'pengaduan_id' => $this->pengaduan->id,

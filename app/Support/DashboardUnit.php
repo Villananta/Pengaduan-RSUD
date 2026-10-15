@@ -273,4 +273,32 @@ final class DashboardUnit
             ],
         };
     }
+
+    /**
+     * Pengaduan yang sedang menunggu racikan humas (unit sudah jawab).
+     *
+     * Dipakai untuk panel "Menunggu Humas" di dashboard unit.
+     *
+     * @return Collection<int, Pengaduan>
+     */
+    public function menungguRacikan(): Collection
+    {
+        return $this->mendesak
+            ->filter(fn (Pengaduan $pengaduan) => $pengaduan->unit_menjawab)
+            ->sortByDesc('created_at');
+    }
+
+    /**
+     * Pengaduan yang sedang diinvestigasi unit (belum jawab).
+     *
+     * Dipakai untuk panel "Sedang Telaah" di dashboard unit.
+     *
+     * @return Collection<int, Pengaduan>
+     */
+    public function sedangTelaah(): Collection
+    {
+        return $this->mendesak
+            ->filter(fn (Pengaduan $pengaduan) => ! $pengaduan->unit_menjawab)
+            ->sortByDesc('created_at');
+    }
 }

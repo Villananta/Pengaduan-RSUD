@@ -6,8 +6,11 @@ use App\Enums\KanalPengaduan;
 use App\Enums\KategoriPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\User;
+use App\Notifications\PengaduanDibuat;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 /**
@@ -96,6 +99,22 @@ final class PengaduanMasuk
         );
 
         $pengaduan->forceFill(['lampiran' => self::simpanLampiran($berkas)])->save();
+
+        // Notifikasi ke admin humas tentang tiket baru
+        $admins = User::where('peran', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new PengaduanDibuat($pengaduan, $pengaduan->kode_tiket));
+        }
+
+        // Notifikasi ke PIC unit jika tiket langsung ditugaskan ke unit
+        $pengaduan->loadMissing('masterUnit.pengguna');
+        if ($pengaduan->master_unit_id !== null && $pengaduan->masterUnit?->pengguna->isNotEmpty()) {
+            Notification::send($pengaduan->masterUnit->pengguna, new PengaduanDisposisi(
+                $pengaduan,
+                $pengaduan->masterUnit,
+                'Tiket otomatis ditugaskan berdasarkan pilihan pelapor.'
+            ));
+        }
 
         return $pengaduan;
     }
