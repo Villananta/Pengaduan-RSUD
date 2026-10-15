@@ -409,6 +409,22 @@ final class TindakLanjutPengaduan
             throw new RuntimeException('Tiket ini sudah selesai sehingga tidak perlu di-nudge.');
         }
 
+        // Cooldown: cek nudge terakhir, minimal 4 jam (240 menit)
+        $nudgeTerakhir = $pengaduan->riwayatStatus()
+            ->whereRaw("catatan LIKE 'Nudge manual ke unit:%'")
+            ->latest('created_at')
+            ->first();
+
+        if ($nudgeTerakhir !== null && $nudgeTerakhir->created_at->gt(now()->subMinutes(240))) {
+            $sisaMenit = $nudgeTerakhir->created_at->diffInMinutes(now(), true) * -1;
+            $sisaJam = floor(abs($sisaMenit) / 60);
+            $sisaMenitSisa = abs($sisaMenit) % 60;
+            throw new RuntimeException(
+                'Nudge baru bisa dikirim lagi setelah 4 jam dari nudge terakhir. '
+                .'Sisa waktu: '.$sisaJam.' jam '.$sisaMenitSisa.' menit.'
+            );
+        }
+
         // Catat ke riwayat status sebagai jejak audit
         $pengaduan->riwayatStatus()->create([
             'dari' => $pengaduan->status,
