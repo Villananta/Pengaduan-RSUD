@@ -43,6 +43,16 @@ Route::post('/buat-aduan', [PengaduanController::class, 'store'])
 
 Route::get('/buat-aduan/sukses', [PengaduanController::class, 'sukses'])->name('pengaduan.sukses');
 
+// Verifikasi email pelapor (OTP)
+Route::get('/verifikasi-email/{kode}', [PengaduanController::class, 'verifikasiEmail'])
+    ->name('pengaduan.verifikasi-email');
+Route::post('/verifikasi-email/{kode}', [PengaduanController::class, 'verifikasiEmail'])
+    ->middleware('throttle:10,1,verifikasi-email')
+    ->name('pengaduan.verifikasi-email.post');
+Route::post('/verifikasi-email/{kode}/kirim-ulang', [PengaduanController::class, 'kirimUlangOtp'])
+    ->middleware('throttle:3,1,kirim-ulang-otp')
+    ->name('pengaduan.verifikasi-email.resend');
+
 // Konsol admin.
 //
 // Catatan keamanan: seluruh rute di bawah masih terbuka tanpa login dan

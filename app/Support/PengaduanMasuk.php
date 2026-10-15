@@ -8,6 +8,7 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanDibuat;
+use App\Notifications\PengaduanEmailVerifikasi;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -99,6 +100,11 @@ final class PengaduanMasuk
         );
 
         $pengaduan->forceFill(['lampiran' => self::simpanLampiran($berkas)])->save();
+
+        // Generate OTP & kirim email verifikasi ke pelapor
+        $otp = $pengaduan->generateEmailOtp();
+        Notification::route('mail', $pengaduan->email)
+            ->notify(new PengaduanEmailVerifikasi($pengaduan, $otp));
 
         // Notifikasi ke admin humas tentang tiket baru
         $admins = User::where('peran', 'admin')->get();

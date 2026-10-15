@@ -49,6 +49,9 @@ class Pengaduan extends Model
         'nrm',
         'no_wa',
         'email',
+        'email_verified_at',
+        'email_otp',
+        'email_otp_expires_at',
         'alamat',
         'waktu_kejadian',
         'unit',
@@ -66,6 +69,8 @@ class Pengaduan extends Model
     protected $casts = [
         'waktu_kejadian' => 'datetime',
         'selesai_at' => 'datetime',
+        'email_verified_at' => 'datetime',
+        'email_otp_expires_at' => 'datetime',
         'kasus_berat' => 'boolean',
         'kasus_berat_at' => 'datetime',
         'akses_token_expires_at' => 'datetime',
@@ -387,5 +392,49 @@ class Pengaduan extends Model
         $this->akses_token = null;
         $this->akses_token_expires_at = null;
         $this->save();
+    }
+
+    /**
+     * Generate OTP 6 digit untuk verifikasi email.
+     */
+    public function generateEmailOtp(): string
+    {
+        $otp = (string) random_int(100000, 999999);
+
+        $this->email_otp = $otp;
+        $this->email_otp_expires_at = now()->addMinutes(15);
+        $this->save();
+
+        return $otp;
+    }
+
+    /**
+     * Cek apakah OTP email valid.
+     */
+    public function verifyEmailOtp(string $otp): bool
+    {
+        if (! $this->email_otp || $this->email_otp !== $otp) {
+            return false;
+        }
+
+        if (! $this->email_otp_expires_at?->isFuture()) {
+            return false;
+        }
+
+        // OTP valid, tandai email terverifikasi
+        $this->email_verified_at = now();
+        $this->email_otp = null;
+        $this->email_otp_expires_at = null;
+        $this->save();
+
+        return true;
+    }
+
+    /**
+     * Cek apakah email sudah terverifikasi.
+     */
+    public function isEmailVerified(): bool
+    {
+        return $this->email_verified_at !== null;
     }
 }

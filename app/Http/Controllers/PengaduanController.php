@@ -250,4 +250,67 @@ class PengaduanController extends Controller
             ->route('pengaduan.lacak')
             ->with('sukses', 'Pesan Anda sudah terkirim ke admin humas.');
     }
+
+    /**
+     * Verifikasi email pelapor via OTP.
+     *
+     * Endpoint ini bisa diakses via link di email (GET dengan query otp)
+     * atau via form verifikasi (POST).
+     */
+    public function verifikasiEmail(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = Pengaduan::where('kode_tiket', strtoupper($kode))->firstOrFail();
+
+        // Kalau email sudah terverifikasi, langsung ke halaman lacak
+        if ($pengaduan->isEmailVerified()) {
+            return redirect()->route('pengaduan.lacak')
+                ->with('info', 'Email sudah terverifikasi sebelumnya.');
+        }
+
+        $otp = $request->query('otp') ?? $request->input('otp');
+
+        if (! $otp) {
+            // Tampilkan form input OTP
+            return view('pengaduan.verifikasi-email', [
+                'pengaduan' => $pengaduan,
+                'kode' => $kode,
+            ]);
+        }
+
+        $otp = trim((string) $otp);
+
+        if ($pengaduan->verifyEmailOtp($otp)) {
+            return redirect()->route('pengaduan.lacak')
+                ->with('sukses', 'Email berhasil diverifikasi. Anda akan menerima notifikasi perkembangan pengaduan.');
+        }
+
+        return back()->withErrors(['otp' => 'Kode OTP tidak valid atau sudah kedaluwarsa (maksimal 15 menit).'])
+            ->withInput(['otp' => $otp]);
+    }
+
+    /**
+     * Kirim ulang OTP verifikasi email.
+     */
+    public function kirimUlangOtp(Request $request, string $kode): RedirectResponse|\Illuminate\Http\JsonResponse
+    {
+        $pengaduan = Pengaduan::where('kode_tiket', strtoupper($kode))->firstOrFail();
+
+        if ($pengaduan->isEmailVerified()) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Email sudah terverifikasi sebelumnya.']);
+            }
+            return redirect()->route('pengaduan.lacak')
+                ->with('info', 'Email sudah terverifikasi sebelumnya.');
+        }
+
+        $otp = $pengaduan->generateEmailOtp();
+        Notification::route('mail', $pengaduan->email)
+            ->notify(new PengaduanEmailVerifikasi($pengaduan, $otp));
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Kode OTP baru sudah dikirim ke email Anda. Berlaku 15 menit.']);
+        }
+
+        return back()->with('sukses', 'Kode OTP baru sudah dikirim ke email Anda. Berlaku 15 menit.');
+    }
 }
