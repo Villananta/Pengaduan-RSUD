@@ -35,7 +35,7 @@ return [
     // Tujuan bucket penyimpan berkas unggahan. Disk 'public' hanya bisa
     // dipakai di hosting dengan symlink storage; di Vercel filesystem fungsi
     // read-only sehingga lampiran harus lewat S3 / Cloudflare R2.
-    'disk_lampiran' => env('DISK_LAMPIRAN', 's3'),
+    'disk_lampiran' => env('DISK_LAMPIRAN', 'public'),
 
     // Unit / instalasi yang boleh dipilih pelapor.
     'units' => [

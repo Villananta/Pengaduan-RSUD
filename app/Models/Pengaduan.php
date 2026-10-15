@@ -59,6 +59,8 @@ class Pengaduan extends Model
         'master_unit_id',
         'kasus_berat',
         'draf_jawaban',
+        'akses_token',
+        'akses_token_expires_at',
     ];
 
     protected $casts = [
@@ -66,6 +68,7 @@ class Pengaduan extends Model
         'selesai_at' => 'datetime',
         'kasus_berat' => 'boolean',
         'kasus_berat_at' => 'datetime',
+        'akses_token_expires_at' => 'datetime',
         'lampiran' => 'array',
         'kategori' => KategoriPengaduan::class,
         'status' => StatusPengaduan::class,
@@ -325,5 +328,64 @@ class Pengaduan extends Model
     public static function normalisasiNrm(?string $nrm): string
     {
         return strtoupper(preg_replace('/[^0-9A-Z]/', '', (string) $nrm));
+    }
+
+    /**
+     * Generate token akses acak untuk pelapor.
+     *
+     * Token 64 karakter (32 byte hex) yang unik di database.
+     * Digunakan untuk akses permanen (30 hari) tanpa harus login ulang.
+     */
+    public function generateAksesToken(): string
+    {
+        do {
+            $token = bin2hex(random_bytes(32));
+        } while (self::where('akses_token', $token)->exists());
+
+        $this->akses_token = $token;
+        $this->akses_token_expires_at = now()->addDays(30);
+        $this->save();
+
+        return $token;
+    }
+
+    /**
+     * Cek apakah token akses masih valid (belum expired).
+     */
+    public function validAksesToken(?string $token = null): bool
+    {
+        $token = $token ?? $this->akses_token;
+
+        if (! $token || $this->akses_token !== $token) {
+            return false;
+        }
+
+        return $this->akses_token_expires_at?->isFuture() ?? false;
+    }
+
+    /**
+     * Cari tiket via token akses (untuk middleware/controller).
+     *
+     * @return self|null
+     */
+    public static function findByValidAksesToken(string $token): ?self
+    {
+        $pengaduan = self::where('akses_token', $token)->first();
+
+        if (! $pengaduan || ! $pengaduan->validAksesToken($token)) {
+            return null;
+        }
+
+        return $pengaduan;
+    }
+
+    /**
+     * Hapus token akses (logout/revoke).
+     */
+    public function revokeAksesToken(): void
+    {
+        $this->akses_token = null;
+        $this->akses_token_expires_at = null;
+        $this->save();
     }
 }
