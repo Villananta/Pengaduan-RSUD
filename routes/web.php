@@ -11,6 +11,7 @@ use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
 use App\Http\Controllers\Unit\DisposisiController as UnitDisposisiController;
 use App\Http\Controllers\Unit\NotificationController as UnitNotificationController;
+use App\Http\Controllers\Unit\RealTimeNotificationController as UnitRealTimeNotificationController;
 use App\Http\Middleware\PastikanUnitAktif;
 use Illuminate\Support\Facades\Route;
 
@@ -187,5 +188,16 @@ Route::prefix('unit')->name('unit.')->group(function () {
         Route::get('/{unit}/notifikasi/daftar', [UnitNotificationController::class, 'daftar'])
             ->middleware('throttle:60,1,unit-notifikasi-daftar')
             ->name('notifikasi.daftar');
+
+        // Real-time notifikasi (polling)
+        Route::get('/{unit}/notifikasi/realtime', [UnitRealTimeNotificationController::class, 'index'])
+            ->middleware('throttle:120,1,unit-notifikasi-realtime')
+            ->name('notifikasi.realtime');
+        Route::post('/{unit}/notifikasi/realtime/baca', [UnitRealTimeNotificationController::class, 'markAsRead'])
+            ->middleware('throttle:60,1,unit-notifikasi-realtime-baca')
+            ->name('notifikasi.realtime.baca');
+        Route::post('/{unit}/notifikasi/realtime/baca-semua', [UnitRealTimeNotificationController::class, 'markAllAsRead'])
+            ->middleware('throttle:30,1,unit-notifikasi-realtime-baca-semua')
+            ->name('notifikasi.realtime.baca-semua');
     });
 });

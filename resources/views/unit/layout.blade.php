@@ -283,7 +283,164 @@
                 });
             }
         });
+    });
     </script>
+
+    {{-- Real-time Notification Polling (15 detik) --}}
+    @if ($unit !== null)
+        @verbatim
+        <script>
+            (function () {
+                const wrapper = document.getElementById('notifikasi-wrapper');
+                const btn = document.getElementById('btn-notifikasi');
+                const badge = document.getElementById('badge-notifikasi');
+                const dropdown = document.getElementById('dropdown-notifikasi');
+                const list = document.getElementById('daftar-notifikasi');
+                const markAllBtn = dropdown?.querySelector('form[action*="baca-semua"] button');
+                let lastPoll = '{{ now()->toISOString() }}';
+                let isPolling = false;
+
+                if (!wrapper || !btn || !dropdown) return;
+
+                async function pollNotifications() {
+                    if (isPolling) return;
+                    isPolling = true;
+
+                    try {
+                        const url = '{{ route("unit.notifikasi.realtime", $unit) }}' + '?since=' + encodeURIComponent(lastPoll);
+                        const response = await fetch(url, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            credentials: 'same-origin',
+                        });
+
+                        if (!response.ok) throw new Error('Poll failed');
+
+                        const data = await response.json();
+                        lastPoll = data.server_time;
+
+                        if (data.sukses && data.notifications.length > 0) {
+                            // Update badge
+                            if (badge) {
+                                badge.textContent = data.total_belum_dibaca > 9 ? '9+' : data.total_belum_dibaca;
+                                badge.style.display = 'flex';
+                            } else if (data.total_belum_dibaca > 0) {
+                                const newBadge = document.createElement('span');
+                                newBadge.id = 'badge-notifikasi';
+                                newBadge.className = 'absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center animate-pulse';
+                                newBadge.setAttribute('aria-label', data.total_belum_dibaca + ' notifikasi belum dibaca');
+                                newBadge.textContent = data.total_belum_dibaca > 9 ? '9+' : data.total_belum_dibaca;
+                                btn.appendChild(newBadge);
+                            }
+
+                            // Prepend new notifications to dropdown
+                            if (list) {
+                                for (const notif of data.notifications.reverse()) {
+                                    const item = createNotificationElement(notif);
+                                    list.prepend(item);
+                                }
+
+                                // Show nudge indicator if any new nudge
+                                const hasNudge = data.notifications.some(n => n.type === 'pengaduan_nudge_unit');
+                                if (hasNudge && !btn.querySelector('.bg-warning')) {
+                                    const nudgeDot = document.createElement('span');
+                                    nudgeDot.className = 'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-warning ring-2 ring-white';
+                                    nudgeDot.setAttribute('aria-label', 'Ada follow up (nudge) dari admin humas');
+                                    btn.appendChild(nudgeDot);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Notification poll error:', e);
+                    } finally {
+                        isPolling = false;
+                    }
+                }
+
+                function createNotificationElement(notif) {
+                    const iconMap = {
+                        'pengaduan_nudge_unit': 'notifications_active',
+                        'pengaduan_sla_mendekati': 'timelapse',
+                        'pengaduan_sla_lewat': 'warning',
+                        'pengaduan_jawaban_unit': 'reply',
+                        'pengaduan_disposisi': 'forward_to_inbox',
+                        'pengaduan_tahap_berubah': 'swap_vert',
+                        'pengaduan_kasus_berat': 'warning',
+                        default: 'notifications',
+                    };
+                    const badgeClassMap = {
+                        'pengaduan_nudge_unit': 'bg-warning text-on-warning',
+                        'pengaduan_sla_lewat': 'bg-error-container text-on-error-container',
+                        'pengaduan_sla_mendekati': 'bg-tertiary-container text-on-tertiary-container',
+                        'pengaduan_jawaban_unit': 'bg-secondary-container text-on-secondary-container',
+                        'pengaduan_disposisi': 'bg-primary-container text-on-primary-container',
+                        default: 'bg-surface-container-highest text-on-surface-variant',
+                    };
+                    const icon = iconMap[notif.type] || iconMap.default;
+                    const badgeClass = badgeClassMap[notif.type] || badgeClassMap.default;
+
+                    const item = document.createElement('div');
+                    item.className = 'p-3 hover:bg-surface-container-low transition-colors cursor-pointer notif-item';
+                    item.dataset.notifId = notif.id;
+                    item.dataset.notifUrl = notif.url || '';
+                    item.dataset.notifType = notif.type;
+                    item.role = 'menuitem';
+                    item.tabIndex = 0;
+
+                    item.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <span class="w-8 h-8 rounded-full ${badgeClassMap[notif.type] || badgeClassMap.default} flex items-center justify-center shrink-0 flex-shrink-0">
+                                <x-symbol :nama="${iconMap[notif.type] || iconMap.default}" class="text-[18px]" />
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="font-title-sm text-title-sm font-bold text-ink truncate">${escapeHtml(notif.title)}</h4>
+                                    <span class="text-[11px] text-ink-muted whitespace-nowrap shrink-0">${notif.waktu_relatif}</span>
+                                </div>
+                                <p class="text-body-sm text-ink-muted mt-0.5 line-clamp-2">${escapeHtml(notif.message)}</p>
+                                ${notif.kode_tiket ? `
+                                    <div class="mt-1.5 flex items-center gap-1.5">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 font-mono font-body-xs text-body-xs font-bold">
+                                            <x-symbol nama="confirmation_number" class="text-[10px]" />
+                                            ${escapeHtml(notif.kode_tiket)}
+                                        </span>
+                                        ${notif.url ? `
+                                            <a href="${notif.url}" class="text-label-sm text-secondary hover:text-secondary/80 font-semibold transition-colors whitespace-nowrap">
+                                                <x-symbol nama="open_in_new" class="text-[12px]" />
+                                                Buka
+                                            </a>
+                                        ` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                    return item;
+                }
+
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+
+                // Start polling every 15 seconds
+                setInterval(pollNotifications, 15000);
+                // Initial poll after 2 seconds
+                setTimeout(pollNotifications, 2000);
+
+                // Also poll when tab becomes visible
+                document.addEventListener('visibilitychange', function () {
+                    if (!document.hidden) {
+                        pollNotifications();
+                    }
+                });
+            })();
+        </script>
+        @endverbatim
+    @endif
 
     {{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}
     @stack('scripts')
