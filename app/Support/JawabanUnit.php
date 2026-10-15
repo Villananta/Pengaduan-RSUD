@@ -6,8 +6,11 @@ use App\Enums\DisposisiUnit;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Models\User;
+use App\Notifications\PengaduanJawabanUnit;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 /**
@@ -57,6 +60,12 @@ final class JawabanUnit
                 'disposisi' => DisposisiUnit::JawabanMasuk,
             ]);
         });
+
+        // Notifikasi ke admin humas
+        $admins = User::where('peran', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new PengaduanJawabanUnit($pengaduan, $unit));
+        }
 
         self::segarkanStatistik();
     }

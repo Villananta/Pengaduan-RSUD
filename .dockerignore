@@ -24,4 +24,9 @@ storage/logs/*.log
 
 # Ujian dan perangkat pengembangan tidak masuk ke image runtime.
 tests
+
+# Catatan audit dan diagram lokal, cukup ada di mesin pengembang.
 revisian.md
+dekomposisi.md
+STYLE_GUIDE.md
+dfd-level0.md

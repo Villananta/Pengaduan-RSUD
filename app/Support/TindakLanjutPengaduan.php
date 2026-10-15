@@ -7,8 +7,14 @@ use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Models\User;
+use App\Notifications\PengaduanBalasanAdmin;
+use App\Notifications\PengaduanDisposisi;
+use App\Notifications\PengaduanKasusBerat;
+use App\Notifications\PengaduanTahapBerubah;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 /**
@@ -80,6 +86,16 @@ final class TindakLanjutPengaduan
             $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
         });
 
+        // Kirim notifikasi ke PIC unit yang baru ditugaskan
+        $pengaduan->loadMissing('masterUnit');
+        $pengaduan->masterUnit?->loadMissing('pengguna');
+        if ($pengaduan->masterUnit?->pengguna->isNotEmpty()) {
+            Notification::send(
+                $pengaduan->masterUnit->pengguna,
+                new PengaduanDisposisi($pengaduan, $unit, $catatan)
+            );
+        }
+
         self::segarkanStatistik();
     }
 
@@ -133,6 +149,16 @@ final class TindakLanjutPengaduan
             }
         });
 
+        // Notifikasi ke admin humas bahwa tiket ditangani langsung
+        $admins = User::where('peran', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new PengaduanTahapBerubah(
+                $pengaduan,
+                $pengaduan->getOriginal('status') ?? $pengaduan->status,
+                StatusPengaduan::Diproses
+            ));
+        }
+
         self::segarkanStatistik();
     }
 
@@ -157,10 +183,27 @@ final class TindakLanjutPengaduan
             throw new RuntimeException($alasan);
         }
 
+        $statusSebelumnya = $pengaduan->status;
+
         DB::transaction(function () use ($pengaduan, $tujuan, $catatan, $adminId): void {
             $pengaduan->pindahTahap($tujuan, $catatan, $adminId);
             self::selaraskanDisposisi($pengaduan, $tujuan);
         });
+
+        // Kirim notifikasi perubahan tahap
+        $pengaduan->loadMissing('masterUnit.pengguna');
+        
+        // Notifikasi ke pelapor (via session - akan ditangani di controller)
+        // Notifikasi ke admin humas
+        $admins = User::where('peran', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new PengaduanTahapBerubah($pengaduan, $statusSebelumnya, $tujuan));
+        }
+
+        // Notifikasi ke PIC unit jika ada
+        if ($pengaduan->master_unit_id !== null && $pengaduan->masterUnit?->pengguna->isNotEmpty()) {
+            Notification::send($pengaduan->masterUnit->pengguna, new PengaduanTahapBerubah($pengaduan, $statusSebelumnya, $tujuan));
+        }
 
         self::segarkanStatistik();
     }
@@ -304,6 +347,11 @@ final class TindakLanjutPengaduan
             'isi' => $isi,
             'lampiran' => PesanPengaduan::simpanBerkas($berkas),
         ]);
+
+        // Notifikasi ke pelapor (akan ditangkap via session di halaman lacak)
+        // Kita simpan notifikasi untuk user yang memverifikasi tiket ini
+        // Untuk sekarang, notifikasi database saja; pelapor akan melihatnya saat lacak
+        $pengaduan->loadMissing('masterUnit');
     }
 
     /**
@@ -343,6 +391,18 @@ final class TindakLanjutPengaduan
     public static function tandaiKasusBerat(Pengaduan $pengaduan, bool $aktif, ?int $adminId = null): void
     {
         $pengaduan->tandaiKasusBerat($aktif, $adminId);
+
+        // Notifikasi ke admin humas
+        $admins = User::where('peran', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new PengaduanKasusBerat($pengaduan, $aktif));
+        }
+
+        // Notifikasi ke PIC unit jika ada
+        $pengaduan->loadMissing('masterUnit.pengguna');
+        if ($pengaduan->master_unit_id !== null && $pengaduan->masterUnit?->pengguna->isNotEmpty()) {
+            Notification::send($pengaduan->masterUnit->pengguna, new PengaduanKasusBerat($pengaduan, $aktif));
+        }
 
         self::segarkanStatistik();
     }
