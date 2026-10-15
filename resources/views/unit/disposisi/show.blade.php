@@ -484,14 +484,28 @@
 
                     <div class="flex flex-wrap gap-space-sm">
                         @foreach ($tombolMati as $tombol)
+                            @php $method = $tombol['method'] ?? 'GET'; @endphp
                             @if ($tombol['url'])
-                                <a
-                                    href="{{ $tombol['url'] }}"
-                                    class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary/90 transition-colors"
-                                >
-                                    <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
-                                    {{ $tombol['label'] }}
-                                </a>
+                                @if ($method === 'POST')
+                                    <form method="POST" action="{{ $tombol['url'] }}" class="inline">
+                                        @csrf
+                                        <button
+                                            type="submit"
+                                            class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary/90 transition-colors"
+                                        >
+                                            <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                            {{ $tombol['label'] }}
+                                        </button>
+                                    </form>
+                                @else
+                                    <a
+                                        href="{{ $tombol['url'] }}"
+                                        class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary/90 transition-colors"
+                                    >
+                                        <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                        {{ $tombol['label'] }}
+                                    </a>
+                                @endif
                             @else
                                 <span class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-surface-container text-outline font-label-md text-label-md font-semibold cursor-not-allowed">
                                     <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />

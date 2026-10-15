@@ -379,7 +379,10 @@ final class Dashboard
             'label' => $lewat ? 'Follow Up Unit (Nudge)' : 'Follow Up Unit (Nudge Manual)',
             'ikon' => 'notifications_active',
             'nada' => 'px-space-md py-2 rounded-sm bg-surface-container-high text-on-surface font-semibold',
-            'url' => null,
+            'url' => $pengaduan->master_unit_id !== null && ! $pengaduan->status->selesai()
+                ? route('admin.pengaduan.nudge', $pengaduan->kode_tiket)
+                : null,
+            'method' => 'POST',
         ];
 
         $tinjau = [

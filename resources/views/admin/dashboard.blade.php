@@ -239,14 +239,28 @@
 
                                     <div class="flex items-center gap-space-xs shrink-0 w-full sm:w-auto justify-end">
                                         @foreach ($tiket['tombol'] as $tombol)
+                                            @php $method = $tombol['method'] ?? 'GET'; @endphp
                                             @if ($tombol['url'])
-                                                <a
-                                                    href="{{ $tombol['url'] }}"
-                                                    class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs"
-                                                >
-                                                    <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
-                                                    {{ $tombol['label'] }}
-                                                </a>
+                                                @if ($method === 'POST')
+                                                    <form method="POST" action="{{ $tombol['url'] }}" class="inline">
+                                                        @csrf
+                                                        <button
+                                                            type="submit"
+                                                            class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs"
+                                                        >
+                                                            <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                                            {{ $tombol['label'] }}
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <a
+                                                        href="{{ $tombol['url'] }}"
+                                                        class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs"
+                                                    >
+                                                        <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                                        {{ $tombol['label'] }}
+                                                    </a>
+                                                @endif
                                             @else
                                                 <button type="button" class="{{ $tombol['nada'] }} text-label-sm flex items-center gap-space-xs">
                                                     <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />

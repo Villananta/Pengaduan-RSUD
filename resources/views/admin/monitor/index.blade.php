@@ -125,14 +125,28 @@
 
                                     <div class="flex flex-wrap items-center justify-between gap-1 pt-1 pl-1">
                                         @foreach ($tiket['tombol'] as $tombol)
+                                            @php $method = $tombol['method'] ?? 'GET'; @endphp
                                             @if ($tombol['url'])
-                                                <a
-                                                    href="{{ $tombol['url'] }}"
-                                                    class="px-2 py-1 rounded text-label-sm font-label-sm font-bold transition-colors flex items-center gap-1 {{ $tombol['nada'] }}"
-                                                >
-                                                    <x-symbol :nama="$tombol['ikon']" class="text-[14px]" />
-                                                    {{ $tombol['label'] }}
-                                                </a>
+                                                @if ($method === 'POST')
+                                                    <form method="POST" action="{{ $tombol['url'] }}" class="inline">
+                                                        @csrf
+                                                        <button
+                                                            type="submit"
+                                                            class="px-2 py-1 rounded text-label-sm font-label-sm font-bold transition-colors flex items-center gap-1 {{ $tombol['nada'] }}"
+                                                        >
+                                                            <x-symbol :nama="$tombol['ikon']" class="text-[14px]" />
+                                                            {{ $tombol['label'] }}
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <a
+                                                        href="{{ $tombol['url'] }}"
+                                                        class="px-2 py-1 rounded text-label-sm font-label-sm font-bold transition-colors flex items-center gap-1 {{ $tombol['nada'] }}"
+                                                    >
+                                                        <x-symbol :nama="$tombol['ikon']" class="text-[14px]" />
+                                                        {{ $tombol['label'] }}
+                                                    </a>
+                                                @endif
                                             @else
                                                 <span
                                                     class="px-2 py-1 rounded text-label-sm font-label-sm font-semibold cursor-not-allowed select-none flex items-center gap-1 {{ $tombol['nada'] }}"

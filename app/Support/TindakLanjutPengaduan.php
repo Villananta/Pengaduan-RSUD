@@ -10,6 +10,7 @@ use App\Models\PesanPengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanDisposisi;
 use App\Notifications\PengaduanKasusBerat;
+use App\Notifications\PengaduanNudgeUnit;
 use App\Notifications\PengaduanTahapBerubah;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -384,6 +385,57 @@ final class TindakLanjutPengaduan
             'isi' => $isi,
             'lampiran' => PesanPengaduan::simpanBerkas($berkas),
         ]);
+    }
+
+    /**
+     * Kirim nudge (follow up manual) ke unit yang menangani tiket.
+     *
+     * Berbeda dari koordinasiUnit(), ini tidak menambah pesan ke percakapan.
+     * Hanya mengirim notifikasi ke PIC unit sebagai pengingat manual dari admin.
+     * Cocok untuk: tiket diam lama, butuh klarifikasi, atau mendekati batas SLA.
+     *
+     * @throws RuntimeException bila tiket belum ditugaskan ke unit
+     */
+    public static function nudgeUnit(
+        Pengaduan $pengaduan,
+        string $catatan,
+        ?int $adminId = null,
+    ): void {
+        if ($pengaduan->master_unit_id === null) {
+            throw new RuntimeException('Tiket ini belum ditugaskan ke unit sehingga tidak bisa di-nudge.');
+        }
+
+        if ($pengaduan->status->selesai()) {
+            throw new RuntimeException('Tiket ini sudah selesai sehingga tidak perlu di-nudge.');
+        }
+
+        // Catat ke riwayat status sebagai jejak audit
+        $pengaduan->riwayatStatus()->create([
+            'dari' => $pengaduan->status,
+            'ke' => $pengaduan->status,
+            'catatan' => 'Nudge manual ke unit: '.$catatan,
+            'admin_id' => $adminId,
+        ]);
+
+        // Kirim notifikasi ke PIC unit
+        $pengaduan->loadMissing('masterUnit.pengguna');
+        if ($pengaduan->masterUnit?->pengguna->isNotEmpty()) {
+            Notification::send(
+                $pengaduan->masterUnit->pengguna,
+                new PengaduanNudgeUnit($pengaduan, $pengaduan->masterUnit, $catatan)
+            );
+        }
+
+        // Notifikasi ke admin humas juga biar tau sudah di-nudge
+        $admins = User::where('peran', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send(
+                $admins,
+                new PengaduanNudgeUnit($pengaduan, $pengaduan->masterUnit, $catatan)
+            );
+        }
+
+        self::segarkanStatistik();
     }
 
     /** Nyalakan atau matikan penandaan kasus berat beserta jejak auditnya. */

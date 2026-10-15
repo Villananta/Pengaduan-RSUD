@@ -306,6 +306,34 @@ class PengaduanController extends Controller
     }
 
     /**
+     * Kirim nudge (follow up manual) ke unit yang menangani tiket.
+     */
+    public function nudgeUnit(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'catatan' => ['required', 'string', 'max:500'],
+        ], [
+            'catatan.required' => 'Tuliskan catatan follow up untuk unit.',
+            'catatan.max' => 'Catatan maksimal 500 karakter.',
+        ]);
+
+        try {
+            TindakLanjutPengaduan::nudgeUnit(
+                $pengaduan,
+                $validated['catatan'],
+            );
+        } catch (RuntimeException $alasan) {
+            throw ValidationException::withMessages([
+                'catatan' => $alasan->getMessage(),
+            ]);
+        }
+
+        return $this->kembali($pengaduan, 'Nudge terkirim ke unit '.($pengaduan->masterUnit?->namaLengkap() ?? '—').'.');
+    }
+
+    /**
      * Aksi massal (bulk action) untuk beberapa tiket sekaligus.
      *
      * Mendukung:

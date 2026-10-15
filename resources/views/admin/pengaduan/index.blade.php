@@ -415,14 +415,28 @@
                                 <td class="py-space-sm px-space-md align-top">
                                     <div class="flex flex-col items-stretch gap-1">
                                         @foreach ($baris['aksi'] as $tombol)
+                                            @php $method = $tombol['method'] ?? 'GET'; @endphp
                                             @if ($tombol['url'])
-                                                <a
-                                                    href="{{ $tombol['url'] }}"
-                                                    class="px-2 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1 hover:opacity-90 transition-opacity whitespace-nowrap"
-                                                >
-                                                    <x-symbol :nama="$tombol['ikon']" class="text-[14px] shrink-0" />
-                                                    {{ $tombol['label'] }}
-                                                </a>
+                                                @if ($method === 'POST')
+                                                    <form method="POST" action="{{ $tombol['url'] }}" class="inline">
+                                                        @csrf
+                                                        <button
+                                                            type="submit"
+                                                            class="px-2 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1 hover:opacity-90 transition-opacity whitespace-nowrap"
+                                                        >
+                                                            <x-symbol :nama="$tombol['ikon']" class="text-[14px] shrink-0" />
+                                                            {{ $tombol['label'] }}
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <a
+                                                        href="{{ $tombol['url'] }}"
+                                                        class="px-2 py-1.5 rounded-sm {{ $tombol['nada'] }} font-label-sm text-label-sm font-semibold flex items-center justify-center gap-1 hover:opacity-90 transition-opacity whitespace-nowrap"
+                                                    >
+                                                        <x-symbol :nama="$tombol['ikon']" class="text-[14px] shrink-0" />
+                                                        {{ $tombol['label'] }}
+                                                    </a>
+                                                @endif
                                             @else
                                                 <button
                                                     type="button"

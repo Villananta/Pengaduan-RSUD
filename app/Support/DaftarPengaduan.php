@@ -418,7 +418,10 @@ final class DaftarPengaduan
                 'label' => 'Nudge Unit',
                 'ikon' => 'notifications_active',
                 'nada' => 'bg-surface-container text-on-surface-variant',
-                'url' => null,
+                'url' => $pengaduan->master_unit_id !== null
+                    ? route('admin.pengaduan.nudge', $pengaduan->kode_tiket)
+                    : null,
+                'method' => 'POST',
             ];
         }
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DraftController as AdminDraftController;
 use App\Http\Controllers\Admin\ExportController as AdminExportController;
 use App\Http\Controllers\Admin\MonitorController as AdminMonitorController;
 use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
+use App\Http\Controllers\Admin\RiwayatController as AdminRiwayatController;
 use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
@@ -49,6 +50,7 @@ Route::get('/buat-aduan/sukses', [PengaduanController::class, 'sukses'])->name('
 // middleware auth.admin tanpa mengubah nama rute yang dipakai template.
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/riwayat', [AdminRiwayatController::class, 'index'])->name('riwayat.index');
     Route::get('/monitor', [AdminMonitorController::class, 'index'])->name('monitor.index');
     Route::get('/pengaduan', [AdminPengaduanController::class, 'index'])->name('pengaduan.index');
 
@@ -89,6 +91,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])
         ->middleware('throttle:60,1,admin-kasus-berat')
         ->name('pengaduan.kasus-berat');
+
+    // Nudge manual ke unit
+    Route::post('/pengaduan/{kode}/nudge', [AdminPengaduanController::class, 'nudgeUnit'])
+        ->middleware('throttle:30,1,admin-nudge')
+        ->name('pengaduan.nudge');
 
     // Aksi massal (bulk action) untuk daftar pengaduan
     Route::post('/pengaduan/bulk-action', [AdminPengaduanController::class, 'bulkAction'])
