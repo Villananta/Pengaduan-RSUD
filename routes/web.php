@@ -163,5 +163,10 @@ Route::prefix('unit')->name('unit.')->group(function () {
         Route::post('/{unit}/pengaduan/{kode}/jawaban', [UnitDisposisiController::class, 'kirim'])
             ->middleware('throttle:20,1,unit-jawaban')
             ->name('disposisi.kirim');
+
+        // Ekspor lembar disposisi PDF untuk unit
+        Route::get('/{unit}/pengaduan/{kode}/ekspor/disposisi-pdf', [UnitDisposisiController::class, 'eksporDisposisiPdf'])
+            ->middleware('throttle:30,1,unit-ekspor-pdf')
+            ->name('disposisi.ekspor.disposisi-pdf');
     });
 });

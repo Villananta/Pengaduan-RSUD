@@ -18,12 +18,12 @@
         // bukan disembunyikan: petugas unit perlu tahu bahwa lembar disposisi
         // dan ekspor masih menjadi pekerjaan lanjutan.
         $tombolMati = [
-            ['ikon' => 'print', 'label' => 'Cetak Lembar Disposisi'],
-            ['ikon' => 'picture_as_pdf', 'label' => 'Unduh PDF'],
-            ['ikon' => 'file_download', 'label' => 'Unduh Excel'],
-            ['ikon' => 'warning', 'label' => 'Eskalasi ke Pimpinan'],
-            ['ikon' => 'stylus_note', 'label' => 'TTD Digital'],
-            ['ikon' => 'sync', 'label' => 'Refresh SIMRS'],
+            ['ikon' => 'print', 'label' => 'Cetak Lembar Disposisi', 'url' => route('unit.disposisi.ekspor.disposisi-pdf', ['unit' => $unit->kode, 'kode' => $kode])],
+            ['ikon' => 'picture_as_pdf', 'label' => 'Unduh PDF', 'url' => route('unit.disposisi.ekspor.disposisi-pdf', ['unit' => $unit->kode, 'kode' => $kode])],
+            ['ikon' => 'file_download', 'label' => 'Unduh Excel', 'url' => null],
+            ['ikon' => 'warning', 'label' => 'Eskalasi ke Pimpinan', 'url' => null],
+            ['ikon' => 'stylus_note', 'label' => 'TTD Digital', 'url' => null],
+            ['ikon' => 'sync', 'label' => 'Refresh SIMRS', 'url' => null],
         ];
     @endphp
 
@@ -477,18 +477,27 @@
                             <h2 class="font-title-lg text-title-lg text-on-surface font-bold">Tindakan Pendukung</h2>
 
                             <p class="font-body-sm text-body-sm text-on-surface-variant">
-                                Masih dalam pembangunan, sengaja ditampilkan mati supaya tidak menyesatkan.
+                                Cetak & PDF sudah tersedia. Ekspor Excel, Eskalasi, TTD Digital, dan Refresh SIMRS masih dalam pembangunan.
                             </p>
                         </div>
                     </div>
 
                     <div class="flex flex-wrap gap-space-sm">
                         @foreach ($tombolMati as $tombol)
-
-                            <span class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-surface-container text-outline font-label-md text-label-md font-semibold cursor-not-allowed">
-                                <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
-                                {{ $tombol['label'] }}
-                            </span>
+                            @if ($tombol['url'])
+                                <a
+                                    href="{{ $tombol['url'] }}"
+                                    class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary/90 transition-colors"
+                                >
+                                    <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                    {{ $tombol['label'] }}
+                                </a>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-space-sm py-2 rounded-lg bg-surface-container text-outline font-label-md text-label-md font-semibold cursor-not-allowed">
+                                    <x-symbol :nama="$tombol['ikon']" class="text-[16px]" />
+                                    {{ $tombol['label'] }}
+                                </span>
+                            @endif
                         @endforeach
                     </div>
                 </article>

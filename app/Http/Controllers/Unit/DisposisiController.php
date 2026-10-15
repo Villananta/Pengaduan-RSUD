@@ -9,6 +9,7 @@ use App\Models\Pengaduan;
 use App\Support\DaftarPengaduan;
 use App\Support\DetailPengaduan;
 use App\Support\JawabanUnit;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -61,6 +62,29 @@ class DisposisiController extends Controller
             'unit' => $unit,
             'detail' => DetailPengaduan::dariKode($kode, $unit),
         ]);
+    }
+
+    /**
+     * Ekspor lembar disposisi tiket ke PDF untuk unit.
+     */
+    public function eksporDisposisiPdf(MasterUnit $unit, string $kode)
+    {
+        $detail = DetailPengaduan::dariKode($kode, $unit);
+
+        if (! $detail->unit['tertaut']) {
+            return back()->withErrors(['kode' => 'Tiket ini belum didisposisikan ke unit, tidak ada lembar disposisi.']);
+        }
+
+        $pdf = Pdf::loadView('exports.lembar-disposisi', ['detail' => $detail])
+            ->setPaper('A4', 'portrait')
+            ->setOptions([
+                'defaultFont' => 'DejaVu Sans',
+                'isRemoteEnabled' => true,
+            ]);
+
+        $namaFile = 'lembar-disposisi-'.$detail->kode().'-'.now()->format('Ymd').'.pdf';
+
+        return $pdf->download($namaFile);
     }
 
     /** Riwayat dan arsip disposisi unit: tiket yang sudah tuntas ditangani. */
