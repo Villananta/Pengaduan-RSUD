@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
 use App\Http\Controllers\Unit\DisposisiController as UnitDisposisiController;
+use App\Http\Controllers\Unit\NotificationController as UnitNotificationController;
 use App\Http\Middleware\PastikanUnitAktif;
 use Illuminate\Support\Facades\Route;
 
@@ -175,5 +176,16 @@ Route::prefix('unit')->name('unit.')->group(function () {
         Route::get('/{unit}/pengaduan/{kode}/ekspor/disposisi-pdf', [UnitDisposisiController::class, 'eksporDisposisiPdf'])
             ->middleware('throttle:30,1,unit-ekspor-pdf')
             ->name('disposisi.ekspor.disposisi-pdf');
+
+        // Notifikasi unit
+        Route::post('/{unit}/notifikasi/baca', [UnitNotificationController::class, 'tandaiDibaca'])
+            ->middleware('throttle:60,1,unit-notifikasi-baca')
+            ->name('notifikasi.tandai-dibaca');
+        Route::post('/{unit}/notifikasi/baca-semua', [UnitNotificationController::class, 'tandaiSemuaDibaca'])
+            ->middleware('throttle:30,1,unit-notifikasi-baca-semua')
+            ->name('notifikasi.tandai-semua-dibaca');
+        Route::get('/{unit}/notifikasi/daftar', [UnitNotificationController::class, 'daftar'])
+            ->middleware('throttle:60,1,unit-notifikasi-daftar')
+            ->name('notifikasi.daftar');
     });
 });

@@ -112,6 +112,9 @@
                         </span>
                     </div>
                 </div>
+
+                {{-- Notifikasi Bell --}}
+                @include('unit.partials.notifikasi-dropdown')
             </div>
         </div>
         <!-- End of Baris Identitas -->
@@ -178,6 +181,109 @@
         </div>
     </footer>
     <!-- End of Footer -->
+
+    {{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}
+    @stack('scripts')
+
+    {{-- Script Notifikasi Unit (Global) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const btn = document.getElementById('btn-notifikasi');
+            const dropdown = document.getElementById('dropdown-notifikasi');
+            const wrapper = document.getElementById('notifikasi-wrapper');
+            const badge = document.getElementById('badge-notifikasi');
+
+            if (!btn || !dropdown) return;
+
+            // Toggle dropdown
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isOpen = dropdown.classList.toggle('hidden');
+                btn.setAttribute('aria-expanded', !isOpen);
+            });
+
+            // Tutup dropdown klik di luar
+            document.addEventListener('click', function (e) {
+                if (!wrapper.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Tutup dropdown tekan Escape
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    dropdown.classList.add('hidden');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Delegasi klik item notifikasi -> tandai dibaca + redirect
+            dropdown.addEventListener('click', function (e) {
+                const item = e.target.closest('.notif-item');
+                if (!item) return;
+
+                const notifId = item.dataset.notifId;
+                const notifUrl = item.dataset.notifUrl;
+                const notifType = item.dataset.notifType;
+
+                // Tandai dibaca via AJAX
+                const markReadUrl = btn.dataset.markReadUrl;
+                if (!markReadUrl) {
+                    console.warn('Mark read URL not available');
+                    return;
+                }
+                fetch(markReadUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ notification_ids: [notifId] }),
+                }).then(response => response.json())
+                    .then(data => {
+                        if (data.sukses) {
+                            // Update badge count
+                            const currentCount = parseInt(badge?.textContent || '0', 10);
+                            if (badge && currentCount > 0) {
+                                const newCount = currentCount - 1;
+                                if (newCount <= 0) {
+                                    badge.remove();
+                                } else {
+                                    badge.textContent = newCount > 9 ? '9+' : newCount;
+                                }
+                            }
+
+                            // Hapus item dari dropdown (animasi)
+                            item.style.opacity = '0';
+                            item.style.transform = 'translateX(10px)';
+                            item.style.transition = 'opacity 0.2s, transform 0.2s';
+                            setTimeout(() => item.remove(), 200);
+
+                            // Redirect jika ada URL
+                            if (notifUrl) {
+                                window.location.href = notifUrl;
+                            }
+                        })
+                        .catch(console.error);
+            });
+
+            // Load more (placeholder)
+            const loadMoreBtn = document.getElementById('btn-load-more-notif');
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    loadMoreBtn.textContent = 'Memuat...';
+                    loadMoreBtn.disabled = true;
+                    // TODO: Implementasi load more via AJAX
+                    setTimeout(() => {
+                        loadMoreBtn.textContent = 'Belum diimplementasikan';
+                    }, 500);
+                });
+            }
+        });
+    </script>
 
     {{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}
     @stack('scripts')

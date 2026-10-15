@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Notifications\DatabaseNotification;
 
 class MasterUnit extends Model
 {
@@ -96,6 +98,33 @@ class MasterUnit extends Model
         return $this->belongsToMany(User::class, 'master_unit_user')
             ->withPivot('peran_akses')
             ->withTimestamps();
+    }
+
+    /**
+     * Notifikasi database untuk unit ini (polymorphic).
+     *
+     * Dipakai untuk notifikasi nudge, SLA mendekati, SLA lewat, jawaban unit, dll.
+     */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable')
+            ->orderByDesc('created_at');
+    }
+
+    /**
+     * Notifikasi yang belum dibaca.
+     */
+    public function unreadNotifications(): MorphMany
+    {
+        return $this->notifications()->whereNull('read_at');
+    }
+
+    /**
+     * Jumlah notifikasi belum dibaca.
+     */
+    public function unreadNotificationCount(): int
+    {
+        return $this->unreadNotifications()->count();
     }
 
     /** Nama unit lengkap dengan kode, misalnya "Instalasi Farmasi Pusat [IFP-01]". */

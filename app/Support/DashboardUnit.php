@@ -7,6 +7,7 @@ use App\Enums\StatusPengaduan;
 use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -300,5 +301,48 @@ final class DashboardUnit
         return $this->mendesak
             ->filter(fn (Pengaduan $pengaduan) => ! $pengaduan->unit_menjawab)
             ->sortByDesc('created_at');
+    }
+
+    /**
+     * Notifikasi belum dibaca untuk unit ini (maksimal 10 terbaru).
+     *
+     * @return Collection<int, DatabaseNotification>
+     */
+    public function notifikasiTerbaru(int $limit = 10): Collection
+    {
+        return $this->unit->unreadNotifications()->limit($limit)->get();
+    }
+
+    /**
+     * Jumlah notifikasi belum dibaca.
+     */
+    public function jumlahNotifikasiBelumDibaca(): int
+    {
+        return $this->unit->unreadNotificationCount();
+    }
+
+    /**
+     * Filter notifikasi berdasarkan tipe.
+     *
+     * @param  string|null  $tipe  Contoh: 'pengaduan_nudge_unit', 'pengaduan_sla_mendekati', dll.
+     * @return Collection<int, DatabaseNotification>
+     */
+    public function notifikasiBertipe(?string $tipe = null, int $limit = 10): Collection
+    {
+        $query = $this->unit->unreadNotifications();
+
+        if ($tipe !== null) {
+            $query->where('data->type', $tipe);
+        }
+
+        return $query->limit($limit)->get();
+    }
+
+    /**
+     * Apakah ada notifikasi nudge yang belum dibaca.
+     */
+    public function adaNudgeBelumDibaca(): bool
+    {
+        return $this->notifikasiBertipe('pengaduan_nudge_unit')->isNotEmpty();
     }
 }
