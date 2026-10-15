@@ -27,6 +27,7 @@
             ['label' => 'Daftar Pengaduan', 'route' => 'admin.pengaduan.index'],
             ['label' => 'Input Aduan', 'route' => 'admin.pengaduan.create'],
             ['label' => 'Monitor Disposisi & SLA', 'route' => 'admin.monitor.index'],
+            ['label' => 'Riwayat Aksi Admin', 'route' => 'admin.riwayat.index'],
             ['label' => 'Master Data Unit', 'route' => 'admin.unit.index', 'pola' => 'admin.unit.*'],
         ];
     @endphp

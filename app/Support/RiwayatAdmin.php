@@ -107,7 +107,7 @@ final class RiwayatAdmin
             'tanpa_admin' => $riwayat->getCollection()->filter(fn ($r) => $r->admin_id === null)->count(),
         ];
 
-        $filterAktif = array_filter([
+        $filterAktif = [
             'dari' => $request->input('dari'),
             'ke' => $request->input('ke'),
             'admin_id' => $request->input('admin_id'),
@@ -117,7 +117,7 @@ final class RiwayatAdmin
             'kasus_berat' => $request->input('kasus_berat'),
             'ada_admin' => $request->input('ada_admin'),
             'per_halaman' => $perHalaman,
-        ]);
+        ];
 
         return new self(
             riwayat: $riwayat,
