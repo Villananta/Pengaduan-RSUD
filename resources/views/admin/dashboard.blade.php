@@ -180,7 +180,7 @@
         <!-- End of Status Tiket di Unit Layanan -->
 
         <!-- Isi Utama -->
-        <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+        <div class="w-full grid grid-cols-1 gap-space-lg">
             <div class="lg:col-span-8 flex flex-col gap-space-md">
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-sm border-b border-outline-variant/30">

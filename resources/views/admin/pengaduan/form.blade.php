@@ -72,7 +72,8 @@
             class="flex flex-col gap-space-md"
         >
             @csrf
-
+            
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
             <!-- Bagian 1: Kanal Penerimaan -->
             <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
                 <div class="flex items-center gap-space-xs">
@@ -83,7 +84,7 @@
                 {{-- Kanal dicatat di dalam tiket lewat pesan pembuka, bukan lewat kolom
                      baru di tabel pengaduan, supaya skema pengaduan yang sudah ada
                      tidak berubah hanya untuk satu label tambahan. --}}
-                <div class="flex flex-col gap-1.5 md:max-w-md">
+                <div class="flex flex-col gap-1.5 w-full">
                     <label for="kanal" class="{{ $label }}">Diterima Lewat Kanal <span class="text-error">*</span></label>
                     <select
                         id="kanal"
@@ -98,22 +99,19 @@
                             </option>
                         @endforeach
                     </select>
-                    <span class="{{ $bantuan }}">
-                        Kanal ini ikut tertulis pada pesan pembuka tiket supaya jelas keluhan ini berasal dari luar portal.
-                    </span>
                     @error('kanal')<span class="{{ $galat }}">{{ $message }}</span>@enderror
                 </div>
             </section>
             <!-- End of Bagian 1: Kanal Penerimaan -->
 
             <!-- Bagian 2: Kategori Masalah -->
-            <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
+            <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md ">
                 <div class="flex items-center gap-space-xs">
                     <x-symbol nama="category" class="text-primary-container text-[24px]" />
                     <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Kategori Masalah</h2>
                 </div>
 
-                <div class="flex flex-col gap-1.5 md:max-w-md">
+                <div class="flex flex-col gap-1.5 w-full">
                     <label for="kategori" class="{{ $label }}">Ruang Lingkup Persoalan <span class="text-error">*</span></label>
                     <select
                         id="kategori"
@@ -137,7 +135,7 @@
                 </div>
             </section>
             <!-- End of Bagian 2: Kategori Masalah -->
-
+        </div>
             <!-- Bagian 3: Identitas Pelapor -->
             <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
                 <div class="flex items-center gap-space-xs">

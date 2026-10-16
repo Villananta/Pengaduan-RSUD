@@ -54,8 +54,8 @@
         <!-- End of Kartu Statistik -->
 
         <!-- Filter & Pencarian -->
-        <form method="GET" action="{{ route('admin.riwayat.index') }}" class="flex flex-col gap-space-md bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
-            <div class="flex flex-col lg:flex-row lg:items-end gap-space-md">
+        <form method="GET" action="{{ route('admin.riwayat.index') }}" class="flex flex-col gap-space-md bg-surface-container-lowest p-space-md rounded-lg shadow-sm w-full">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-space-md items-end w-full">
                 <div class="lg:col-span-2 flex flex-col gap-space-sm">
                     <label for="cari" class="font-label-sm text-label-sm font-bold text-on-surface">Pencarian</label>
                     <div class="relative">
@@ -174,13 +174,12 @@
                     <noscript><button type="submit" class="px-2 py-1 rounded-sm bg-surface-container-high text-on-surface font-label-sm text-label-sm">Terapkan</button></noscript>
                 </div>
 
-                <div class="flex flex-col gap-space-sm lg:self-end">
+                <div class="flex flex-col-2 gap-space-sm lg:self-end">
                     <button
                         type="submit"
                         class="w-full lg:w-auto py-2.5 px-4 rounded-sm bg-primary text-on-primary font-label-md text-label-md font-bold flex items-center justify-center gap-1.5 hover:bg-primary/90 transition-colors"
                     >
-                        <x-symbol nama="filter_list" class="text-[18px]" />
-                        Terapkan
+                        <x-symbol nama="search" />
                     </button>
 
                     @if (! empty($riwayat->filterAktif))
@@ -188,8 +187,7 @@
                             href="{{ route('admin.riwayat.index') }}"
                             class="w-full lg:w-auto py-2.5 px-4 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold flex items-center justify-center gap-1.5 transition-colors"
                         >
-                            <x-symbol nama="close" class="text-[18px]" />
-                            Hapus Filter
+                            <x-symbol nama="close"/>
                         </a>
                     @endif
                 </div>
