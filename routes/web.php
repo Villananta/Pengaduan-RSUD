@@ -10,9 +10,11 @@ use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
 use App\Http\Controllers\Unit\DisposisiController as UnitDisposisiController;
+use App\Http\Controllers\Unit\ExportController as UnitExportController;
 use App\Http\Controllers\Unit\NotificationController as UnitNotificationController;
 use App\Http\Controllers\Unit\RealTimeNotificationController as UnitRealTimeNotificationController;
 use App\Http\Middleware\PastikanUnitAktif;
+use App\Http\Middleware\ThrottleKeys;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/buat-aduan');
@@ -28,17 +30,17 @@ Route::view('/maklumat-prosedur', 'maklumat.index')->name('maklumat.index');
 Route::get('/lacak-tiket', [PengaduanController::class, 'lacak'])->name('pengaduan.lacak');
 
 Route::post('/lacak-tiket/verifikasi', [PengaduanController::class, 'verifikasi'])
-    ->middleware('throttle:10,1,lacak-verifikasi')
+    ->middleware('throttle:10,1,'.ThrottleKeys::LACAK_VERIFIKASI)
     ->name('pengaduan.verifikasi');
 
 Route::post('/lacak-tiket/{kode}/pesan', [PengaduanController::class, 'kirimPesan'])
-    ->middleware('throttle:20,1,pesan-lacak')
+    ->middleware('throttle:20,1,'.ThrottleKeys::PESAN_LACAK)
     ->name('pengaduan.pesan');
 
 Route::get('/buat-aduan', [PengaduanController::class, 'create'])->name('pengaduan.create');
 
 Route::post('/buat-aduan', [PengaduanController::class, 'store'])
-    ->middleware('throttle:5,10,buat-aduan')
+    ->middleware('throttle:5,10,'.ThrottleKeys::BUAT_ADUAN)
     ->name('pengaduan.store');
 
 Route::get('/buat-aduan/sukses', [PengaduanController::class, 'sukses'])->name('pengaduan.sukses');
@@ -47,10 +49,10 @@ Route::get('/buat-aduan/sukses', [PengaduanController::class, 'sukses'])->name('
 Route::get('/verifikasi-email/{kode}', [PengaduanController::class, 'verifikasiEmail'])
     ->name('pengaduan.verifikasi-email');
 Route::post('/verifikasi-email/{kode}', [PengaduanController::class, 'verifikasiEmail'])
-    ->middleware('throttle:10,1,verifikasi-email')
+    ->middleware('throttle:10,1,'.ThrottleKeys::VERIFIKASI_EMAIL)
     ->name('pengaduan.verifikasi-email.post');
 Route::post('/verifikasi-email/{kode}/kirim-ulang', [PengaduanController::class, 'kirimUlangOtp'])
-    ->middleware('throttle:3,1,kirim-ulang-otp')
+    ->middleware('throttle:3,1,'.ThrottleKeys::KIRIM_ULANG_OTP)
     ->name('pengaduan.verifikasi-email.resend');
 
 // Konsol admin.
@@ -72,7 +74,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // "buat" tidak tertangkap sebagai kode tiket yang tidak ada.
     Route::get('/pengaduan/buat', [AdminPengaduanController::class, 'create'])->name('pengaduan.create');
     Route::post('/pengaduan/buat', [AdminPengaduanController::class, 'store'])
-        ->middleware('throttle:60,1,admin-buat-aduan')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_BUAT_ADUAN)
         ->name('pengaduan.store');
 
     Route::get('/pengaduan/{kode}', [AdminPengaduanController::class, 'show'])->name('pengaduan.show');
@@ -86,54 +88,54 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // sama (domain|ip), sehingga satu tombol yang dipakai berulang bisa
     // menutup tombol lain yang belum tersentuh.
     Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])
-        ->middleware('throttle:60,1,admin-balas')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_BALAS)
         ->name('pengaduan.balas');
     Route::post('/pengaduan/{kode}/koordinasi', [AdminPengaduanController::class, 'koordinasi'])
-        ->middleware('throttle:60,1,admin-koordinasi')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_KOORDINASI)
         ->name('pengaduan.koordinasi');
     Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])
-        ->middleware('throttle:60,1,admin-tahap')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_TAHAP)
         ->name('pengaduan.tahap');
     Route::post('/pengaduan/{kode}/disposisi', [AdminPengaduanController::class, 'disposisi'])
-        ->middleware('throttle:60,1,admin-disposisi')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_DISPOSISI)
         ->name('pengaduan.disposisi');
     Route::post('/pengaduan/{kode}/tangani-langsung', [AdminPengaduanController::class, 'tanganiLangsung'])
-        ->middleware('throttle:60,1,admin-tangani-langsung')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_TANGANI_LANGSUNG)
         ->name('pengaduan.tangani-langsung');
     Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])
-        ->middleware('throttle:60,1,admin-kasus-berat')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_KASUS_BERAT)
         ->name('pengaduan.kasus-berat');
 
     // Nudge manual ke unit
     Route::post('/pengaduan/{kode}/nudge', [AdminPengaduanController::class, 'nudgeUnit'])
-        ->middleware('throttle:30,1,admin-nudge')
+        ->middleware('throttle:30,1,'.ThrottleKeys::ADMIN_NUDGE)
         ->name('pengaduan.nudge');
 
     // Aksi massal (bulk action) untuk daftar pengaduan
     Route::post('/pengaduan/bulk-action', [AdminPengaduanController::class, 'bulkAction'])
-        ->middleware('throttle:20,1,admin-bulk-action')
+        ->middleware('throttle:20,1,'.ThrottleKeys::ADMIN_BULK_ACTION)
         ->name('pengaduan.bulk-action');
 
     // Manajemen draf jawaban admin
     Route::post('/pengaduan/{kode}/draf/simpan', [AdminDraftController::class, 'simpan'])
-        ->middleware('throttle:60,1,admin-draf-simpan')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_DRAF_SIMPAN)
         ->name('pengaduan.draf.simpan');
     Route::get('/pengaduan/{kode}/draf/ambil', [AdminDraftController::class, 'ambil'])
-        ->middleware('throttle:60,1,admin-draf-ambil')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_DRAF_AMBIL)
         ->name('pengaduan.draf.ambil');
     Route::delete('/pengaduan/{kode}/draf/hapus', [AdminDraftController::class, 'hapus'])
-        ->middleware('throttle:60,1,admin-draf-hapus')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_DRAF_HAPUS)
         ->name('pengaduan.draf.hapus');
 
     // Ekspor data
     Route::get('/pengaduan/ekspor/excel', [AdminExportController::class, 'pengaduanExcel'])
-        ->middleware('throttle:30,1,admin-ekspor-excel')
+        ->middleware('throttle:30,1,'.ThrottleKeys::ADMIN_EKSPOR_EXCEL)
         ->name('pengaduan.ekspor.excel');
     Route::get('/pengaduan/{kode}/ekspor/disposisi-pdf', [AdminExportController::class, 'lembarDisposisiPdf'])
-        ->middleware('throttle:30,1,admin-ekspor-pdf')
+        ->middleware('throttle:30,1,'.ThrottleKeys::ADMIN_EKSPOR_PDF)
         ->name('pengaduan.ekspor.disposisi-pdf');
     Route::get('/pengaduan/{kode}/ekspor/disposisi-preview', [AdminExportController::class, 'lembarDisposisiPreview'])
-        ->middleware('throttle:30,1,admin-ekspor-preview')
+        ->middleware('throttle:30,1,'.ThrottleKeys::ADMIN_EKSPOR_PREVIEW)
         ->name('pengaduan.ekspor.disposisi-preview');
 
     // Master data unit. Kode unit dipakai sebagai parameter rute karena
@@ -142,14 +144,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/unit', [AdminUnitController::class, 'index'])->name('unit.index');
     Route::get('/unit/tambah', [AdminUnitController::class, 'create'])->name('unit.create');
     Route::post('/unit', [AdminUnitController::class, 'store'])
-        ->middleware('throttle:60,1,admin-unit-store')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_UNIT_STORE)
         ->name('unit.store');
     Route::get('/unit/{unit}/ubah', [AdminUnitController::class, 'edit'])->name('unit.edit');
     Route::post('/unit/{unit}/perbarui', [AdminUnitController::class, 'update'])
-        ->middleware('throttle:60,1,admin-unit-perbarui')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_UNIT_PERBARUI)
         ->name('unit.update');
     Route::post('/unit/{unit}/status', [AdminUnitController::class, 'status'])
-        ->middleware('throttle:60,1,admin-unit-status')
+        ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_UNIT_STATUS)
         ->name('unit.status');
 });
 
@@ -180,34 +182,48 @@ Route::prefix('unit')->name('unit.')->group(function () {
         // Jawaban unit membalik sinyal disposisi yang dibaca konsol humas, jadi
         // lajunya dibatasi meski konsol masih tanpa login.
         Route::post('/{unit}/pengaduan/{kode}/jawaban', [UnitDisposisiController::class, 'kirim'])
-            ->middleware('throttle:20,1,unit-jawaban')
+            ->middleware('throttle:20,1,'.ThrottleKeys::UNIT_JAWABAN)
             ->name('disposisi.kirim');
 
         // Ekspor lembar disposisi PDF untuk unit
         Route::get('/{unit}/pengaduan/{kode}/ekspor/disposisi-pdf', [UnitDisposisiController::class, 'eksporDisposisiPdf'])
-            ->middleware('throttle:30,1,unit-ekspor-pdf')
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_EKSPOR_PDF)
             ->name('disposisi.ekspor.disposisi-pdf');
+
+        // Export daftar disposisi & arsip unit (Excel/PDF)
+        Route::get('/{unit}/disposisi/export/excel', [UnitExportController::class, 'disposisiExcel'])
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_EKSPOR_EXCEL)
+            ->name('disposisi.export.excel');
+        Route::get('/{unit}/arsip/export/excel', [UnitExportController::class, 'arsipExcel'])
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_EKSPOR_EXCEL)
+            ->name('arsip.export.excel');
+        Route::get('/{unit}/disposisi/export/pdf', [UnitExportController::class, 'disposisiPdf'])
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_EKSPOR_PDF)
+            ->name('disposisi.export.pdf');
+        Route::get('/{unit}/arsip/export/pdf', [UnitExportController::class, 'arsipPdf'])
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_EKSPOR_PDF)
+            ->name('arsip.export.pdf');
 
         // Notifikasi unit
         Route::post('/{unit}/notifikasi/baca', [UnitNotificationController::class, 'tandaiDibaca'])
-            ->middleware('throttle:60,1,unit-notifikasi-baca')
+            ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA)
             ->name('notifikasi.tandai-dibaca');
         Route::post('/{unit}/notifikasi/baca-semua', [UnitNotificationController::class, 'tandaiSemuaDibaca'])
-            ->middleware('throttle:30,1,unit-notifikasi-baca-semua')
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA_SEMUA)
             ->name('notifikasi.tandai-semua-dibaca');
         Route::get('/{unit}/notifikasi/daftar', [UnitNotificationController::class, 'daftar'])
-            ->middleware('throttle:60,1,unit-notifikasi-daftar')
+            ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_DAFTAR)
             ->name('notifikasi.daftar');
 
         // Real-time notifikasi (polling)
         Route::get('/{unit}/notifikasi/realtime', [UnitRealTimeNotificationController::class, 'index'])
-            ->middleware('throttle:120,1,unit-notifikasi-realtime')
+            ->middleware('throttle:120,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME)
             ->name('notifikasi.realtime');
         Route::post('/{unit}/notifikasi/realtime/baca', [UnitRealTimeNotificationController::class, 'markAsRead'])
-            ->middleware('throttle:60,1,unit-notifikasi-realtime-baca')
+            ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME_BACA)
             ->name('notifikasi.realtime.baca');
         Route::post('/{unit}/notifikasi/realtime/baca-semua', [UnitRealTimeNotificationController::class, 'markAllAsRead'])
-            ->middleware('throttle:30,1,unit-notifikasi-realtime-baca-semua')
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME_BACA_SEMUA)
             ->name('notifikasi.realtime.baca-semua');
     });
 });

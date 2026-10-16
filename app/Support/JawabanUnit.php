@@ -16,9 +16,9 @@ use RuntimeException;
 /**
  * Pengiriman jawaban oleh PIC unit ke humas.
  *
- * Kelas ini sengaja dipisah dari App\Support\TindakLanjutPengaduan karena
- * pemiliknya berbeda: TindakLanjutPengaduan hanya menjalankan perintah humas
- * (menutup tiket, mengembalikan disposisi, memindahkan tahap), sedangkan
+ * Kelas ini sengaja dipisah dari App\Services\KomunikasiService karena
+ * pemiliknya berbeda: KomunikasiService hanya menjalankan perintah humas
+ * (balas pelapor, koordinasi unit, nudge), sedangkan
  * kelas ini hanya menjalankan perintah unit. Dengan dipisah, aturan unit tidak
  * perlu ikut memeriksa tombol humas dan sebaliknya.
  *

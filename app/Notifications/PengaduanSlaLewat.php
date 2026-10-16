@@ -6,9 +6,10 @@ use App\Mail\SlaLewatMail;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class PengaduanSlaLewat extends Notification
+class PengaduanSlaLewat extends Notification implements ShouldQueue
 {
     use Queueable;
 

@@ -8,6 +8,7 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Models\RiwayatStatusPengaduan;
+use App\Services\TahapService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -21,7 +22,7 @@ use Illuminate\Support\Collection;
  *
  * Tombol yang ditampilkan tidak dihitung di sini. Ketersediaan tindakan
  * (pindah tahap, penanganan langsung, tandai kasus berat) diambil dari
- * App\Support\TindakLanjutPengaduan supaya tombol di layar dan penerimaan
+ * App\Services\TahapService supaya tombol di layar dan penerimaan
  * di server memakai satu aturan yang sama.
  */
 final class DetailPengaduan
@@ -138,7 +139,7 @@ final class DetailPengaduan
      */
     public function alasanTutup(): ?string
     {
-        return TindakLanjutPengaduan::alasanTutup($this->pengaduan);
+        return TahapService::alasanTutup($this->pengaduan);
     }
 
     /**
@@ -152,7 +153,7 @@ final class DetailPengaduan
      */
     public function tujuanTersedia(): array
     {
-        return TindakLanjutPengaduan::tujuanTersedia($this->pengaduan);
+        return TahapService::tujuanTersedia($this->pengaduan);
     }
 
     /**
@@ -174,7 +175,7 @@ final class DetailPengaduan
      */
     public function tombolTujuan(StatusPengaduan $tujuan): array
     {
-        return TindakLanjutPengaduan::tombolTujuan($tujuan);
+        return TahapService::tombolTujuan($tujuan);
     }
 
     /**

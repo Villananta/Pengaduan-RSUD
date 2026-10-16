@@ -151,7 +151,7 @@ class Pengaduan extends Model
      * tidak pernah tercatat di riwayat.
      *
      * Method ini tidak memeriksa apakah perpindahan itu wajar; pemeriksaannya
-     * ada di App\Support\TindakLanjutPengaduan sesuai konteks tiap aksi.
+     * ada di App\Services\TahapService sesuai konteks tiap aksi.
      */
     public function pindahTahap(StatusPengaduan $tujuan, ?string $catatan = null, ?int $adminId = null): void
     {

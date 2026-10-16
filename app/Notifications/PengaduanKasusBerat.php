@@ -2,11 +2,13 @@
 
 namespace App\Notifications;
 
+use App\Mail\PengaduanKasusBeratMail;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class PengaduanKasusBerat extends Notification
+class PengaduanKasusBerat extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -17,7 +19,18 @@ class PengaduanKasusBerat extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if (! empty($notifiable->email)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
+    }
+
+    public function toMail(object $notifiable): PengaduanKasusBeratMail
+    {
+        return new PengaduanKasusBeratMail($this->pengaduan, $this->aktif);
     }
 
     public function toArray(object $notifiable): array

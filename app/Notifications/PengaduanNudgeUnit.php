@@ -6,9 +6,10 @@ use App\Mail\NudgeUnitMail;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class PengaduanNudgeUnit extends Notification
+class PengaduanNudgeUnit extends Notification implements ShouldQueue
 {
     use Queueable;
 

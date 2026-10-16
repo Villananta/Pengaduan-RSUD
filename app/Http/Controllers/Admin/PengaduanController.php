@@ -9,6 +9,10 @@ use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Services\DisposisiService;
+use App\Services\KasusBeratService;
+use App\Services\KomunikasiService;
+use App\Services\TahapService;
 use App\Support\DaftarPengaduan;
 use App\Support\DetailPengaduan;
 use App\Support\PengaduanMasuk;
@@ -16,7 +20,6 @@ use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
 use App\Support\StatistikUnit;
-use App\Support\TindakLanjutPengaduan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -131,7 +134,7 @@ class PengaduanController extends Controller
         $unit = MasterUnit::where('kode', $validated['unit'])->firstOrFail();
 
         try {
-            TindakLanjutPengaduan::disposisiKeUnit(
+            DisposisiService::disposisiKeUnit(
                 $pengaduan,
                 $unit,
                 $validated['catatan'] ?? null,
@@ -159,7 +162,7 @@ class PengaduanController extends Controller
         ]);
 
         try {
-            TindakLanjutPengaduan::tanganiLangsung(
+            DisposisiService::tanganiLangsung(
                 $pengaduan,
                 $validated['catatan'] ?? null,
             );
@@ -195,7 +198,7 @@ class PengaduanController extends Controller
         $tujuan = StatusPengaduan::from($validated['tujuan']);
 
         try {
-            TindakLanjutPengaduan::pindahkanTahap(
+            TahapService::pindahkanTahap(
                 $pengaduan,
                 $tujuan,
                 $validated['catatan'] ?? null,
@@ -208,7 +211,7 @@ class PengaduanController extends Controller
             ]);
         }
 
-        return $this->kembali($pengaduan, TindakLanjutPengaduan::pesanTujuan($tujuan));
+        return $this->kembali($pengaduan, TahapService::pesanTujuan($tujuan));
     }
 
     /**
@@ -233,7 +236,7 @@ class PengaduanController extends Controller
             'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 4 MB.',
         ]);
 
-        TindakLanjutPengaduan::balasPelapor(
+        KomunikasiService::balasPelapor(
             $pengaduan,
             $validated['isi'],
             $request->file('lampiran', []) ?? [],
@@ -266,7 +269,7 @@ class PengaduanController extends Controller
         ]);
 
         try {
-            TindakLanjutPengaduan::koordinasiUnit(
+            KomunikasiService::koordinasiUnit(
                 $pengaduan,
                 $validated['isi'],
                 $request->file('lampiran', []) ?? [],
@@ -295,7 +298,7 @@ class PengaduanController extends Controller
 
         $aktif = $request->boolean('aktif');
 
-        TindakLanjutPengaduan::tandaiKasusBerat($pengaduan, $aktif);
+        KasusBeratService::tandaiKasusBerat($pengaduan, $aktif);
 
         return $this->kembali(
             $pengaduan,
@@ -320,7 +323,7 @@ class PengaduanController extends Controller
         ]);
 
         try {
-            TindakLanjutPengaduan::nudgeUnit(
+            KomunikasiService::nudgeUnit(
                 $pengaduan,
                 $validated['catatan'],
             );
@@ -383,7 +386,7 @@ class PengaduanController extends Controller
                         throw new RuntimeException('Tiket sudah selesai.');
                     }
 
-                    TindakLanjutPengaduan::disposisiKeUnit(
+                    DisposisiService::disposisiKeUnit(
                         $pengaduan,
                         $unit,
                         $validated['catatan'] ?? null,
@@ -393,7 +396,7 @@ class PengaduanController extends Controller
                         throw new RuntimeException('Tiket sudah selesai.');
                     }
 
-                    TindakLanjutPengaduan::tandaiKasusBerat(
+                    KasusBeratService::tandaiKasusBerat(
                         $pengaduan,
                         $request->boolean('aktif'),
                     );

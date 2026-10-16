@@ -2,12 +2,14 @@
 
 namespace App\Notifications;
 
+use App\Mail\PengaduanTahapBerubahMail;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class PengaduanTahapBerubah extends Notification
+class PengaduanTahapBerubah extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -19,7 +21,18 @@ class PengaduanTahapBerubah extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if (! empty($notifiable->email)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
+    }
+
+    public function toMail(object $notifiable): PengaduanTahapBerubahMail
+    {
+        return new PengaduanTahapBerubahMail($this->pengaduan, $this->dari, $this->ke, $this->urlUntuk($notifiable));
     }
 
     public function toArray(object $notifiable): array
