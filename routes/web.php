@@ -10,7 +10,7 @@ use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
 use App\Http\Controllers\Unit\DisposisiController as UnitDisposisiController;
-use App\Http\Controllers\Unit\ExportController as UnitExportController;
+use App\Http\Controllers\Unit\UnitExportController;
 use App\Http\Controllers\Unit\NotificationController as UnitNotificationController;
 use App\Http\Controllers\Unit\RealTimeNotificationController as UnitRealTimeNotificationController;
 use App\Http\Middleware\PastikanUnitAktif;

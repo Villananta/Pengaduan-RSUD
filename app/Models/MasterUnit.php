@@ -140,10 +140,16 @@ class MasterUnit extends Model
      * Unit non-aktif dan unit yang koneksinya terputus sama-sama tidak
      * boleh ditugaskan, karena keduanya membuat tiket menggantung tanpa
      * satupun pihak yang bisa ditagih.
+     *
+     * Unit yang belum punya PIC dan kontak WhatsApp juga tidak boleh
+     * ditugaskan, karena tidak ada pihak yang bisa dihubungi untuk follow up.
      */
     public function bisaDitugaskan(): bool
     {
-        return $this->aktif && $this->disposisi->siap();
+        return $this->aktif
+            && $this->disposisi->siap()
+            && filled($this->pic)
+            && filled($this->kontak_wa);
     }
 
     /**

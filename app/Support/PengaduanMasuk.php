@@ -9,6 +9,7 @@ use App\Models\Pengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanDibuat;
 use App\Notifications\PengaduanEmailVerifikasi;
+use App\Rules\NormalizedNrmRule;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -38,7 +39,7 @@ final class PengaduanMasuk
         return array_merge([
             'kategori' => ['required', Rule::enum(KategoriPengaduan::class)],
             'nama_lengkap' => ['required', 'string', 'min:3', 'max:255'],
-            'nrm' => ['required', 'string', 'min:4', 'max:64', 'regex:/^[0-9A-Za-z\-\/.\s]+$/'],
+            'nrm' => ['required', 'string', 'min:4', 'max:64', new NormalizedNrmRule],
             'no_wa' => ['required', 'string', 'regex:/^\+?[0-9]{9,15}$/'],
             'email' => ['required', 'email:rfc', 'max:255'],
             'alamat' => ['required', 'string', 'min:10', 'max:1000'],
@@ -65,7 +66,7 @@ final class PengaduanMasuk
             'persetujuan.accepted' => 'Anda harus menyetujui pernyataan kebenaran data sebelum mengirim aduan.',
             'nama_lengkap.min' => 'Nama lengkap minimal 3 karakter.',
             'nrm.min' => 'Nomor rekam media minimal 4 karakter.',
-            'nrm.regex' => 'Nomor rekam media hanya boleh berisi angka, huruf, tanda hubung, atau spasi.',
+            'nrm.nrm' => 'Nomor rekam media hanya boleh berisi angka dan huruf (spasi, tanda hubung, titik akan diabaikan).',
             'no_wa.regex' => 'Nomor WhatsApp harus berupa nomor telepon aktif, contoh 081234567890.',
             'alamat.min' => 'Alamat minimal 10 karakter.',
             'waktu_kejadian.after' => 'Waktu kejadian tidak valid.',
