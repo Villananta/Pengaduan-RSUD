@@ -46,31 +46,6 @@
         </div>
         <!-- End of Kepala Halaman -->
 
-        <!-- Penjelasan Alur -->
-        <div class="p-space-sm rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-wrap items-center gap-x-space-lg gap-y-space-sm">
-            <div class="flex items-center gap-2">
-                <x-symbol nama="schedule" class="text-[16px] text-outline" />
-                <span class="font-label-sm text-label-sm text-on-surface-variant">
-                    Target penyelesaian <strong class="text-on-surface">{{ $hariKerja }} hari kerja</strong>
-                </span>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <x-symbol nama="timer" class="text-[16px] text-outline" />
-                <span class="font-label-sm text-label-sm text-on-surface-variant">
-                    Batas investigasi unit <strong class="text-on-surface">{{ $hariInvestigasi }} hari kerja</strong>
-                </span>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <x-symbol nama="lock" class="text-[16px] text-outline" />
-                <span class="font-label-sm text-label-sm text-on-surface-variant">
-                    Nomor tiket dibuat oleh sistem, tidak bisa diisi sendiri
-                </span>
-            </div>
-        </div>
-        <!-- End of Penjelasan Alur -->
-
         <!-- Pesan Kesalahan Validasi -->
         @if ($errors->any())
             <div
@@ -386,10 +361,7 @@
                 </div>
                 @error('persetujuan')<span class="{{ $galat }}">{{ $message }}</span>@enderror
 
-                <div class="flex items-center justify-between gap-space-sm flex-wrap pt-space-xs">
-                    <span class="font-body-sm text-body-sm text-outline">
-                        Tiket baru langsung berstatus diterima dan masuk ke daftar pengaduan dengan batas {{ $hariKerja }} hari kerja.
-                    </span>
+                <div class="flex items-center justify-end gap-space-sm flex-wrap pt-space-xs">
 
                     <div class="flex items-center gap-space-sm">
                         <a
