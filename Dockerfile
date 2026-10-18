@@ -18,9 +18,24 @@ RUN npm run build
 # Composer dijalankan di image terpisah supaya ekstensi PHP tidak perlu
 # dipasang dua kali. Skrip composer dimatikan karena package:discover
 # dijalankan ulang saat container hidup (bootstrap/cache harus segar).
+# GD dibutuhkan phpoffice/phpspreadsheet (export Excel) saat composer install.
 FROM composer:2 AS vendor
 
 WORKDIR /app
+
+# Install GD extension for phpspreadsheet dependency
+RUN apk add --no-cache \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libwebp-dev \
+    libxpm-dev \
+    && docker-php-ext-configure gd \
+        --with-freetype \
+        --with-jpeg \
+        --with-webp \
+        --with-xpm \
+    && docker-php-ext-install -j"$(nproc)" gd
 
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
