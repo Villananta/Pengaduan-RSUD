@@ -36,8 +36,26 @@ WORKDIR /app
 # Ekstensi yang dibutuhkan Laravel untuk MySQL, blading, dan dukungan zip
 # composer/upload. libxml, ctype, tokenizer, openssl, dan fileinfo sudah
 # menyatu dengan image php resmi sehingga tidak perlu diinstall manual.
-RUN apk add --no-cache libzip-dev oniguruma-dev && \
-    docker-php-ext-install -j"$(nproc)" pdo_mysql mbstring bcmath zip
+# GD dibutuhkan phpoffice/phpspreadsheet (export Excel).
+RUN apk add --no-cache \
+    libzip-dev \
+    oniguruma-dev \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libwebp-dev \
+    libxpm-dev \
+    && docker-php-ext-configure gd \
+        --with-freetype \
+        --with-jpeg \
+        --with-webp \
+        --with-xpm \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo_mysql \
+        mbstring \
+        bcmath \
+        zip \
+        gd
 
 # Validasi controller mengizinkan 4 MB per berkas, jadi batas default PHP
 # 2M harus dilonggarkan lebih dulu supaya unggahan tidak diam-diam gagal.
