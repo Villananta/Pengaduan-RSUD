@@ -134,8 +134,9 @@
                     @error('kategori')<span class="{{ $galat }}">{{ $message }}</span>@enderror
                 </div>
             </section>
-            <!-- End of Bagian 2: Kategori Masalah -->
         </div>
+        <!-- End of Bagian 2: Kategori Masalah -->
+        
             <!-- Bagian 3: Identitas Pelapor -->
             <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
                 <div class="flex items-center gap-space-xs">
@@ -143,7 +144,7 @@
                     <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Identitas Pelapor</h2>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-md">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                     <div class="flex flex-col gap-1.5">
                         <label for="nama_lengkap" class="{{ $label }}">Nama Lengkap Sesuai KTP <span class="text-error">*</span></label>
                         <input
@@ -207,7 +208,7 @@
                         @error('email')<span class="{{ $galat }}">{{ $message }}</span>@enderror
                     </div>
 
-                    <div class="md:col-span-2 xl:col-span-3 flex flex-col gap-1.5">
+                    <div class="md:col-span-2 flex flex-col gap-1.5">
                         <label for="alamat" class="{{ $label }}">Alamat Domisili Pelapor <span class="text-error">*</span></label>
                         <input
                             id="alamat"

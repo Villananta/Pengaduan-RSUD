@@ -154,14 +154,12 @@
         <!-- End of Status Beban & SLA di Unit Layanan -->
 
         <!-- Isi Utama -->
-        <div class="w-full grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
-
-            <!-- Kolom Kiri: daftar pengaduan yang mendesak. -->
-            <div class="lg:col-span-8 flex flex-col gap-space-md">
+        <div class="w-full gap-space-lg">
+            <div class="lg:col-span-8 flex flex-col gap-space-md w-full">
 
                 <!-- Daftar Pengaduan Butuh Tindakan Segera -->
                 <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-sm border-b border-outline-variant/30">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-start gap-space-md pb-space-sm border-b border-outline-variant/30">
                         <div class="flex items-start gap-space-sm">
                             <span class="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0 mt-0.5">
                                 <x-symbol nama="notification_important" class="text-[22px]" />
@@ -404,62 +402,6 @@
 
             </div>
             <!-- End of Kolom Kiri -->
-
-            <!-- Kolom Kanan: keadaan unit. -->
-            <div class="lg:col-span-4 flex flex-col gap-space-lg">
-
-                <!-- Kartu Status Unit: posisi koneksi dan disposisi terakhir. -->
-                <div class="rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-md">
-                    <div class="flex items-center gap-space-sm pb-space-sm border-b border-outline-variant/30">
-                        <x-symbol nama="domain" class="text-secondary text-[22px]" />
-                        <div>
-                            <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Keadaan Unit</h2>
-
-                            <p class="font-body-sm text-body-sm text-on-surface-variant">
-                                Dibaca dari master unit, bukan dari tiket yang sedang berjalan.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-space-sm">
-                        <span class="w-10 h-10 rounded-lg {{ $unit->disposisi->badge() }} flex items-center justify-center shrink-0">
-                            <x-symbol nama="hub" class="text-[22px]" />
-                        </span>
-
-                        <div class="flex flex-col">
-                            <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">
-                                Disposisi Terakhir
-                            </span>
-                            <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $unit->disposisi->label() }}</span>
-                            <span class="font-label-sm text-label-sm text-on-surface-variant">{{ $unit->disposisi->ringkas() }}</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm text-on-surface font-body-sm text-body-sm">
-                        <div>
-                            <span class="text-on-surface-variant text-[11px] block">Koneksi SIMRS</span>
-                            <strong>{{ $unit->koneksi_simrs ? 'Terhubung' : 'Tidak terhubung' }}</strong>
-                        </div>
-                        <div>
-                            <span class="text-on-surface-variant text-[11px] block">Pemeriksaan terakhir</span>
-                            <strong>
-                                {{ $unit->koneksi_simrs_terakhir !== null ? $unit->koneksi_simrs_terakhir->translatedFormat('d M Y, H:i') : 'Belum pernah' }}
-                            </strong>
-                        </div>
-                        <div>
-                            <span class="text-on-surface-variant text-[11px] block">Status akses akun</span>
-                            <strong>{{ $unit->status_akses->label() }}</strong>
-                        </div>
-                        <div>
-                            <span class="text-on-surface-variant text-[11px] block">Jam layanan</span>
-                            <strong>{{ $unit->jam_layanan }}</strong>
-                        </div>
-                    </div>
-                </div>
-                <!-- End of Kartu Status Unit -->
-
-            </div>
-            <!-- End of Kolom Kanan -->
         </div>
         <!-- End of Isi Utama -->
 
@@ -491,11 +433,11 @@
                          saling-desak, sedangkan tinggi baris tetap mengikuti isi. --}}
                     <colgroup>
                         <col class="w-[14%]">
-                        <col class="w-[24%]">
+                        <col class="w-[32%]">
                         <col class="w-[17%]">
                         <col class="w-[16%]">
                         <col class="w-[13%]">
-                        <col class="w-[16%]">
+                        <col class="w-[10%]">
                     </colgroup>
 
                     <thead>
@@ -505,7 +447,7 @@
                             <th scope="col" class="py-space-sm px-space-md">Pelapor</th>
                             <th scope="col" class="py-space-sm px-space-md">Status &amp; Di Unit</th>
                             <th scope="col" class="py-space-sm px-space-md">Monitoring SLA</th>
-                            <th scope="col" class="py-space-sm px-space-md">Aksi</th>
+                            <th scope="col" class="py-space-sm px-space-md text-center">Aksi</th>
                         </tr>
                     </thead>
 
@@ -565,7 +507,7 @@
                                     </div>
                                 </td>
 
-                                <td class="py-space-sm px-space-md align-top">
+                                <td class="py-space-sm px-space-md align-top text-right">
                                     <a
                                         href="{{ $baris['url'] }}"
                                         class="inline-flex items-center justify-center gap-space-xs px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm hover:bg-secondary/90 transition-colors whitespace-nowrap"
