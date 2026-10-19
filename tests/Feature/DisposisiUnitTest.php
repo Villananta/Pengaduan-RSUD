@@ -19,8 +19,9 @@ use Tests\TestCase;
 /**
  * Halaman disposisi sisi unit: daftar masuk, workspace, dan arsip.
  *
- * Yang diuji bukan hanya tampilannya, tetapi juga penguncian unit: satu unit
- * tidak boleh melihat tiket unit lain, dan jawaban unit harus benar-benar
+ * Yang diuji bukan hanya tampilannya, tetapi juga penguncian unit: satu
+ * unit tidak boleh melihat tiket unit lain, dan akun PIC hanya boleh
+ * menembak URL unit yang menempel padanya. Jawaban unit harus benar-benar
  * meninggalkan jejak (pesan berperan unit, disposisi unit, hitungan humas).
  */
 class DisposisiUnitTest extends TestCase
@@ -33,7 +34,7 @@ class DisposisiUnitTest extends TestCase
 
         $this->seed(MasterUnitSeeder::class);
 
-        $this->masukSebagaiPic();
+        $this->masukSebagaiPicUntuk(MasterUnit::where('kode', 'IFP-01')->firstOrFail());
     }
 
     public function test_daftar_disposisi_hanya_menampilkan_pengaduan_unit_tersebut(): void
@@ -64,6 +65,25 @@ class DisposisiUnitTest extends TestCase
 
         $this->get(route('unit.disposisi.show', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]))
             ->assertNotFound();
+    }
+
+    public function test_pic_tidak_bisa_membuka_mauhpun_menjawab_disposisi_unit_lain(): void
+    {
+        $radiologi = MasterUnit::where('kode', 'IRS-03')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $radiologi->id]);
+
+        // URL unit lain yang diketik langsung tetap ditolak, termasuk
+        // jalur tulisnya, supaya jawaban tidak bisa dikirim ke unit orang
+        // lain lewat pengakuan yang menyamar sebagai PIC unit tersebut.
+        $this->get(route('unit.disposisi.index', $radiologi))->assertForbidden();
+
+        $this->post(route('unit.disposisi.kirim', ['unit' => $radiologi, 'kode' => $tiket->kode_tiket]), [
+            'isi' => 'Jawaban yang seharusnya tidak pernah sampai ke unit ini.',
+        ])->assertForbidden();
+
+        $this->assertNull($tiket->fresh()->pesan()->where('peran', 'unit')->first());
     }
 
     public function test_workspace_unit_menampilkan_form_jawaban_dan_instruksi_disposisi(): void

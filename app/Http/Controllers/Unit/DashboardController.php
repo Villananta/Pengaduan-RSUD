@@ -7,36 +7,40 @@ use App\Models\MasterUnit;
 use App\Support\DashboardUnit;
 use App\Support\Sla;
 use App\Support\StatistikUnit;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
  * Dashboard unit layanan melalui pintu masuk /unit.
  *
- * Rutenya kini dibungkus auth dan PastikanPic, tetapi unit yang dibuka
- * masih ditentukan dari kode unit di URL — penguncian per-unit sesuai
- * identitas pemakai belum dipasang. Unit non-aktif tetap ditolak lewat
- * middleware App\Http\Middleware\PastikanUnitAktif supaya URL langsung ke
- * unit yang dinonaktifkan tetap 404. Seluruh penghitungan
+ * Satu akun PIC mengurus satu unit, jadi /unit tidak lagi menawarkan
+ * pilihan unit. Kode unit di URL dikunci berlapis: middleware
+ * App\Http\Middleware\PastikanUnitSendiri menolak unit milik PIC lain, dan
+ * App\Http\Middleware\PastikanUnitAktif menolak unit yang dinonaktifkan
+ * supaya URL langsung ke unit tersebut tetap 404. Seluruh penghitungan
  * diserahkan ke App\Support\StatistikUnit supaya template tidak menyimpan
  * query, dan angkanya tetap memakai rumus SLA yang sama dengan konsol admin.
  */
 class DashboardController extends Controller
 {
     /**
-     * Halaman pemilih unit sebelum dashboardnya dibuka.
+     * Pintu masuk konsol unit.
      *
-     * Jumlah pengaduan aktif ikut diambil di sini supaya petugas bisa
-     * memilih unit dari beban yang terlihat, bukan hanya dari namanya.
+     * Petugas yang sudah ditautkan langsung dipindahkan ke dashboard
+     * unitnya, tanpa singgah ke halaman pemilih. Petugas yang belum
+     * ditautkan hanya mendapat halaman penjelasan — bukan daftar unit —
+     * supaya tidak ada unit yang bisa dibuka tanpa penugasan.
      */
-    public function pilih(): View
+    public function beranda(Request $request): RedirectResponse|View
     {
-        return view('unit.pilih', [
-            'unit' => null,
-            'daftarUnit' => MasterUnit::query()
-                ->withCount(['pengaduan as beban_aktif' => fn ($q) => $q->aktif()])
-                ->orderBy('kode')
-                ->get(),
-        ]);
+        $unit = $request->user()->unit()->orderBy('id')->first();
+
+        if ($unit !== null) {
+            return redirect()->route('unit.dashboard', $unit);
+        }
+
+        return view('unit.belum-ditautkan', ['unit' => null]);
     }
 
     /** Ringkasan pengaduan milik satu unit. */

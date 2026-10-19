@@ -18,6 +18,7 @@ use App\Http\Controllers\Unit\UnitExportController;
 use App\Http\Middleware\PastikanAdmin;
 use App\Http\Middleware\PastikanPic;
 use App\Http\Middleware\PastikanUnitAktif;
+use App\Http\Middleware\PastikanUnitSendiri;
 use App\Http\Middleware\ThrottleKeys;
 use Illuminate\Support\Facades\Route;
 
@@ -197,22 +198,22 @@ Route::prefix('admin')->name('admin.')
 
 // Dashboard unit layanan (pintu masuk /unit).
 //
-// Grup ini kini tertutup oleh auth seperti konsol admin: tamu diarahkan ke
+// Grup ini tertutup oleh auth seperti konsol admin: tamu diarahkan ke
 // halaman masuk, dan admin humas yang membuka URL unit diblokir PastikanPic.
-// Rute ber-{unit} tetap dijaga PastikanUnitAktif supaya unit non-aktif tidak
-// bisa dibuka lewat URL langsung, dan endpoint tulis jawaban tetap dibatasi
-// throttle:20,1.
 //
-// Catatan: penguncian per-unit (PIC unit A tidak boleh membuka unit B) belum
-// dipasang — middleware saat ini hanya memisahkan peran di tingkat aplikasi.
+// Satu akun PIC mengurus satu unit, jadi /unit bukan lagi halaman pemilih:
+// petugas yang sudah ditautkan langsung dilempar ke dashboard unitnya, yang
+// belum ditautkan hanya mendapat halaman penjelasan. Penguncian unit pun
+// kini berlapis: PastikanUnitSendiri menolak unit milik PIC lain dengan
+// 403, PastikanUnitAktif menolak unit non-aktif dengan 404, dan endpoint
+// tulis jawaban tetap dibatasi throttle:20,1.
 Route::prefix('unit')->name('unit.')
     ->middleware(['auth', PastikanPic::class])
     ->group(function () {
-        Route::get('/', [UnitDashboardController::class, 'pilih'])->name('pilih');
+        // Pintu masuk konsol unit: mengantar petugas ke unit miliknya sendiri.
+        Route::get('/', [UnitDashboardController::class, 'beranda'])->name('beranda');
 
-        // Unit non-aktif hanya hilang dari daftar pemilih, jadi rute ber-{unit}
-        // dijaga terpisah supaya URL langsungnya ikut ditolak.
-        Route::middleware(PastikanUnitAktif::class)->group(function () {
+        Route::middleware([PastikanUnitSendiri::class, PastikanUnitAktif::class])->group(function () {
             Route::get('/{unit}/dashboard', [UnitDashboardController::class, 'index'])->name('dashboard');
 
             // Halaman disposisi sisi unit. Sengaja terpisah dari rute admin.pengaduan

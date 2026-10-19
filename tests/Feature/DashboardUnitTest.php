@@ -20,52 +20,48 @@ class DashboardUnitTest extends TestCase
 
         $this->seed(MasterUnitSeeder::class);
 
-        $this->masukSebagaiPic();
+        $this->masukSebagaiPicUntuk(MasterUnit::where('kode', 'IFP-01')->firstOrFail());
     }
 
-    public function test_halaman_pilih_unit_butuh_login(): void
+    public function test_beranda_unit_butuh_login(): void
     {
         auth()->logout();
 
-        $this->get(route('unit.pilih'))->assertRedirect(route('masuk'));
+        $this->get(route('unit.beranda'))->assertRedirect(route('masuk'));
+    }
 
+    public function test_beranda_unit_mengantar_pic_ke_dashboard_unitnya(): void
+    {
+        // Tidak ada langkah memilih unit: akun PIC langsung dibawa ke unit
+        // yang menempel padanya, apa pun isi master data unit lain.
+        $this->get(route('unit.beranda'))
+            ->assertRedirect(route('unit.dashboard', 'IFP-01'));
+    }
+
+    public function test_akun_pic_tanpa_unit_mendapat_penjelasan_bukan_daftar_unit(): void
+    {
         $this->masukSebagaiPic();
 
-        $this->get(route('unit.pilih'))
+        $tampilan = $this->get(route('unit.beranda'))
             ->assertOk()
-            ->assertSee('Pilih Unit Layanan')
-            ->assertSee('Pintu Masuk Dashboard Unit');
-    }
-
-    public function test_pilih_unit_menampilkan_daftar_unit_aktif(): void
-    {
-        $tampilan = $this->get(route('unit.pilih'))
-            ->assertOk()
-            ->assertSee('Instalasi Farmasi Pusat')
-            ->assertSee('Buka Dashboard')
+            ->assertSee('Akun Belum Ditautkan')
             ->getContent();
 
-        $this->assertStringContainsString(
-            'href="'.route('unit.dashboard', 'IFP-01').'"',
-            $tampilan,
-        );
+        // Halaman ini tidak boleh menawarkan unit mana pun, apalagi memakai
+        // tautan palsu; akses dibuka oleh admin lewat penautan akun.
+        $this->assertStringNotContainsString('Buka Dashboard', $tampilan);
+        $this->assertStringNotContainsString('Instalasi Farmasi Pusat', $tampilan);
+        $this->assertStringNotContainsString('href="#', $tampilan);
     }
 
-    public function test_unit_yang_tidak_aktif_tidak_mendapat_tautan_dashboard(): void
+    public function test_pic_tidak_bisa_membuka_unit_milik_pic_lain(): void
     {
-        MasterUnit::updateOrCreate(['kode' => 'IFP-01'], ['aktif' => false]);
+        $radiologi = MasterUnit::where('kode', 'IRS-03')->firstOrFail();
 
-        $tampilan = $this->get(route('unit.pilih'))
-            ->assertOk()
-            ->assertSee('Tidak Aktif')
-            ->assertSee('cursor-not-allowed')
-            ->getContent();
-
-        // Unit non-aktif tidak boleh ditautkan, apalagi ke tautan palsu.
-        $this->assertStringNotContainsString(
-            'href="'.route('unit.dashboard', 'IFP-01').'"',
-            $tampilan,
-        );
+        // setUp hanya menautkan akun ke IFP-01; unit lain harus ditolak
+        // walau kodenya diketik langsung di URL.
+        $this->get(route('unit.dashboard', $radiologi))->assertForbidden();
+        $this->get(route('unit.disposisi.index', $radiologi))->assertForbidden();
     }
 
     public function test_dashboard_unit_nonaktif_menghasilkan_404(): void
@@ -235,12 +231,10 @@ class DashboardUnitTest extends TestCase
             'created_at' => now()->subWeekdays(14)->setTime(8, 0),
         ]);
 
-        foreach (['unit.pilih', 'unit.dashboard'] as $namaRute) {
-            $tampilan = $this->get(route($namaRute, $namaRute === 'unit.dashboard' ? 'IFP-01' : []))
-                ->assertOk()
-                ->getContent();
+        $tampilan = $this->get(route('unit.dashboard', 'IFP-01'))
+            ->assertOk()
+            ->getContent();
 
-            $this->assertStringNotContainsString('href="#', $tampilan);
-        }
+        $this->assertStringNotContainsString('href="#', $tampilan);
     }
 }

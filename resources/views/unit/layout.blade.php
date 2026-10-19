@@ -21,12 +21,10 @@
 <body class="bg-surface font-body-md text-on-surface min-h-screen">
 
     @php
-        // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL,
-        // supaya halaman pemilih unit tidak dipenuhi tautan yang tujuannya
-        // belum bisa ditentukan. Menu "Pilih Unit" justru hanya ada di
-        // halaman pemilih: begitu pengguna masuk ke dashboard unit, pintu
-        // keluar dari unit itu dihapus dari topbar supaya tidak memancing
-        // orang pindah unit tanpa sengaja.
+        // Menu unit hanya muncul ketika kode unit sudah terbaca dari URL.
+        // Halaman "belum ditautkan" sengaja tampil tanpa menu apa pun:
+        // belum ada unit yang tujuannya bisa dipastikan, jadi tidak ada
+        // tautan yang layak dipasang di sana.
         $navigasi = [];
 
         if ($unit !== null) {
@@ -49,14 +47,6 @@
                 'label' => 'Riwayat & Arsip Disposisi',
                 'pola' => 'unit.disposisi.arsip',
                 'url' => route('unit.disposisi.arsip', $unit),
-            ];
-        } else {
-            // Di halaman pemilih unit belum ada tujuan lain, jadi satu-satunya
-            // menu yang bisa diberi tautan tetap adalah pemilih unit itu sendiri.
-            $navigasi[] = [
-                'label' => 'Pilih Unit',
-                'pola' => 'unit.pilih',
-                'url' => route('unit.pilih'),
             ];
         }
     @endphp
@@ -82,8 +72,10 @@
                         PIC Unit &bull; {{ $unit->namaLengkap() }}
                     </span>
                 @else
-                    <span class="hidden lg:inline-flex items-center px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-bold uppercase tracking-wider">
-                        Pilih Unit Layanan
+                    {{-- Halaman belum ditautkan: label topbar mengikuti
+                         kondisi akun, bukan menunjuk unit tertentu. --}}
+                    <span class="hidden lg:inline-flex items-center px-space-sm py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold uppercase tracking-wider">
+                        Akun Belum Ditautkan
                     </span>
                 @endif
             </div>
@@ -105,10 +97,10 @@
                     </span>
                     <div class="hidden xl:flex flex-col text-left">
                         <span class="font-label-lg text-label-lg text-ink font-semibold leading-tight">
-                            {{ $unit?->pic ?? 'Belum ada PIC' }}
+                            {{ $unit?->pic ?? 'PIC belum ditetapkan' }}
                         </span>
                         <span class="font-label-sm text-label-sm text-ink-muted leading-none">
-                            {{ $unit?->jabatan_pic ?? 'Pilih unit untuk mulai bekerja' }}
+                            {{ $unit?->jabatan_pic ?? 'Hubungi admin humas untuk penautan akun' }}
                         </span>
                     </div>
                 </div>
@@ -160,7 +152,7 @@
                 <x-symbol nama="domain" class="text-[16px] text-outline" />
                 <span>Unit Pelayanan</span>
                 <x-symbol nama="chevron_right" class="text-[14px] text-outline-variant" />
-                <span class="text-ink font-semibold">{{ $unit?->nama ?? 'Pilih Instalasi' }}</span>
+                <span class="text-ink font-semibold">{{ $unit?->nama ?? 'Belum ada unit' }}</span>
             </div>
         </div>
         <!-- End of Navigasi Utama -->

@@ -84,14 +84,20 @@ class SesiMasukTest extends TestCase
         $this->assertAuthenticatedAs($pengguna);
     }
 
-    public function test_pic_belum_terikat_unit_mendarat_di_pemilih_unit(): void
+    public function test_pic_belum_terikat_unit_mendarat_di_halaman_penjelasan(): void
     {
         User::factory()->state(['peran' => PeranPengguna::Unit])->create(['email' => 'pic@tanpa-unit.test']);
 
+        // Tidak ada lagi halaman pemilih unit: akun yang belum ditautkan
+        // cukup diberi tahu bahwa aksesnya belum lengkap.
         $this->post(route('masuk.coba'), [
             'email' => 'pic@tanpa-unit.test',
             'kata_sandi' => 'password',
-        ])->assertRedirect(route('unit.pilih'));
+        ])->assertRedirect(route('unit.beranda'));
+
+        $this->get(route('unit.beranda'))
+            ->assertOk()
+            ->assertSee('Akun Belum Ditautkan');
     }
 
     public function test_sandi_salah_mengembalikan_pesan_dan_tetap_tamu(): void
@@ -145,6 +151,18 @@ class SesiMasukTest extends TestCase
         $this->get(route('masuk'))->assertRedirect(route('admin.dashboard'));
     }
 
+    public function test_pic_yang_sudah_masuk_dibawa_langsung_ke_unitnya(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $this->masukSebagaiPicUntuk($unit);
+
+        // Baik membuka ulang halaman masuk maupun menembak pintu /unit,
+        // petugas tidak lagi disodori daftar unit untuk dipilih.
+        $this->get(route('masuk'))->assertRedirect(route('unit.dashboard', $unit));
+        $this->get(route('unit.beranda'))->assertRedirect(route('unit.dashboard', $unit));
+    }
+
     public function test_mengingat_sesi_mengeluarkan_cookie_pengingat(): void
     {
         User::factory()->admin()->create(['email' => 'humas@rsud.test']);
@@ -177,7 +195,7 @@ class SesiMasukTest extends TestCase
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        $this->get(route('unit.pilih'))->assertRedirect(route('masuk'));
+        $this->get(route('unit.beranda'))->assertRedirect(route('masuk'));
         $this->get(route('unit.dashboard', $unit))->assertRedirect(route('masuk'));
         $this->get(route('unit.disposisi.index', $unit))->assertRedirect(route('masuk'));
     }
@@ -192,8 +210,12 @@ class SesiMasukTest extends TestCase
 
     public function test_admin_tidak_bisa_membuka_konsol_unit(): void
     {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
         $this->masukSebagaiAdmin();
 
-        $this->get(route('unit.pilih'))->assertForbidden();
+        // Konsol unit tertutup bagi konsol humas, termasuk pintu berandanya.
+        $this->get(route('unit.beranda'))->assertForbidden();
+        $this->get(route('unit.dashboard', $unit))->assertForbidden();
     }
 }

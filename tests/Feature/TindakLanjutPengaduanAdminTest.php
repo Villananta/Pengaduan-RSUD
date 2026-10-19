@@ -167,7 +167,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         // Pilihan unit dari pelapor belum diteruskan Humas, jadi tiketnya
         // belum muncul di daftar unit. Langkah pengamatan ini memakai akun PIC
         // karena konsol unit kini tertutup bagi admin humas.
-        $this->masukSebagaiPic();
+        $this->masukSebagaiPicUntuk($unit);
 
         $this->get(route('unit.disposisi.index', $unit))
             ->assertOk()
@@ -192,7 +192,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         // Setelah Humas menangani sendiri, tautan unit tetap bersih —
         // diamati lagi sebagai PIC karena konsol unit tertutup bagi admin.
-        $this->masukSebagaiPic();
+        $this->masukSebagaiPicUntuk($unit);
 
         $this->get(route('unit.disposisi.index', $unit))
             ->assertOk()

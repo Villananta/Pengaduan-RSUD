@@ -59,9 +59,11 @@ class PengaduanTahapBerubah extends Notification implements ShouldQueue
             return route('admin.pengaduan.show', $this->pengaduan->kode_tiket);
         }
         if (method_exists($notifiable, 'berperanUnit') && $notifiable->berperanUnit()) {
+            // Tautan tidak pernah jatuh ke pemilih unit; petugas tanpa unit
+            // cukup mendarat di halaman penjelasan bahwa akunnya belum ditautkan.
             $unit = $notifiable->unit()->first();
 
-            return $unit ? route('unit.disposisi.show', ['unit' => $unit->kode, 'kode' => $this->pengaduan->kode_tiket]) : route('unit.pilih');
+            return $unit ? route('unit.disposisi.show', ['unit' => $unit->kode, 'kode' => $this->pengaduan->kode_tiket]) : route('unit.beranda');
         }
 
         return route('pengaduan.lacak');

@@ -10,9 +10,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Menolak unit yang sudah dinonaktifkan dari master data.
  *
- * Unit non-aktif selama ini hanya disembunyikan dari halaman pemilih, jadi
- * URL langsung ke dashboard-nya tetap terbuka. Penjaga ini membuat status
- * aktif berlaku sungguhan tanpa bergantung pada tautan yang tampil di layar.
+ * Penjaga ini membuat status aktif berlaku sungguhan: URL langsung ke
+ * dashboard maupun halaman disposisi unit yang dimatikan ikut 404, bukan
+ * sekadar hilang dari tampilan. Karena itu berpindah unit tidak bisa
+ * dipakai untuk menghidupkan kembali akses yang sudah dicabut admin.
  */
 class PastikanUnitAktif
 {

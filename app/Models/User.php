@@ -39,8 +39,10 @@ class User extends Authenticatable
     /**
      * Unit-unit yang diurus akun ini.
      *
-     * Peran PIC disimpan di pivot karena seorang petugas bisa memegang lebih
-     * dari satu unit dengan peran yang berbeda di masing-masing unit.
+     * Relasinya tetap many-to-many karena satu unit boleh diurus banyak
+     * akun. Aplikasi memakainya dengan kebijakan satu PIC satu unit:
+     * SesiController membuka unit pertamanya ketika petugas masuk, dan
+     * PastikanUnitSendiri menolak unit yang tidak tercatat di sini.
      */
     public function unit(): BelongsToMany
     {

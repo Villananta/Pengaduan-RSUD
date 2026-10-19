@@ -76,12 +76,14 @@ class SesiController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        // PIC bisa memegang lebih dari satu unit, jadi unit pertamanya yang
-        // dibuka lebih dulu; pemilih unit tetap tersedia untuk berpindah.
+        // Satu akun PIC mengurus satu unit, jadi unit itulah yang langsung
+        // dibuka. Akun yang belum ditautkan tidak diberi daftar unit untuk
+        // dipilih — halaman penjelasan yang lebih jujur, dan tidak ada unit
+        // yang bisa dimasuki diam-diam lewat halaman pemilih lama.
         $unit = $pengguna->unit()->orderBy('id')->first();
 
         return $unit === null
-            ? redirect()->route('unit.pilih')
+            ? redirect()->route('unit.beranda')
             : redirect()->route('unit.dashboard', $unit);
     }
 }
