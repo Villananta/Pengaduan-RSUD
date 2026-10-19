@@ -370,8 +370,6 @@ class Pengaduan extends Model
 
     /**
      * Cari tiket via token akses (untuk middleware/controller).
-     *
-     * @return self|null
      */
     public static function findByValidAksesToken(string $token): ?self
     {
@@ -413,7 +411,7 @@ class Pengaduan extends Model
      */
     public function verifyEmailOtp(string $otp): bool
     {
-        if (! $this->email_otp || $this->email_otp !== $otp) {
+        if (! $this->email_otp || ! hash_equals((string) $this->email_otp, (string) $otp)) {
             return false;
         }
 

@@ -136,6 +136,9 @@ final class UndanganPic
                 ['name' => $nama, 'peran' => PeranPengguna::Unit, 'password' => $kataSandi],
             );
 
+            $pengguna->peran = PeranPengguna::Unit;
+            $pengguna->save();
+
             $pengguna->unit()->syncWithoutDetaching([
                 $unit->getKey() => ['peran_akses' => $unit->peran_akses->value],
             ]);
