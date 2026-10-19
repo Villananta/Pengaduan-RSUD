@@ -74,8 +74,15 @@ Route::post('/aktivasi-undangan/{token}', [AktivasiUndanganController::class, 's
 // konsol admin, PIC unit ke konsol unitnya. Tidak ada pendaftaran mandiri —
 // akun PIC lahir dari undangan aktivasi, akun admin dari pengelolaan basis
 // data. Percobaan masuk dibatasi 10/menit agar sandi tidak bisa ditebak.
-Route::get('/masuk', [SesiController::class, 'tampil'])->name('masuk');
-Route::post('/masuk', [SesiController::class, 'coba'])
+//
+// Alamatnya dibaca dari config dan sengaja tidak ditautkan di situs
+// pelapor, jadi orang awam tidak kebetulan menemukan halaman ini. trim()
+// menetralkan garis miring tulisan di .env, dan alamat bawaan dipakai
+// kembali kalau isinya kosong supaya rute tidak pernah jatuh ke root.
+$ruteMasuk = '/'.(trim((string) config('pengaduan.rute_masuk'), '/') ?: 'petugas/masuk');
+
+Route::get($ruteMasuk, [SesiController::class, 'tampil'])->name('masuk');
+Route::post($ruteMasuk, [SesiController::class, 'coba'])
     ->middleware('throttle:10,1,'.ThrottleKeys::MASUK)
     ->name('masuk.coba');
 Route::post('/keluar', [SesiController::class, 'keluar'])->name('keluar');

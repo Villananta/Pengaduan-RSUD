@@ -37,6 +37,14 @@ return [
     // read-only sehingga lampiran harus lewat S3 / Cloudflare R2.
     'disk_lampiran' => env('DISK_LAMPIRAN', 'public'),
 
+    // Alamat halaman masuk petugas. Halaman ini tidak ditautkan di navigasi
+    // mana pun dan diberi meta noindex, jadi orang awam hanya akan menemukan
+    // halamannya kalau alamatnya dibagikan. Nilai lewat RUTE_MASUK di .env
+    // boleh diganti kapan saja; setelah mengganti, jalankan
+    // `php artisan config:clear && php artisan route:clear` karena alamat
+    // ikut terkunci di dalam cache rute.
+    'rute_masuk' => env('RUTE_MASUK', 'petugas/masuk'),
+
     // Unit / instalasi yang boleh dipilih pelapor.
     'units' => [
         'Instalasi Rawat Jalan (Poliklinik)',

@@ -58,13 +58,14 @@ class AktivasiUndanganController extends Controller
 
         UndanganPic::aktivasi($unit, $data['nama'], $data['kata_sandi']);
 
-        // Halaman masuk PIC belum ada, jadi suksesnya ditandai dengan
-        // keadaan unit di tabel — bukan dengan tautan konsol yang belum
-        // bisa dibuka siapa pun. Kunci flash dipisah dari 'sukses' tombol
-        // admin supaya admin yang membuka tautan undangan di browser yang
-        // sama tidak melihat panel berhasil milik halaman master unit.
+        // Halaman masuknya sudah ada, tetapi alamatnya sengaja tidak
+        // dipublikasikan, jadi suksesnya tetap ditandai lewat kunci flash
+        // dan alamat masuk disampaikan admin secara terpisah. Kunci flash
+        // dipisah dari 'sukses' tombol admin supaya admin yang membuka
+        // tautan undangan di browser yang sama tidak melihat panel berhasil
+        // milik halaman master unit.
         return redirect()
             ->route('aktivasi.undangan', ['token' => $token])
-            ->with('aktivasi_sukses', 'Akun PIC untuk '.$unit->namaLengkap().' berhasil diaktifkan. Simpan sandi yang baru Anda buat; konsol unit bisa dibuka begitu halaman masuknya tersedia.');
+            ->with('aktivasi_sukses', 'Akun PIC untuk '.$unit->namaLengkap().' berhasil diaktifkan. Simpan sandi yang baru Anda buat, lalu minta alamat masuk konsol unit ke admin humas.');
     }
 }

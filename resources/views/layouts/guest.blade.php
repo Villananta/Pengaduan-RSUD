@@ -10,6 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <title>@yield('title', 'Buat Aduan') — Sistem Pengaduan RSUD Dr. Soetomo</title>
+
+    {{-- Section ini dipakai halaman petugas untuk meminta mesin pencari tidak
+         mengindeksnya, supaya alamat masuk tidak ikut bocor lewat hasil
+         pencarian. Halaman pelapor membiarkannya kosong. --}}
+    @yield('robots')
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -50,17 +56,6 @@
                         ])
                     >{{ $item['label'] }}</a>
                 @endforeach
-
-                {{-- Pintu masuk petugas diberi gaya berbeda dari menu pelapor
-                     supaya tidak terbaca sebagai bagian alur aduan. --}}
-                <a
-                    href="{{ route('masuk') }}"
-                    @class([
-                        'shrink-0 rounded-full px-4 py-2 text-sm font-bold transition',
-                        'bg-brand-100 text-brand-800' => request()->routeIs('masuk*'),
-                        'border border-brand-300 text-brand-800 hover:bg-brand-50' => ! request()->routeIs('masuk*'),
-                    ])
-                >Masuk</a>
 
             </nav>
         </div>

@@ -38,6 +38,27 @@ class SesiMasukTest extends TestCase
             ->assertSee('Ingat saya di peramban ini');
     }
 
+    public function test_alamat_masuk_lama_sudah_tidak_melayani(): void
+    {
+        // Alamat lama dulu dipakai publik, jadi jangan dibiarkan hidup lagi
+        // supaya orang awam yang mengingatnya tidak menemukan pintu konsol.
+        $this->get('/masuk')->assertNotFound();
+        $this->post('/masuk')->assertNotFound();
+    }
+
+    public function test_situs_pelapor_tidak_menautkan_alamat_masuk(): void
+    {
+        $this->get(route('pengaduan.create'))
+            ->assertOk()
+            ->assertDontSee(route('masuk'), false);
+    }
+
+    public function test_halaman_masuk_meminta_mesin_pencari_tidak_mengindeks(): void
+    {
+        $this->get(route('masuk'))
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    }
+
     public function test_masuk_sebagai_admin_mengarahkan_ke_konsol_admin(): void
     {
         $pengguna = User::factory()->admin()->create(['email' => 'humas@rsud.test']);

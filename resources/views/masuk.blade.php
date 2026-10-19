@@ -2,6 +2,13 @@
 
 @section('title', 'Masuk')
 
+{{-- Alamat masuk sengaja tidak ditautkan di situs pelapor. noindex dipasang
+     sebagai penjaga kedua supaya halaman ini tidak muncul di hasil pencarian
+     meski alamatnya pernah terkirim lewat tautan atau pesan. --}}
+@section('robots')
+    <meta name="robots" content="noindex, nofollow">
+@endsection
+
 @section('content')
 
 <!-- Halaman Masuk -->
