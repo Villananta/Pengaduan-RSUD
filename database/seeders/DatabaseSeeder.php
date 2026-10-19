@@ -19,6 +19,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(MasterUnitSeeder::class);
+
+        // Setiap unit aktif langsung diberi akun PIC yang sudah menempel di
+        // pivot, supaya konsol unit bisa dicoba tanpa menunggu PIC membuka
+        // tautan undangan.
+        $this->call(AkunPicSeeder::class);
+
         $this->call(PengaduanDemoSeeder::class);
         $this->call(PengaduanDummySeeder::class);
 
