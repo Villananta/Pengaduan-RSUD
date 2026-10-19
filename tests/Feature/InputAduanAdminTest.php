@@ -22,6 +22,8 @@ class InputAduanAdminTest extends TestCase
         parent::setUp();
 
         $this->seed(MasterUnitSeeder::class);
+
+        $this->masukSebagaiAdmin();
     }
 
     /** Isian formulir input aduan yang valid, boleh diubah per test. */

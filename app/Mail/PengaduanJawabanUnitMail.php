@@ -31,7 +31,9 @@ class PengaduanJawabanUnitMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.jawaban-unit',
+            // 'markdown' bukan 'view': tempat ini yang mendaftarkan komponen
+            // mail::layout dan mem-parse isi markdownnya.
+            markdown: 'emails.jawaban-unit',
             with: [
                 'pengaduan' => $this->pengaduan,
                 'unitPengirim' => $this->unitPengirim,

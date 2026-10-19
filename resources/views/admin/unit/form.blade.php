@@ -289,7 +289,7 @@
                     </div>
 
                     <span class="font-label-sm text-label-sm text-outline">
-                        Halaman dashboard milik PIC unit belum dibangun, jadi status akses dicatat manual sambil menunggu alur undangan otomatis selesai dibangun.
+                        Status berubah otomatis lewat kirim undangan dan aktivasi PIC; dropdown ini disediakan untuk pencatatan manual bila kondisi akun diketahui di luar alur tersebut.
                     </span>
                 </div>
 
@@ -329,7 +329,7 @@
                             @endforeach
                         </select>
                         <span class="font-label-sm text-label-sm text-outline">
-                            {{ $unit?->status_akses?->catatan() ?? 'Pilih kondisi sesuai apa yang sudah tercatat di luar aplikasi ini.' }}
+                            {{ $unit?->status_akses?->catatan() ?? 'Kondisi awal umumnya Belum Diundang; pilih lain bila PIC sudah pernah diundang atau sudah berakun.' }}
                         </span>
                     </div>
                 </div>

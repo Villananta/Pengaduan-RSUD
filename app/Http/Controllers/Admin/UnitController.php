@@ -9,6 +9,7 @@ use App\Models\MasterUnit;
 use App\Support\DaftarUnit;
 use App\Support\PemeliharaanUnit;
 use App\Support\Sla;
+use App\Support\UndanganPic;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -82,6 +83,26 @@ class UnitController extends Controller
             $unit->aktif
                 ? $unit->namaLengkap().' sudah diaktifkan kembali.'
                 : $unit->namaLengkap().' dinonaktifkan dan tidak bisa dipilih lagi.',
+        );
+    }
+
+    /**
+     * Kirim undangan aktivasi ke PIC semua unit yang akunnya belum aktif.
+     *
+     * Tombolnya massal, bukan per baris: undangan hanya berguna kalau
+     * seluruh unit yang alamat emailnya terisi ikut terjangkau, dan PIC
+     * satu unit tidak boleh tertinggal hanya karena admin lupa menyentuh
+     * satu baris di tabel.
+     */
+    public function kirimUndangan(): RedirectResponse
+    {
+        $hasil = UndanganPic::kirimMassal();
+
+        return back()->with(
+            'sukses',
+            $hasil['terkirim'] > 0
+                ? $hasil['terkirim'].' undangan aktivasi dikirim ke PIC; '.$hasil['dilewat'].' unit dilewati karena alamat emailnya kosong atau akunnya sudah aktif.'
+                : 'Tidak ada undangan yang dikirim: semua unit sudah berakun aktif atau belum punya alamat email.',
         );
     }
 

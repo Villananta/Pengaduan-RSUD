@@ -45,9 +45,9 @@
             </div>
 
             <div class="flex items-center gap-space-sm flex-wrap self-end lg:self-center">
-                {{-- Sinkronisasi struktur unit dan kirim undangan PIC butuh
-                     layanan luar yang belum ada di aplikasi ini, jadi
-                     keduanya ditampilkan nonaktif, bukan sebagai tautan. --}}
+                {{-- Sinkronisasi struktur unit butuh layanan SIMRS yang belum
+                     punya endpoint di aplikasi ini, jadi tombolnya ditampilkan
+                     nonaktif, bukan sebagai tautan. --}}
                 <span
                     class="px-space-md py-2 rounded-lg bg-surface-container text-outline font-label-lg text-label-lg cursor-not-allowed select-none flex items-center gap-1.5"
                     title="Sinkronisasi struktur unit dari SIMRS belum punya endpoint, jalankan dari mesin pengingat di luar aplikasi"
@@ -56,13 +56,19 @@
                     Sinkronkan SIMRS
                 </span>
 
-                <span
-                    class="px-space-md py-2 rounded-lg bg-surface-container text-outline font-label-lg text-label-lg cursor-not-allowed select-none flex items-center gap-1.5"
-                    title="Undangan aktivasi PIC butuh akun unit dan notifikasi yang belum dibangun, status dicatat manual dari form unit"
-                >
-                    <x-symbol nama="mark_email_unread" class="text-[18px]" />
-                    Kirim Undangan
-                </span>
+                {{-- Pengiriman undangan bersifat massal: satu tekan mengirim
+                     tautan aktivasi ke semua PIC yang akunnya belum aktif. --}}
+                <form method="POST" action="{{ route('admin.unit.undangan') }}">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="px-space-md py-2 rounded-lg bg-secondary-container text-on-secondary-container font-label-lg text-label-lg hover:bg-secondary/85 transition-colors flex items-center gap-1.5 shadow-sm"
+                        title="Kirim tautan aktivasi ke email PIC semua unit yang akunnya belum aktif"
+                    >
+                        <x-symbol nama="mark_email_unread" class="text-[18px]" />
+                        Kirim Undangan
+                    </button>
+                </form>
 
                 <a
                     href="{{ route('admin.unit.create') }}"

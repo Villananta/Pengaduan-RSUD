@@ -42,6 +42,8 @@ class MasterUnit extends Model
         'nip',
         'kontak_wa',
         'email',
+        'undangan_token',
+        'undangan_berlaku',
         'ekstensi',
         'jam_layanan',
         'akun_simrs',
@@ -60,6 +62,7 @@ class MasterUnit extends Model
         'aktif' => 'boolean',
         'koneksi_simrs' => 'boolean',
         'koneksi_simrs_terakhir' => 'datetime',
+        'undangan_berlaku' => 'datetime',
         'disposisi' => DisposisiUnit::class,
     ];
 

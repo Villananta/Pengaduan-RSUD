@@ -32,7 +32,9 @@ class SlaLewatMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.sla-lewat',
+            // 'markdown' bukan 'view': tempat ini yang mendaftarkan komponen
+            // mail::layout dan mem-parse isi markdownnya.
+            markdown: 'emails.sla-lewat',
             with: [
                 'pengaduan' => $this->pengaduan,
                 'unit' => $this->unit,

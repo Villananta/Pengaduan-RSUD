@@ -19,10 +19,18 @@ class DashboardUnitTest extends TestCase
         parent::setUp();
 
         $this->seed(MasterUnitSeeder::class);
+
+        $this->masukSebagaiPic();
     }
 
-    public function test_halaman_pilih_unit_dapat_diakses_tanpa_login(): void
+    public function test_halaman_pilih_unit_butuh_login(): void
     {
+        auth()->logout();
+
+        $this->get(route('unit.pilih'))->assertRedirect(route('masuk'));
+
+        $this->masukSebagaiPic();
+
         $this->get(route('unit.pilih'))
             ->assertOk()
             ->assertSee('Pilih Unit Layanan')

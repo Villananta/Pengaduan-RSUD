@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // HTTP biasa dan membangun tautan aset ber-schema http, sehingga
         // browser memblokir CSS/JS saat halaman dibuka lewat https.
         $middleware->trustProxies(at: '*');
+
+        // Halaman masuk memakai nama rute sendiri, jadi tamu yang belum
+        // autentikasi diarahkan ke sana, bukan ke rute 'login' bawaan.
+        $middleware->redirectGuestsTo(fn () => route('masuk'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

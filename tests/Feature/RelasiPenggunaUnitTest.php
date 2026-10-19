@@ -12,8 +12,8 @@ use Tests\TestCase;
 /**
  * Fondasi peran pengguna dan relasi akun ke unit.
  *
- * Login belum dipasang di tahap ini; yang diuji hanya bentuk data dan
- * relasinya supaya bisa langsung dipakai begitu middleware auth menyusul.
+ * Login sudah dipasang di tahap ini; yang diuji di sini hanya bentuk data
+ * dan relasinya sebagai dasar penguncian peran di kedua konsol.
  */
 class RelasiPenggunaUnitTest extends TestCase
 {

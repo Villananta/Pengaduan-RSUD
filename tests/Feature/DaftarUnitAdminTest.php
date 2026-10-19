@@ -9,6 +9,7 @@ use App\Enums\StatusAksesUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\User;
 use App\Support\DaftarUnit;
 use App\Support\DetailPengaduan;
 use App\Support\Sla;
@@ -21,16 +22,26 @@ class DaftarUnitAdminTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->seed(MasterUnitSeeder::class);
         StatistikDashboard::lupaCache();
+
+        $this->admin = $this->masukSebagaiAdmin();
     }
 
-    public function test_halaman_master_unit_dapat_diakses_tanpa_login(): void
+    public function test_halaman_master_unit_butuh_login(): void
     {
+        auth()->logout();
+
+        $this->get(route('admin.unit.index'))->assertRedirect(route('masuk'));
+
+        $this->actingAs($this->admin);
+
         $this->get(route('admin.unit.index'))
             ->assertOk()
             ->assertSee('Master Data Unit &amp; Instalasi', false)
@@ -46,19 +57,19 @@ class DaftarUnitAdminTest extends TestCase
             ->assertSee(route('admin.unit.index'), false);
     }
 
-    public function test_aksi_yang_belum_punya_layanan_ditampilkan_nonaktif(): void
+    public function test_sinkronisasi_simrs_tampil_nonaktif_karena_endpointnya_belum_ada(): void
     {
-        // Sinkronisasi SIMRS dan kirim undangan butuh layanan luar yang belum
-        // ada, jadi keduanya harus tampil nonaktif dan bukan tautan kosong.
+        // Sinkronisasi SIMRS butuh layanan luar yang belum ada, jadi
+        // tombolnya harus tampil nonaktif dan bukan tautan kosong.
+        // Undangan aktivasi kini sudah berupa formulir asli dan dicek
+        // di UndanganAktivasiPicTest.
         $tampilan = $this->get(route('admin.unit.index'))
             ->assertOk()
             ->getContent();
 
         $this->assertStringContainsString('Sinkronkan SIMRS', $tampilan);
-        $this->assertStringContainsString('Kirim Undangan', $tampilan);
         $this->assertStringContainsString('cursor-not-allowed', $tampilan);
         $this->assertStringNotContainsString('href="#sinkronkan', $tampilan);
-        $this->assertStringNotContainsString('href="#undangan', $tampilan);
     }
 
     public function test_kartu_ringkasan_menghitung_seluruh_unit(): void

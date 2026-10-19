@@ -32,7 +32,10 @@ class PengaduanSlaMendekati extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): SlaMendekatiMail
     {
-        return new SlaMendekatiMail($this->pengaduan, $this->unit, $this->sisaHari);
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new SlaMendekatiMail($this->pengaduan, $this->unit, $this->sisaHari))
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

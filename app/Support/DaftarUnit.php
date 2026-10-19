@@ -392,7 +392,7 @@ final class DaftarUnit
                 'nadaBar' => $belumDiundang > 0 ? 'bg-error' : 'bg-secondary',
                 'persen' => self::persen($akunAktif, $total),
                 'sisi' => $belumDiundang.' unit belum diundang',
-                'ket' => 'Status akses dicatat manual karena alur undangan aktivasi belum dibangun.',
+                'ket' => 'Status berubah otomatis lewat kirim undangan dan aktivasi, dan masih bisa disetel manual dari form unit.',
             ],
         ];
     }

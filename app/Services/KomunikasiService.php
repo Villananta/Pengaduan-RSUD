@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
-use App\Enums\StatusPengaduan;
-use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanNudgeUnit;
-use App\Notifications\PengaduanTahapBerubah;
+use App\Support\StatistikDashboard;
+use App\Support\StatistikPengaduan;
+use App\Support\StatistikUnit;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 final class KomunikasiService
@@ -119,8 +120,8 @@ final class KomunikasiService
 
     private static function segarkanStatistik(): void
     {
-        \App\Support\StatistikDashboard::lupaCache();
-        \App\Support\StatistikPengaduan::lupaCache();
-        \App\Support\StatistikUnit::lupaCache();
+        StatistikDashboard::lupaCache();
+        StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
     }
 }

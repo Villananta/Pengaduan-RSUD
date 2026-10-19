@@ -32,7 +32,9 @@ class NudgeUnitMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.nudge-unit',
+            // 'markdown' bukan 'view': tempat ini yang mendaftarkan komponen
+            // mail::layout dan mem-parse isi markdownnya.
+            markdown: 'emails.nudge-unit',
             with: [
                 'pengaduan' => $this->pengaduan,
                 'unit' => $this->unit,

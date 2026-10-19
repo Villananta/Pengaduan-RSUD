@@ -33,6 +33,8 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         parent::setUp();
 
         $this->seed(MasterUnitSeeder::class);
+
+        $this->masukSebagaiAdmin();
     }
 
     public function test_aksi_c_menugaskan_unit_dan_memindahkan_tiket_ke_diproses(): void
@@ -163,10 +165,15 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
 
         // Pilihan unit dari pelapor belum diteruskan Humas, jadi tiketnya
-        // belum muncul di daftar unit.
+        // belum muncul di daftar unit. Langkah pengamatan ini memakai akun PIC
+        // karena konsol unit kini tertutup bagi admin humas.
+        $this->masukSebagaiPic();
+
         $this->get(route('unit.disposisi.index', $unit))
             ->assertOk()
             ->assertDontSee($pengaduan->kode_tiket);
+
+        $this->masukSebagaiAdmin();
 
         $this->post(route('admin.pengaduan.tangani-langsung', $pengaduan->kode_tiket))
             ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
@@ -183,7 +190,10 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         // Unit yang dilepas kembali siap menerima penugasan.
         $this->assertSame(DisposisiUnit::Terhubung, $unit->fresh()->disposisi);
 
-        // Setelah Humas menangani sendiri, tautan unit tetap bersih.
+        // Setelah Humas menangani sendiri, tautan unit tetap bersih —
+        // diamati lagi sebagai PIC karena konsol unit tertutup bagi admin.
+        $this->masukSebagaiPic();
+
         $this->get(route('unit.disposisi.index', $unit))
             ->assertOk()
             ->assertDontSee($pengaduan->kode_tiket);

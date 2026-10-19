@@ -31,7 +31,10 @@ class PengaduanBalasanAdmin extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): PengaduanBalasanAdminMail
     {
-        return new PengaduanBalasanAdminMail($this->pengaduan, $this->isiBalasan);
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new PengaduanBalasanAdminMail($this->pengaduan, $this->isiBalasan))
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

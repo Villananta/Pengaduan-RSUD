@@ -33,13 +33,15 @@ class PengaduanEscalasiNudge extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): EscalasiMail
     {
-        return new EscalasiMail(
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new EscalasiMail(
             $this->pengaduan,
             $this->unit,
             'nudge_abaikan',
             $this->durasiJam,
             $this->catatanNudge,
-        );
+        ))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

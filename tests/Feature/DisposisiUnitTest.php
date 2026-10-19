@@ -32,6 +32,8 @@ class DisposisiUnitTest extends TestCase
         parent::setUp();
 
         $this->seed(MasterUnitSeeder::class);
+
+        $this->masukSebagaiPic();
     }
 
     public function test_daftar_disposisi_hanya_menampilkan_pengaduan_unit_tersebut(): void
@@ -261,7 +263,10 @@ class DisposisiUnitTest extends TestCase
             'isi' => 'Hasil telaah: tidak ditemukan selisih stok.',
         ])->assertRedirect();
 
-        // ...lalu humas membalas lewat kanal koordinasi di konsolnya.
+        // ...lalu humas membalas lewat kanal koordinasi di konsolnya. Langkah
+        // ini berganti peran dulu karena konsol humas kini tertutup bagi PIC.
+        $this->masukSebagaiAdmin();
+
         $this->post(route('admin.pengaduan.koordinasi', $tiket->kode_tiket), [
             'isi' => 'Terima kasih, mohon lampirkan berita acara pemeriksaannya.',
         ])->assertRedirect(route('admin.pengaduan.show', $tiket->kode_tiket));

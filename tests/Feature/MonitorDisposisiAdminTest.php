@@ -6,6 +6,7 @@ use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\User;
 use App\Support\MonitorDisposisi;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
@@ -17,15 +18,19 @@ class MonitorDisposisiAdminTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->seed(MasterUnitSeeder::class);
         StatistikDashboard::lupaCache();
+
+        $this->admin = $this->masukSebagaiAdmin();
     }
 
-    public function test_halaman_monitor_dapat_diakses_tanpa_login(): void
+    public function test_halaman_monitor_butuh_login(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
@@ -35,6 +40,12 @@ class MonitorDisposisiAdminTest extends TestCase
             'unit' => $unit->nama,
             'nama_lengkap' => 'Slamet Riyadi',
         ]);
+
+        auth()->logout();
+
+        $this->get(route('admin.monitor.index'))->assertRedirect(route('masuk'));
+
+        $this->actingAs($this->admin);
 
         $this->get(route('admin.monitor.index'))
             ->assertOk()

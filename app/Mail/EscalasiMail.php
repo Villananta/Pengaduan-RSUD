@@ -40,7 +40,9 @@ class EscalasiMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.escalasi',
+            // 'markdown' bukan 'view': tempat ini yang mendaftarkan komponen
+            // mail::layout dan mem-parse isi markdownnya.
+            markdown: 'emails.escalasi',
             with: [
                 'pengaduan' => $this->pengaduan,
                 'unit' => $this->unit,

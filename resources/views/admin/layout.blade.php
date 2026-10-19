@@ -82,6 +82,20 @@
                         <span class="font-label-sm text-label-sm text-ink-muted leading-none">Tim Humas RSUD</span>
                     </div>
                 </div>
+
+                <!-- Tombol Keluar: satu-satunya pintu akhiri sesi konsol admin,
+                     sengaja dipisah garis dari identitas seperti menu akun. -->
+                <form method="POST" action="{{ route('keluar') }}" class="pl-space-xs border-l border-outline-variant">
+                    @csrf
+                    <button
+                        type="submit"
+                        title="Keluar dari konsol admin"
+                        class="flex items-center gap-space-xs rounded-full px-space-sm py-2 text-ink-muted transition-colors hover:text-error font-label-md text-label-md font-semibold"
+                    >
+                        <x-symbol nama="logout" class="text-[18px]" />
+                        <span class="hidden sm:inline">Keluar</span>
+                    </button>
+                </form>
             </div>
         </div>
         <!-- End of Baris Identitas -->

@@ -32,12 +32,14 @@ class PengaduanEscalasiSla extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): EscalasiMail
     {
-        return new EscalasiMail(
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new EscalasiMail(
             $this->pengaduan,
             $this->unit,
             'sla_lewat',
             $this->lewatHari * 24, // konversi hari ke jam
-        );
+        ))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

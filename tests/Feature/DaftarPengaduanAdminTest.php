@@ -7,6 +7,7 @@ use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\User;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,21 +17,31 @@ class DaftarPengaduanAdminTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->seed(MasterUnitSeeder::class);
         StatistikDashboard::lupaCache();
+
+        $this->admin = $this->masukSebagaiAdmin();
     }
 
-    public function test_halaman_daftar_pengaduan_dapat_diakses_tanpa_login(): void
+    public function test_halaman_daftar_pengaduan_butuh_login(): void
     {
         Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-DAFTAR-01',
             'nama_lengkap' => 'Siti Aminah',
             'nrm' => '12-34-56-78',
         ]);
+
+        auth()->logout();
+
+        $this->get(route('admin.pengaduan.index'))->assertRedirect(route('masuk'));
+
+        $this->actingAs($this->admin);
 
         $this->get(route('admin.pengaduan.index'))
             ->assertOk()
@@ -132,7 +143,12 @@ class DaftarPengaduanAdminTest extends TestCase
             'nama_lengkap' => 'Budi Santoso',
             'nrm' => '98-76-54-32',
         ]);
-        Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-LAIN-01']);
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-LAIN-01',
+            // Nama dipatok supaya tidak pernah cocok dengan kata kunci
+            // "Budi" — nama acak Faker id_ID bisa kebetulan memuat kata itu.
+            'nama_lengkap' => 'Dewi Lestari',
+        ]);
 
         $this->get(route('admin.pengaduan.index', ['q' => 'Budi']))
             ->assertOk()

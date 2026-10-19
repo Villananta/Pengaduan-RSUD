@@ -5,9 +5,11 @@ namespace App\Enums;
 /**
  * Kondisi akun PIC pada sistem SIMRS unit.
  *
- * Alur undangan aktivasi belum ada, jadi status ini dicatat manual oleh
- * admin dari form master unit. Karena itu nilainya disimpan sebagai kolom
- * biasa, bukan turunan dari kolom waktu yang tidak pernah diisi.
+ * Status ini kini ikut berubah otomatis lewat alur undangan aktivasi
+ * (App\Support\UndanganPic), tapi tetap disimpan sebagai kolom sendiri,
+ * bukan turunan dari kolom waktu: admin masih bisa mencatat kondisi yang
+ * diketahui di luar alur tersebut, misalnya akun SIMRS yang memang sudah
+ * aktif tanpa pernah lewat undangan.
  */
 enum StatusAksesUnit: string
 {
@@ -44,7 +46,7 @@ enum StatusAksesUnit: string
         };
     }
 
-    /** Alasan status ini masih dicatat manual oleh admin. */
+    /** Keterangan singkat kondisi untuk dipakai di form master unit. */
     public function catatan(): string
     {
         return match ($this) {

@@ -33,7 +33,10 @@ class PengaduanNudgeUnit extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): NudgeUnitMail
     {
-        return new NudgeUnitMail($this->pengaduan, $this->unit, $this->catatan);
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new NudgeUnitMail($this->pengaduan, $this->unit, $this->catatan))
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

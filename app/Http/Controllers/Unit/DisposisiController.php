@@ -25,11 +25,11 @@ use RuntimeException;
  * dilakukan lewat parameter unit pada App\Support\DaftarPengaduan dan
  * App\Support\DetailPengaduan, bukan lewat query di template.
  *
- * Aksesnya masih mengikuti konsol yang terbuka tanpa login: yang memisahkan
- * unit satu dan unit lain adalah middleware PastikanUnitAktif pada rute
- * ber-{unit}, bukan identitas pemakai. Selama auth unit belum dipasang,
- * satu-satunya perintah tulis, yaitu mengirim jawaban lewat
- * App\Support\JawabanUnit, dibatasi throttle:20,1.
+ * Aksesnya kini dijaga auth dan PastikanPic pada grup /unit, sementara yang
+ * memisahkan unit satu dari unit lain masih PastikanUnitAktif pada rute
+ * ber-{unit} — penguncian per-unit sesuai identitas pemakai belum dipasang.
+ * Perintah tulis, yaitu mengirim jawaban lewat App\Support\JawabanUnit,
+ * tetap dibatasi throttle:20,1 sebagai lapisan kedua.
  *
  * Kewenangannya berbeda dari konsol humas: unit tidak memindahkan tahap,
  * tidak menutup tiket, dan tidak mengubah disposisi unit lain.

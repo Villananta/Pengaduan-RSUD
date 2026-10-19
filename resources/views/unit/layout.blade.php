@@ -115,6 +115,20 @@
 
                 {{-- Notifikasi Bell --}}
                 @include('unit.partials.notifikasi-dropdown')
+
+                <!-- Tombol Keluar: dipisah garis dari identitas supaya
+                     terbaca sebagai tindakan sesi, bukan bagian label PIC. -->
+                <form method="POST" action="{{ route('keluar') }}" class="pl-space-xs border-l border-outline-variant">
+                    @csrf
+                    <button
+                        type="submit"
+                        title="Keluar dari konsol unit"
+                        class="flex items-center gap-space-xs rounded-full px-space-sm py-2 text-ink-muted transition-colors hover:text-error font-label-md text-label-md font-semibold"
+                    >
+                        <x-symbol nama="logout" class="text-[18px]" />
+                        <span class="hidden sm:inline">Keluar</span>
+                    </button>
+                </form>
             </div>
         </div>
         <!-- End of Baris Identitas -->

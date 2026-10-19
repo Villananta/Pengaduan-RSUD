@@ -7,6 +7,11 @@ use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanTahapBerubah;
+use App\Support\StatistikDashboard;
+use App\Support\StatistikPengaduan;
+use App\Support\StatistikUnit;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 final class TahapService
@@ -28,7 +33,7 @@ final class TahapService
 
         $statusSebelumnya = $pengaduan->status;
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($pengaduan, $tujuan, $catatan, $adminId): void {
+        DB::transaction(function () use ($pengaduan, $tujuan, $catatan, $adminId): void {
             $pengaduan->pindahTahap($tujuan, $catatan, $adminId);
             self::selaraskanDisposisi($pengaduan, $tujuan);
         });
@@ -166,8 +171,8 @@ final class TahapService
 
     private static function segarkanStatistik(): void
     {
-        \App\Support\StatistikDashboard::lupaCache();
-        \App\Support\StatistikPengaduan::lupaCache();
-        \App\Support\StatistikUnit::lupaCache();
+        StatistikDashboard::lupaCache();
+        StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
     }
 }

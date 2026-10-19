@@ -32,7 +32,10 @@ class PengaduanDisposisi extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): PengaduanDisposisiMail
     {
-        return new PengaduanDisposisiMail($this->pengaduan, $this->unitTujuan, $this->catatan);
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new PengaduanDisposisiMail($this->pengaduan, $this->unitTujuan, $this->catatan))
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

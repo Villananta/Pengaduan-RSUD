@@ -31,7 +31,10 @@ class PengaduanJawabanUnit extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): PengaduanJawabanUnitMail
     {
-        return new PengaduanJawabanUnitMail($this->pengaduan, $this->unitPengirim);
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new PengaduanJawabanUnitMail($this->pengaduan, $this->unitPengirim))
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

@@ -8,13 +8,20 @@ use Tests\TestCase;
 /**
  * Laju endpoint tulis konsol humas dibatasi.
  *
- * Konsol masih terbuka tanpa login, jadi tanpa batas ini siapa pun bisa
- * membanjiri tiket, pesan, atau unggahan hanya dengan memanggil rutenya
- * berulang kali.
+ * Konsol kini tertutup oleh auth, tapi pembatas laju tetap dipasang sebagai
+ * lapisan kedua: sesi admin yang disalahgunakan tidak boleh bisa membanjiri
+ * tiket, pesan, atau unggahan hanya dengan memanggil rutenya berulang kali.
  */
 class PembatasanTulisAdminTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->masukSebagaiAdmin();
+    }
 
     public function test_koordinasi_admin_dibatasi_lajunya(): void
     {

@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
-use App\Mail\PengaduanTahapBerubahMail;
 use App\Enums\StatusPengaduan;
+use App\Mail\PengaduanTahapBerubahMail;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,7 +32,10 @@ class PengaduanTahapBerubah extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): PengaduanTahapBerubahMail
     {
-        return new PengaduanTahapBerubahMail($this->pengaduan, $this->dari, $this->ke, $this->urlUntuk($notifiable));
+        // Alamat penerima diisi manual karena kanal mail hanya mengisinya
+        // otomatis untuk MailMessage, bukan untuk Mailable.
+        return (new PengaduanTahapBerubahMail($this->pengaduan, $this->dari, $this->ke, $this->urlUntuk($notifiable)))
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
     public function toArray(object $notifiable): array

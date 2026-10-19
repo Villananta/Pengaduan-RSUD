@@ -5,6 +5,10 @@ namespace App\Services;
 use App\Models\Pengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanKasusBerat;
+use App\Support\StatistikDashboard;
+use App\Support\StatistikPengaduan;
+use App\Support\StatistikUnit;
+use Illuminate\Support\Facades\Notification;
 
 final class KasusBeratService
 {
@@ -30,8 +34,8 @@ final class KasusBeratService
 
     private static function segarkanStatistik(): void
     {
-        \App\Support\StatistikDashboard::lupaCache();
-        \App\Support\StatistikPengaduan::lupaCache();
-        \App\Support\StatistikUnit::lupaCache();
+        StatistikDashboard::lupaCache();
+        StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
     }
 }

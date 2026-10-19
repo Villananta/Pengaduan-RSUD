@@ -6,9 +6,8 @@ namespace App\Enums;
  * Peran akun pengguna di tingkat aplikasi.
  *
  * Membedakan pemegang konsol humas dari PIC unit yang hanya mengurus
- * unitnya sendiri. Nilai ini disimpan sekarang meski login belum dipasang,
- * supaya akun yang sudah ada tidak perlu diklasifikasi ulang begitu
- * middleware auth menyusul.
+ * unitnya sendiri. Nilai inilah yang dibaca middleware PastikanAdmin dan
+ * PastikanPic untuk menutup konsol masing-masing.
  */
 enum PeranPengguna: string
 {

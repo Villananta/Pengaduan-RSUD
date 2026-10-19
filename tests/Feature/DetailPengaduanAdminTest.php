@@ -23,6 +23,8 @@ class DetailPengaduanAdminTest extends TestCase
 
         $this->seed(MasterUnitSeeder::class);
         StatistikDashboard::lupaCache();
+
+        $this->masukSebagaiAdmin();
     }
 
     public function test_halaman_detail_menampilkan_identitas_dan_kronologi_pengaduan(): void

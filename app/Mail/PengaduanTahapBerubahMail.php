@@ -33,7 +33,9 @@ class PengaduanTahapBerubahMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.tahap-berubah',
+            // 'markdown' bukan 'view': tempat ini yang mendaftarkan komponen
+            // mail::layout dan mem-parse isi markdownnya.
+            markdown: 'emails.tahap-berubah',
             with: [
                 'pengaduan' => $this->pengaduan,
                 'dari' => $this->dari,

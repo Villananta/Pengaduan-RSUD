@@ -51,6 +51,17 @@
                     >{{ $item['label'] }}</a>
                 @endforeach
 
+                {{-- Pintu masuk petugas diberi gaya berbeda dari menu pelapor
+                     supaya tidak terbaca sebagai bagian alur aduan. --}}
+                <a
+                    href="{{ route('masuk') }}"
+                    @class([
+                        'shrink-0 rounded-full px-4 py-2 text-sm font-bold transition',
+                        'bg-brand-100 text-brand-800' => request()->routeIs('masuk*'),
+                        'border border-brand-300 text-brand-800 hover:bg-brand-50' => ! request()->routeIs('masuk*'),
+                    ])
+                >Masuk</a>
+
             </nav>
         </div>
     </header>
