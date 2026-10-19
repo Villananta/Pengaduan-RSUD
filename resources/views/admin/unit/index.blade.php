@@ -394,7 +394,7 @@
                                                 title="Ubah data unit"
                                             >
                                                 <x-symbol nama="edit" class="text-[16px]" />
-                                                Edit Unit
+                                                Ubah Unit
                                             </a>
 
                                             <form method="POST" action="{{ route('admin.unit.status', ['unit' => $unit->kode]) }}">

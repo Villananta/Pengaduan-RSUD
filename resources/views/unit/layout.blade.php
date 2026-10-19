@@ -32,7 +32,7 @@
         $navigasi = [];
 
         if ($unit !== null) {
-            // Workspace tiket tidak berdiri sendiri di topbar: halamannya
+            // Ruang kerja tiket tidak berdiri sendiri di topbar: halamannya
             // dibuka dari tombol detail pada beranda unit dan daftar
             // disposisi, sama seperti konsol admin.
             $navigasi[] = [

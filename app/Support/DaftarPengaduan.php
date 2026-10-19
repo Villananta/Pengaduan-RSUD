@@ -441,8 +441,12 @@ final class DaftarPengaduan
      * Isinya berbeda dari konsol karena kewenangan unit juga berbeda: unit
      * tidak boleh menentukan penanganan ataupun mendorong unit lain, tapi
      * membutuhkan pintu untuk membuka telaahnya sendiri dan untuk mencetak
-     * lembar disposisi. Cetak masih berupa tombol nonaktif karena pencetakannya
-     * belum dibangun, sehingga tidak boleh membawa url palsu.
+     * lembar disposisi.
+     *
+     * Cetak mengarah ke ekspor PDF, bukan halaman cetak peramban: lembar
+     * disposisi resmi butuh kop dan nomor, jadi berkasnya dibentuk server.
+     * Nama rutenya ditulis utuh karena berbeda dari $ruteTiket yang menunjuk
+     * halaman detail.
      *
      * @return array<int, array{label: string, ikon: string, nada: string, url: ?string}>
      */
@@ -453,7 +457,7 @@ final class DaftarPengaduan
                 'label' => 'Cetak Lembar Disposisi',
                 'ikon' => 'print',
                 'nada' => 'bg-surface-container text-on-surface-variant',
-                'url' => null,
+                'url' => route('unit.disposisi.ekspor.disposisi-pdf', $this->parameterRute + ['kode' => $pengaduan->kode_tiket]),
             ],
             [
                 'label' => 'Lanjutkan Telaah',

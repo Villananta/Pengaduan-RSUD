@@ -126,6 +126,12 @@ final class TindakLanjutPengaduan
             );
         }
 
+        // Status sebelum transaksi dibaca di sini: pindahTahap() di dalam
+        // transaksi sudah menyimpan, sehingga getOriginal() setelahnya hanya
+        // mengembalikan status yang baru dan notifikasi jadi "Diproses ke
+        // Diproses" meski tahapnya berubah dari Baru atau Revisi.
+        $statusSebelum = $pengaduan->status;
+
         DB::transaction(function () use ($pengaduan, $catatan, $adminId): void {
             // Relasi dibaca lebih dulu karena save() di pindahTahap() sekalian
             // menyimpan master_unit_id yang sudah dikosongkan.
@@ -154,7 +160,7 @@ final class TindakLanjutPengaduan
         if ($admins->isNotEmpty()) {
             Notification::send($admins, new PengaduanTahapBerubah(
                 $pengaduan,
-                $pengaduan->getOriginal('status') ?? $pengaduan->status,
+                $statusSebelum,
                 StatusPengaduan::Diproses
             ));
         }

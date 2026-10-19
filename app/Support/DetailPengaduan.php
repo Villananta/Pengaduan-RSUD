@@ -243,6 +243,9 @@ final class DetailPengaduan
         return [
             'tertaut' => true,
             'nama' => $unit->namaLengkap(),
+            // Kode ikut dibawa karena lembar disposisi yang dicetak ke PDF
+            // harus menyebut kode unit pada baris penugasan.
+            'kode' => $unit->kode,
             'status' => $investigasi->label(),
             'ringkas' => $investigasi->ringkas(),
             'nada' => $investigasi->nada(),
@@ -268,6 +271,7 @@ final class DetailPengaduan
             'target' => $pengaduan->targetSla()->translatedFormat('d M Y'),
             'persen' => $pengaduan->progresPersen(),
             'zona' => $zona->label(),
+            'zonaNilai' => $zona->value,
             'nadaZona' => $zona->badgeAdmin(),
             'ringkas' => $pengaduan->ringkasSla(),
             'lewatUnit' => $pengaduan->lewatInvestigasiUnit(),

@@ -60,20 +60,25 @@ class CekSlaPengaduan extends Command
                 continue;
             }
 
-            $hariKe = Sla::hariKe($pengaduan->created_at);
-            $sisaHari = Sla::sisaHariKerja($pengaduan->created_at);
             $lewatInvestigasi = Sla::lewatInvestigasi($pengaduan->created_at);
 
-            // Peringatan mendekati batas (sisa 2 hari kerja)
-            if (! $lewatInvestigasi && $sisaHari === 2) {
+            // Sisa menuju batas investigasi, bukan menuju total SLA 12 hari.
+            // Pesan peringatannya menyebut batas investigasi (5 hari), sedangkan
+            // sisa terhadap total baru menyentuh angka 2 pada hari ke-10 — jauh
+            // setelah syarat lewatInvestigasi (5 hari) terpenuhi, sehingga
+            // peringatan ini tidak pernah terkirim bila tetap memakai sisa total.
+            $sisaInvestigasi = Sla::hariInvestigasi() - Sla::hariKerjaLewat($pengaduan->created_at);
+
+            // Peringatan mendekati batas investigasi (sisa 2 hari kerja)
+            if (! $lewatInvestigasi && $sisaInvestigasi === 2) {
                 $mendekatiCount++;
 
                 if ($kirimNotifikasi) {
-                    Notification::send($unit->pengguna, new PengaduanSlaMendekati($pengaduan, $unit, $sisaHari));
+                    Notification::send($unit->pengguna, new PengaduanSlaMendekati($pengaduan, $unit, $sisaInvestigasi));
                     $notifMendekati++;
                 }
 
-                $this->line("  ⚠️  {$pengaduan->kode_tiket} | {$unit->namaLengkap()} | Sisa {$sisaHari} hari (Mendekati)");
+                $this->line("  ⚠️  {$pengaduan->kode_tiket} | {$unit->namaLengkap()} | Sisa {$sisaInvestigasi} hari (Mendekati)");
             }
 
             // Lewat batas investigasi

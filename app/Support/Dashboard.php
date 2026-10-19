@@ -361,9 +361,11 @@ final class Dashboard
     /**
      * Tombol aksi yang sesuai dengan kondisi tiket.
      *
-     * Hanya "Tinjau Jawaban & Racik Balasan" yang sudah punya halaman, jadi
-     * hanya dia yang membawa url. Nudge masih berupa tombol nonaktif karena
-     * alurnya belum dibangun, dan kita tidak boleh membuat tautan palsu.
+     * "Follow Up Unit (Nudge)" membawa url hanya selama tiket masih
+     * menempel pada satu unit dan belum selesai. Begitu syarat itu gugur —
+     * misalnya humas sudah menarik penanganan sendiri — tombolnya tampil
+     * tanpa url, karena menekan tombol yang tidak akan mengerjakan apa pun
+     * membuat admin mengira nudge sudah terkirim.
      *
      * Tombol eskalasi sengaja tidak dipakai lagi. Eskalasi ke Wadir dan
      * Komite Medis adalah tindakan ke atasan yang harus punya catatan dan

@@ -24,7 +24,7 @@ class RealTimeNotificationController extends Controller
      */
     public function index(MasterUnit $unit, Request $request): JsonResponse
     {
-        $since = $request->query('since'); // ISO8601 timestamp
+        $since = $request->query('since'); // Patokan waktu berformat ISO8601
         $limit = $request->integer('limit', 20);
 
         $query = DatabaseNotification::query()

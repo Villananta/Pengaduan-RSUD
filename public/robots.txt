@@ -1,2 +1,11 @@
 User-agent: *
-Disallow:
+
+# Halaman yang membawa kode OTP atau token undangan tidak boleh diindeks:
+# kalau URL-nya tersimpan di mesin pencari, siapa pun yang menemukannya bisa
+# memakai kode tersebut tanpa perlu mengakses email penerimanya.
+Disallow: /verifikasi-email/
+Disallow: /aktivasi-undangan/
+
+# Konsol petugas sengaja TIDAK dicatat di sini. Berkas ini dibuka publik,
+# jadi menuliskan alamatnya sama dengan memberitahu orang awam ke mana
+# harus pergi. Pintunya memang dirahasiakan lewat RUTE_MASUK di .env.

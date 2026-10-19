@@ -6,11 +6,12 @@ use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
-use App\Models\PesanPengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanDisposisi;
 use App\Notifications\PengaduanTahapBerubah;
-use Illuminate\Http\UploadedFile;
+use App\Support\StatistikDashboard;
+use App\Support\StatistikPengaduan;
+use App\Support\StatistikUnit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use RuntimeException;
@@ -86,6 +87,12 @@ final class DisposisiService
             );
         }
 
+        // Status sebelum transaksi dibaca di sini: pindahTahap() di dalam
+        // transaksi sudah menyimpan, sehingga getOriginal() setelahnya hanya
+        // mengembalikan status yang baru dan notifikasi jadi "Diproses ke
+        // Diproses" meski tahapnya berubah dari Baru atau Revisi.
+        $statusSebelum = $pengaduan->status;
+
         DB::transaction(function () use ($pengaduan, $catatan, $adminId): void {
             $unitDilepas = $pengaduan->masterUnit;
 
@@ -109,7 +116,7 @@ final class DisposisiService
         if ($admins->isNotEmpty()) {
             Notification::send($admins, new PengaduanTahapBerubah(
                 $pengaduan,
-                $pengaduan->getOriginal('status') ?? $pengaduan->status,
+                $statusSebelum,
                 StatusPengaduan::Diproses
             ));
         }
@@ -119,8 +126,8 @@ final class DisposisiService
 
     private static function segarkanStatistik(): void
     {
-        \App\Support\StatistikDashboard::lupaCache();
-        \App\Support\StatistikPengaduan::lupaCache();
-        \App\Support\StatistikUnit::lupaCache();
+        StatistikDashboard::lupaCache();
+        StatistikPengaduan::lupaCache();
+        StatistikUnit::lupaCache();
     }
 }

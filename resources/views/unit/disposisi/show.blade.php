@@ -1,6 +1,6 @@
 @extends('unit.layout')
 
-@section('title', 'Workspace Tiket '.$detail->kode())
+@section('title', 'Ruang Kerja Tiket '.$detail->kode())
 
 @section('content')
 
@@ -14,10 +14,12 @@
         $instruksi = $detail->instruksiDisposisi();
         $tuntas = $tiket->status->selesai();
 
-        // Tindakan yang tidak mempunyai logika di baliknya ditampilkan mati,
-        // bukan disembunyikan: petugas unit perlu tahu bahwa lembar disposisi
-        // dan ekspor masih menjadi pekerjaan lanjutan.
-        $tombolMati = [
+        // Tombol di panel kanan: dua yang pertama sudah punya halaman tujuan,
+        // sisanya masih ditampilkan mati, bukan disembunyikan. Petugas unit
+        // perlu tahu bahwa ekspor Excel, eskalasi, dan TTD digital masih
+        // menjadi pekerjaan lanjutan supaya tidak menunggu fitur yang tidak
+        // akan muncul.
+        $tombolAksi = [
             ['ikon' => 'print', 'label' => 'Cetak Lembar Disposisi', 'url' => route('unit.disposisi.ekspor.disposisi-pdf', ['unit' => $unit->kode, 'kode' => $kode])],
             ['ikon' => 'picture_as_pdf', 'label' => 'Unduh PDF', 'url' => route('unit.disposisi.ekspor.disposisi-pdf', ['unit' => $unit->kode, 'kode' => $kode])],
             ['ikon' => 'file_download', 'label' => 'Unduh Excel', 'url' => null],
@@ -483,7 +485,7 @@
                     </div>
 
                     <div class="flex flex-wrap gap-space-sm">
-                        @foreach ($tombolMati as $tombol)
+                        @foreach ($tombolAksi as $tombol)
                             @php $method = $tombol['method'] ?? 'GET'; @endphp
                             @if ($tombol['url'])
                                 @if ($method === 'POST')

@@ -40,7 +40,7 @@
             <div class="flex flex-col">
                 <div class="flex items-center gap-space-xs text-secondary font-label-md text-label-md uppercase tracking-wider">
                     <span class="w-2 h-2 rounded-full bg-secondary animate-ping" aria-hidden="true"></span>
-                    Dual Synchronization Gateway &bull; Humas &harr; Unit Pelayanan
+                    Sinkronisasi Dua Arah &bull; Humas &harr; Unit Pelayanan
                 </div>
 
                 <h1 class="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight mt-0.5">
@@ -80,7 +80,7 @@
                     title="Muat ulang angka dan daftar pengaduan"
                 >
                     <x-symbol nama="refresh" class="text-[16px]" />
-                    Refresh Data
+                    Muat Ulang Data
                 </a>
             </div>
         </div>
@@ -607,7 +607,7 @@
             kasusBeratFields.classList.toggle('hidden', aksi !== 'kasus_berat');
         }
 
-        // Select all
+        // Pilih semua tiket pada halaman ini
         selectAll.addEventListener('change', function () {
             rowCheckboxes.forEach(cb => {
                 cb.checked = this.checked;
@@ -644,7 +644,7 @@
             updateToolbar();
         });
 
-        // Initial state
+        // Keadaan awal toolbar saat halaman dibuka
         updateToolbar();
     });
 </script>

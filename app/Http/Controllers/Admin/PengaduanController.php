@@ -342,7 +342,10 @@ class PengaduanController extends Controller
      * Mendukung:
      * - disposisi: pindahkan ke unit yang dipilih
      * - kasus_berat: nyalakan/matikan penandaan kasus berat
-     * - hapus: hapus tiket (hanya untuk admin, hati-hati)
+     *
+     * Pesan gagal dibagi dua kelas: aturan bisnis memakai kalimat siap
+     * tampil, sedangkan kegagalan tak terduga hanya dicatat ke log dan
+     * layar menerima pesan umum agar detail basis data tidak bocor.
      */
     public function bulkAction(Request $request): RedirectResponse
     {
@@ -403,8 +406,15 @@ class PengaduanController extends Controller
                 }
 
                 $berhasil++;
+            } catch (RuntimeException $alasan) {
+                // Aturan bisnis memang dilempar dengan pesan siap tampil —
+                // "tiket sudah selesai", "unit tidak aktif" — jadi aman dibaca admin.
+                $gagal[] = "$kode: {$alasan->getMessage()}";
             } catch (\Throwable $e) {
-                $gagal[] = "$kode: {$e->getMessage()}";
+                // Kegagalan tak terduga (basis data, relasi rusak) bisa memuat
+                // struktur query; detailnya dicatat ke log, bukan ke layar admin.
+                report($e);
+                $gagal[] = "$kode: kesalahan sistem, detail tersimpan di log.";
             }
         }
 
