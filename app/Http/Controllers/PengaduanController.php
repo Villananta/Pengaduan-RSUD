@@ -6,12 +6,15 @@ use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Notifications\PengaduanEmailVerifikasi;
 use App\Support\PengaduanMasuk;
 use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
 use App\Support\StatistikUnit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
 
@@ -109,6 +112,7 @@ class PengaduanController extends Controller
             $rateKey = 'verifikasi:'.$kodeInput.':'.$request->ip();
             if (RateLimiter::tooManyAttempts($rateKey, 5)) {
                 $seconds = RateLimiter::availableIn($rateKey);
+
                 return redirect()
                     ->route('pengaduan.lacak')
                     ->withErrors(['kode' => "Terlalu banyak percobaan untuk kode ini. Coba lagi dalam {$seconds} detik."])
@@ -291,7 +295,7 @@ class PengaduanController extends Controller
     /**
      * Kirim ulang OTP verifikasi email.
      */
-    public function kirimUlangOtp(Request $request, string $kode): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function kirimUlangOtp(Request $request, string $kode): RedirectResponse|JsonResponse
     {
         $pengaduan = Pengaduan::where('kode_tiket', strtoupper($kode))->firstOrFail();
 
@@ -299,6 +303,7 @@ class PengaduanController extends Controller
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'Email sudah terverifikasi sebelumnya.']);
             }
+
             return redirect()->route('pengaduan.lacak')
                 ->with('info', 'Email sudah terverifikasi sebelumnya.');
         }

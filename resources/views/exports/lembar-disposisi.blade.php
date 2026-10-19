@@ -150,25 +150,20 @@
                 <x-symbol nama="history" class="text-secondary" />
                 Jejak Perubahan Tahap
             </div>
-            @if ($detail->riwayatStatus->isNotEmpty())
+            @if (count($detail->audit) > 0)
                 <div class="space-y-2">
-                    @foreach ($detail->riwayatStatus as $item)
+                    @foreach ($detail->audit as $baris)
                         <div class="flex flex-col md:flex-row md:items-center gap-2 p-2 bg-surface-container rounded-lg">
-                            <div class="w-24 md:w-24 font-mono text-body-sm text-on-surface-variant">{{ $item->created_at->format('d/m/Y H:i') }}</div>
+                            <div class="w-32 font-mono text-body-sm text-on-surface-variant">{{ $baris['waktu'] }}</div>
                             <div class="flex items-center gap-2 flex-1">
-                                @if ($item->dari)
-                                    <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface text-xs">{{ $item->dari }}</span>
-                                    <x-symbol nama="arrow_forward" class="text-on-surface-variant text-[14px]" />
-                                @else
-                                    <span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface text-xs">Mulai</span>
-                                    <x-symbol nama="arrow_forward" class="text-on-surface-variant text-[14px]" />
-                                @endif
-                                <span class="px-2 py-0.5 rounded-full {{ $item->ke === 'selesai' ? 'bg-primary-container text-primary' : ($item->ke === 'diproses' ? 'bg-secondary-container text-secondary' : 'bg-brand-100 text-brand-800') }} font-label-sm text-label-sm font-bold">
-                                    {{ ucfirst($item->ke) }}
+                                <span class="px-2 py-0.5 rounded-full {{ $baris['nada'] }} text-xs">{{ $baris['sumber'] }}</span>
+                                <x-symbol :nama="$baris['ikon']" class="text-on-surface-variant text-[14px]" />
+                                <span class="px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 font-label-sm text-label-sm font-bold">
+                                    {{ $baris['judul'] }}
                                 </span>
                             </div>
-                            @if ($item->catatan)
-                                <div class="ml-8 md:ml-24 text-body-sm text-on-surface-variant italic">{{ $item->catatan }}</div>
+                            @if ($baris['catatan'])
+                                <div class="ml-8 md:ml-24 text-body-sm text-on-surface-variant italic">{{ $baris['catatan'] }}</div>
                             @endif
                         </div>
                     @endforeach

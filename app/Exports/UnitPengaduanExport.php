@@ -62,7 +62,7 @@ class UnitPengaduanExport implements FromCollection, WithHeadings, WithMapping, 
         ];
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         return [
             1 => ['font' => ['bold' => true], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1E3A5F']], 'font' => ['color' => ['rgb' => 'FFFFFF'], 'bold' => true]],

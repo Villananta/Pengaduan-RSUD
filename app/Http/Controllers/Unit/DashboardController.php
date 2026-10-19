@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Unit;
 use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
 use App\Support\DashboardUnit;
+use App\Support\NotifikasiUnit;
 use App\Support\Sla;
 use App\Support\StatistikUnit;
 use Illuminate\Http\RedirectResponse;
@@ -44,12 +45,13 @@ class DashboardController extends Controller
     }
 
     /** Ringkasan pengaduan milik satu unit. */
-    public function index(MasterUnit $unit): View
+    public function index(Request $request, MasterUnit $unit): View
     {
         $ringkasan = StatistikUnit::ringkasan($unit);
 
         return view('unit.dashboard', [
             'unit' => $unit,
+            'notifikasiUnit' => new NotifikasiUnit($unit, $request->user()),
             'dashboard' => new DashboardUnit(
                 unit: $unit,
                 perTahap: $ringkasan['per_tahap'],

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Mail\PengaduanDibuatMail;
 use App\Models\Pengaduan;
+use App\Support\TautanNotifikasi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -43,7 +44,7 @@ class PengaduanDibuat extends Notification implements ShouldQueue
             'title' => 'Pengaduan Baru Dibuat',
             'message' => "Pengaduan {$this->kodeTiket} telah berhasil dicatat. Simpan kode ini untuk melacak perkembangan.",
             'kode_tiket' => $this->kodeTiket,
-            'url' => route('pengaduan.lacak'),
+            'url' => TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             'pengaduan_id' => $this->pengaduan->id,
         ];
     }

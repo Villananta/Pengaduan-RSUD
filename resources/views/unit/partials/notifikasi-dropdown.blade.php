@@ -1,15 +1,16 @@
 {{-- Dropdown Notifikasi Unit (Partial) --}}
-@if ($unit !== null && isset($dashboard))
+@if ($unit !== null && isset($notifikasiUnit))
     @php
-        $jumlahNotif = $dashboard->jumlahNotifikasiBelumDibaca() ?? 0;
-        $adaNudge = $dashboard->adaNudgeBelumDibaca() ?? false;
-        $notifikasi = $dashboard->notifikasiTerbaru(10);
+        $jumlahNotif = $notifikasiUnit->jumlahNotifikasiBelumDibaca();
+        $adaNudge = $notifikasiUnit->adaNudgeBelumDibaca();
+        $notifikasi = $notifikasiUnit->notifikasiTerbaru(10);
     @endphp
 
     <div class="relative ml-space-md" id="notifikasi-wrapper">
         <button
             type="button"
             id="btn-notifikasi"
+            data-mark-read-url="{{ route('unit.notifikasi.tandai-dibaca', $unit) }}"
             class="relative p-2 rounded-full text-ink-muted hover:text-ink hover:bg-surface-container transition-colors"
             aria-label="Notifikasi"
             aria-expanded="false"
@@ -43,7 +44,9 @@
             <div class="p-3 border-b border-outline-variant flex items-center justify-between">
                 <h3 class="font-title-sm text-title-sm font-bold text-ink">Notifikasi</h3>
                 @if ($jumlahNotif > 0)
-                    <form method="POST" action="{{ route('unit.notifikasi.tandai-semua-dibaca', $unit) }}" class="inline">
+                    {{-- Formulir biasa tetap dikirim tanpa JavaScript; skrip
+                         di layout mengambil alihnya lewat fetch. --}}
+                    <form method="POST" action="{{ route('unit.notifikasi.tandai-semua-dibaca', $unit) }}" id="form-tandai-semua" class="inline">
                         @csrf
                         <button
                             type="submit"
@@ -126,21 +129,15 @@
                                         @endif
                                     </div>
                                 </div>
-                            @endforeach
+                            </div>
+                        @endforeach
                     </div>
                 @endif
             </div>
 
-            @if ($jumlahNotif > 0)
-                <div class="p-2 border-t border-outline-variant text-center">
-                    <a
-                        href="#" id="btn-load-more-notif"
-                        class="text-label-sm text-secondary hover:text-secondary/80 font-semibold"
-                    >
-                        Muat lebih banyak...
-                    </a>
-                </div>
-            @endif
+            <div class="p-2 border-t border-outline-variant text-center text-label-sm text-ink-muted">
+                Menampilkan {{ $notifikasi->count() }} notifikasi terbaru
+            </div>
         </div>
     </div>
 @endif

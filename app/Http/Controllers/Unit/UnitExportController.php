@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Unit;
 
-use App\Http\Controllers\Controller;
 use App\Exports\UnitPengaduanExport;
+use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
+use App\Models\Pengaduan;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -42,7 +44,7 @@ class UnitExportController extends Controller
             ->latest()
             ->get();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.unit-daftar', [
+        $pdf = Pdf::loadView('exports.unit-daftar', [
             'unit' => $unit,
             'pengaduan' => $pengaduan,
             'tipe' => 'disposisi',
@@ -64,7 +66,7 @@ class UnitExportController extends Controller
             ->latest()
             ->get();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.unit-daftar', [
+        $pdf = Pdf::loadView('exports.unit-daftar', [
             'unit' => $unit,
             'pengaduan' => $pengaduan,
             'tipe' => 'arsip',

@@ -263,10 +263,10 @@ Route::prefix('unit')->name('unit.')
             Route::get('/{unit}/notifikasi/realtime', [UnitRealTimeNotificationController::class, 'index'])
                 ->middleware('throttle:120,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME)
                 ->name('notifikasi.realtime');
-            Route::post('/{unit}/notifikasi/realtime/baca', [UnitRealTimeNotificationController::class, 'markAsRead'])
+            Route::post('/{unit}/notifikasi/realtime/baca', [UnitRealTimeNotificationController::class, 'tandaiDibaca'])
                 ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME_BACA)
                 ->name('notifikasi.realtime.baca');
-            Route::post('/{unit}/notifikasi/realtime/baca-semua', [UnitRealTimeNotificationController::class, 'markAllAsRead'])
+            Route::post('/{unit}/notifikasi/realtime/baca-semua', [UnitRealTimeNotificationController::class, 'tandaiSemuaDibaca'])
                 ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME_BACA_SEMUA)
                 ->name('notifikasi.realtime.baca-semua');
         });

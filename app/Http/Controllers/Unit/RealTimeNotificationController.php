@@ -4,16 +4,23 @@ namespace App\Http\Controllers\Unit;
 
 use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
-use App\Models\Notification as DatabaseNotification;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 
+/**
+ * Ujung polling notifikasi konsol unit.
+ *
+ * Halaman konsol menarik notifikasi baru lewat rute ini setiap beberapa
+ * detik, lalu menyimpan waktu server sebagai patokan poll berikutnya.
+ * Sasaran datanya akun petugas yang sedang masuk — sama dengan lonceng
+ * di header, bukan MasterUnit.
+ */
 class RealTimeNotificationController extends Controller
 {
     /**
-     * Get unread notifications for the current unit (polling endpoint).
-     *
-     * Used by frontend to poll for new notifications in real-time.
+     * Daftar notifikasi belum dibaca milik petugas (ujung polling).
      */
     public function index(MasterUnit $unit, Request $request): JsonResponse
     {
@@ -21,8 +28,8 @@ class RealTimeNotificationController extends Controller
         $limit = $request->integer('limit', 20);
 
         $query = DatabaseNotification::query()
-            ->where('notifiable_type', MasterUnit::class)
-            ->where('notifiable_id', $unit->id)
+            ->where('notifiable_type', User::class)
+            ->where('notifiable_id', $request->user()->id)
             ->whereNull('read_at')
             ->latest('created_at')
             ->limit($limit);
@@ -31,7 +38,7 @@ class RealTimeNotificationController extends Controller
             $query->where('created_at', '>', $since);
         }
 
-        $notifications = $query->get()->map(function ($n) {
+        $notifications = $query->get()->map(function (DatabaseNotification $n) {
             $data = $n->data;
 
             return [
@@ -50,8 +57,8 @@ class RealTimeNotificationController extends Controller
             'sukses' => true,
             'notifications' => $notifications,
             'total_belum_dibaca' => DatabaseNotification::query()
-                ->where('notifiable_type', MasterUnit::class)
-                ->where('notifiable_id', $unit->id)
+                ->where('notifiable_type', User::class)
+                ->where('notifiable_id', $request->user()->id)
                 ->whereNull('read_at')
                 ->count(),
             'server_time' => now()->toISOString(),
@@ -59,9 +66,9 @@ class RealTimeNotificationController extends Controller
     }
 
     /**
-     * Mark specific notifications as read.
+     * Tandai notifikasi terpilih sebagai sudah dibaca.
      */
-    public function markAsRead(MasterUnit $unit, Request $request): JsonResponse
+    public function tandaiDibaca(MasterUnit $unit, Request $request): JsonResponse
     {
         $ids = $request->input('notification_ids', []);
 
@@ -73,8 +80,8 @@ class RealTimeNotificationController extends Controller
         }
 
         $updated = DatabaseNotification::query()
-            ->where('notifiable_type', MasterUnit::class)
-            ->where('notifiable_id', $unit->id)
+            ->where('notifiable_type', User::class)
+            ->where('notifiable_id', $request->user()->id)
             ->whereIn('id', $ids)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
@@ -87,15 +94,11 @@ class RealTimeNotificationController extends Controller
     }
 
     /**
-     * Mark all notifications as read.
+     * Tandai semua notifikasi milik petugas sebagai sudah dibaca.
      */
-    public function markAllAsRead(MasterUnit $unit): JsonResponse
+    public function tandaiSemuaDibaca(MasterUnit $unit, Request $request): JsonResponse
     {
-        $updated = DatabaseNotification::query()
-            ->where('notifiable_type', MasterUnit::class)
-            ->where('notifiable_id', $unit->id)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $updated = $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
         return response()->json([
             'sukses' => true,

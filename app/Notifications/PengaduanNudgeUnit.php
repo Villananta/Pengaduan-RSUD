@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Mail\NudgeUnitMail;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Support\TautanNotifikasi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -23,7 +24,8 @@ class PengaduanNudgeUnit extends Notification implements ShouldQueue
     {
         $channels = ['database'];
 
-        // Kirim email jika notifiable punya email
+        // Email hanya dikirim ke akun yang punya alamat, PIC tanpa alamat
+        // tetap menerima notifikasi lewat lonceng konsol unit.
         if (! empty($notifiable->email)) {
             $channels[] = 'mail';
         }
@@ -48,7 +50,7 @@ class PengaduanNudgeUnit extends Notification implements ShouldQueue
             'kode_tiket' => $this->pengaduan->kode_tiket,
             'unit_id' => $this->unit->id,
             'catatan' => $this->catatan,
-            'url' => route('unit.disposisi.show', ['unit' => $this->unit->kode, 'kode' => $this->pengaduan->kode_tiket]),
+            'url' => TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             'pengaduan_id' => $this->pengaduan->id,
         ];
     }

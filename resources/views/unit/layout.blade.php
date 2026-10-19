@@ -7,6 +7,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    {{-- Token CSRF dipakai skrip lonceng: penandaan "sudah dibaca" dan
+         "tandai semua" dikirim lewat fetch, bukan lewat formulir biasa. --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>@yield('title', 'Dashboard Unit') — Portal Pengaduan Humas | RSUD Dr. Soetomo</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -105,7 +109,7 @@
                     </div>
                 </div>
 
-                {{-- Notifikasi Bell --}}
+                {{-- Lonceng Notifikasi --}}
                 @include('unit.partials.notifikasi-dropdown')
 
                 <!-- Tombol Keluar: dipisah garis dari identitas supaya
@@ -198,10 +202,11 @@
             const dropdown = document.getElementById('dropdown-notifikasi');
             const wrapper = document.getElementById('notifikasi-wrapper');
             const badge = document.getElementById('badge-notifikasi');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
             if (!btn || !dropdown) return;
 
-            // Toggle dropdown
+            // Buka atau tutup dropdown
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
                 const isOpen = dropdown.classList.toggle('hidden');
@@ -224,68 +229,78 @@
                 }
             });
 
-            // Delegasi klik item notifikasi -> tandai dibaca + redirect
+            // Klik satu notifikasi: tandai sudah dibaca, lalu buka tiketnya.
             dropdown.addEventListener('click', function (e) {
                 const item = e.target.closest('.notif-item');
                 if (!item) return;
 
-                const notifId = item.dataset.notifId;
-                const notifUrl = item.dataset.notifUrl;
-                const notifType = item.dataset.notifType;
-
-                // Tandai dibaca via AJAX
                 const markReadUrl = btn.dataset.markReadUrl;
-                if (!markReadUrl) {
-                    console.warn('Mark read URL not available');
-                    return;
-                }
+                if (!markReadUrl) return;
+
                 fetch(markReadUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                        'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({ notification_ids: [notifId] }),
+                    body: JSON.stringify({ notification_ids: [item.dataset.notifId] }),
                 }).then(response => response.json())
                     .then(data => {
-                        if (data.sukses) {
-                            // Update badge count
-                            const currentCount = parseInt(badge?.textContent || '0', 10);
-                            if (badge && currentCount > 0) {
-                                const newCount = currentCount - 1;
-                                if (newCount <= 0) {
-                                    badge.remove();
-                                } else {
-                                    badge.textContent = newCount > 9 ? '9+' : newCount;
-                                }
-                            }
+                        if (!data.sukses) return;
 
-                            // Hapus item dari dropdown (animasi)
-                            item.style.opacity = '0';
-                            item.style.transform = 'translateX(10px)';
-                            item.style.transition = 'opacity 0.2s, transform 0.2s';
-                            setTimeout(() => item.remove(), 200);
+                        // Perbarui angka lencana
+                        const sisa = parseInt(badge?.textContent || '0', 10) - 1;
+                        if (badge && sisa > 0) {
+                            badge.textContent = sisa > 9 ? '9+' : sisa;
+                        } else {
+                            badge?.remove();
+                        }
 
-                            // Redirect jika ada URL
-                            if (notifUrl) {
-                                window.location.href = notifUrl;
-                            }
-                        })
-                        .catch(console.error);
+                        // Hilangkan barisnya dari daftar (animasi singkat)
+                        item.style.opacity = '0';
+                        item.style.transition = 'opacity 0.2s';
+                        setTimeout(() => item.remove(), 200);
+
+                        // Buka halaman tiket bila notifikasi membawa tautan
+                        if (item.dataset.notifUrl) {
+                            window.location.href = item.dataset.notifUrl;
+                        }
+                    })
+                    .catch(error => console.warn('Gagal menandai notifikasi:', error));
             });
 
-            // Load more (placeholder)
-            const loadMoreBtn = document.getElementById('btn-load-more-notif');
-            if (loadMoreBtn) {
-                loadMoreBtn.addEventListener('click', function (e) {
+            // "Tandai semua dibaca" diambil alih lewat fetch supaya daftar
+            // bisa dikosongkan tanpa memuat ulang halaman; tanpa JavaScript
+            // formulirnya tetap terkirim dan server membalas dengan kembali
+            // ke halaman yang sama.
+            const formSemua = document.getElementById('form-tandai-semua');
+            if (formSemua) {
+                formSemua.addEventListener('submit', function (e) {
                     e.preventDefault();
-                    loadMoreBtn.textContent = 'Memuat...';
-                    loadMoreBtn.disabled = true;
-                    // TODO: Implementasi load more via AJAX
-                    setTimeout(() => {
-                        loadMoreBtn.textContent = 'Belum diimplementasikan';
-                    }, 500);
+
+                    fetch(formSemua.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    }).then(response => response.json())
+                        .then(data => {
+                            if (!data.sukses) return;
+
+                            const daftar = document.getElementById('daftar-notifikasi');
+                            if (daftar) {
+                                daftar.innerHTML = '<div class="p-4 text-center text-ink-muted text-body-sm">Tidak ada notifikasi baru</div>';
+                            }
+
+                            badge?.remove();
+                            btn.querySelectorAll('.bg-warning').forEach(el => el.remove());
+                            dropdown.classList.add('hidden');
+                            btn.setAttribute('aria-expanded', 'false');
+                        })
+                        .catch(error => console.warn('Gagal menandai semua notifikasi:', error));
                 });
             }
         });
@@ -294,6 +309,16 @@
 
     {{-- Real-time Notification Polling (15 detik) --}}
     @if ($unit !== null)
+        {{-- Nilai rute dan waktu server dihitung Blade di luar @verbatim,
+             karena blok skripnya literal: tanda kurung kurawal ganda di
+             dalam template string tidak boleh ikut dikompilasi Blade. --}}
+        <script>
+            window.konfigurasiNotifikasi = {
+                urlPolling: @js(route('unit.notifikasi.realtime', $unit)),
+                waktuPollPertama: @js(now()->toISOString()),
+            };
+        </script>
+
         @verbatim
         <script>
             (function () {
@@ -302,8 +327,7 @@
                 const badge = document.getElementById('badge-notifikasi');
                 const dropdown = document.getElementById('dropdown-notifikasi');
                 const list = document.getElementById('daftar-notifikasi');
-                const markAllBtn = dropdown?.querySelector('form[action*="baca-semua"] button');
-                let lastPoll = '{{ now()->toISOString() }}';
+                let lastPoll = window.konfigurasiNotifikasi.waktuPollPertama;
                 let isPolling = false;
 
                 if (!wrapper || !btn || !dropdown) return;
@@ -313,7 +337,7 @@
                     isPolling = true;
 
                     try {
-                        const url = '{{ route("unit.notifikasi.realtime", $unit) }}' + '?since=' + encodeURIComponent(lastPoll);
+                        const url = window.konfigurasiNotifikasi.urlPolling + '?since=' + encodeURIComponent(lastPoll);
                         const response = await fetch(url, {
                             headers: {
                                 'Accept': 'application/json',
@@ -322,13 +346,13 @@
                             credentials: 'same-origin',
                         });
 
-                        if (!response.ok) throw new Error('Poll failed');
+                        if (!response.ok) throw new Error('Gagal menarik notifikasi');
 
                         const data = await response.json();
                         lastPoll = data.server_time;
 
                         if (data.sukses && data.notifications.length > 0) {
-                            // Update badge
+                            // Perbarui lencana
                             if (badge) {
                                 badge.textContent = data.total_belum_dibaca > 9 ? '9+' : data.total_belum_dibaca;
                                 badge.style.display = 'flex';
@@ -341,14 +365,14 @@
                                 btn.appendChild(newBadge);
                             }
 
-                            // Prepend new notifications to dropdown
+                            // Sisipkan notifikasi terbaru ke daftar
                             if (list) {
                                 for (const notif of data.notifications.reverse()) {
                                     const item = createNotificationElement(notif);
                                     list.prepend(item);
                                 }
 
-                                // Show nudge indicator if any new nudge
+                                // Titik follow up bila ada nudge yang belum dibuka
                                 const hasNudge = data.notifications.some(n => n.type === 'pengaduan_nudge_unit');
                                 if (hasNudge && !btn.querySelector('.bg-warning')) {
                                     const nudgeDot = document.createElement('span');
@@ -359,7 +383,7 @@
                             }
                         }
                     } catch (e) {
-                        console.warn('Notification poll error:', e);
+                        console.warn('Gagal menarik notifikasi:', e);
                     } finally {
                         isPolling = false;
                     }
@@ -397,8 +421,8 @@
 
                     item.innerHTML = `
                         <div class="flex items-start gap-3">
-                            <span class="w-8 h-8 rounded-full ${badgeClassMap[notif.type] || badgeClassMap.default} flex items-center justify-center shrink-0 flex-shrink-0">
-                                <x-symbol :nama="${iconMap[notif.type] || iconMap.default}" class="text-[18px]" />
+                            <span class="w-8 h-8 rounded-full ${badgeClass} flex items-center justify-center shrink-0 flex-shrink-0">
+                                <span class="material-symbols-outlined text-[18px]">${icon}</span>
                             </span>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between gap-2">
@@ -409,12 +433,12 @@
                                 ${notif.kode_tiket ? `
                                     <div class="mt-1.5 flex items-center gap-1.5">
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 font-mono font-body-xs text-body-xs font-bold">
-                                            <x-symbol nama="confirmation_number" class="text-[10px]" />
+                                            <span class="material-symbols-outlined text-[10px]">confirmation_number</span>
                                             ${escapeHtml(notif.kode_tiket)}
                                         </span>
                                         ${notif.url ? `
                                             <a href="${notif.url}" class="text-label-sm text-secondary hover:text-secondary/80 font-semibold transition-colors whitespace-nowrap">
-                                                <x-symbol nama="open_in_new" class="text-[12px]" />
+                                                <span class="material-symbols-outlined text-[12px]">open_in_new</span>
                                                 Buka
                                             </a>
                                         ` : ''}
@@ -432,12 +456,12 @@
                     return div.innerHTML;
                 }
 
-                // Start polling every 15 seconds
+                // Mulai polling tiap 15 detik
                 setInterval(pollNotifications, 15000);
-                // Initial poll after 2 seconds
+                // Poll perdana 2 detik setelah halaman siap
                 setTimeout(pollNotifications, 2000);
 
-                // Also poll when tab becomes visible
+                // Tarik juga saat tab kembali terlihat
                 document.addEventListener('visibilitychange', function () {
                     if (!document.hidden) {
                         pollNotifications();
@@ -447,9 +471,6 @@
         </script>
         @endverbatim
     @endif
-
-    {{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}
-    @stack('scripts')
 
 </body>
 

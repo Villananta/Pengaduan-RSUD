@@ -9,6 +9,7 @@ use App\Models\Pengaduan;
 use App\Support\DaftarPengaduan;
 use App\Support\DetailPengaduan;
 use App\Support\JawabanUnit;
+use App\Support\NotifikasiUnit;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,11 +26,11 @@ use RuntimeException;
  * dilakukan lewat parameter unit pada App\Support\DaftarPengaduan dan
  * App\Support\DetailPengaduan, bukan lewat query di template.
  *
- * Aksesnya kini dijaga auth dan PastikanPic pada grup /unit, sementara yang
- * memisahkan unit satu dari unit lain masih PastikanUnitAktif pada rute
- * ber-{unit} — penguncian per-unit sesuai identitas pemakai belum dipasang.
- * Perintah tulis, yaitu mengirim jawaban lewat App\Support\JawabanUnit,
- * tetap dibatasi throttle:20,1 sebagai lapisan kedua.
+ * Aksesnya dijaga auth dan PastikanPic pada grup /unit, lalu dipersempit
+ * PastikanUnitSendiri yang menolak unit di luar penugasan petugas dan
+ * PastikanUnitAktif yang menolak unit non-aktif. Perintah tulis, yaitu
+ * mengirim jawaban lewat App\Support\JawabanUnit, tetap dibatasi
+ * throttle:20,1 sebagai lapisan kedua.
  *
  * Kewenangannya berbeda dari konsol humas: unit tidak memindahkan tahap,
  * tidak menutup tiket, dan tidak mengubah disposisi unit lain.
@@ -41,6 +42,7 @@ class DisposisiController extends Controller
     {
         return view('unit.disposisi.index', [
             'unit' => $unit,
+            'notifikasiUnit' => new NotifikasiUnit($unit, $request->user()),
             'daftar' => DaftarPengaduan::dariRequest(
                 $request,
                 terkunci: $unit,
@@ -56,10 +58,11 @@ class DisposisiController extends Controller
      * Kode tiket yang bukan milik unit dibiarkan 404, supaya menebak kode
      * tiket tidak membuka halaman milik unit lain.
      */
-    public function show(MasterUnit $unit, string $kode): View
+    public function show(Request $request, MasterUnit $unit, string $kode): View
     {
         return view('unit.disposisi.show', [
             'unit' => $unit,
+            'notifikasiUnit' => new NotifikasiUnit($unit, $request->user()),
             'detail' => DetailPengaduan::dariKode($kode, $unit),
         ]);
     }
@@ -92,6 +95,7 @@ class DisposisiController extends Controller
     {
         return view('unit.disposisi.arsip', [
             'unit' => $unit,
+            'notifikasiUnit' => new NotifikasiUnit($unit, $request->user()),
             'daftar' => DaftarPengaduan::dariRequest(
                 $request,
                 terkunci: $unit,

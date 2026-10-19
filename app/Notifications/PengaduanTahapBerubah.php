@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\StatusPengaduan;
 use App\Mail\PengaduanTahapBerubahMail;
 use App\Models\Pengaduan;
+use App\Support\TautanNotifikasi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -34,7 +35,7 @@ class PengaduanTahapBerubah extends Notification implements ShouldQueue
     {
         // Alamat penerima diisi manual karena kanal mail hanya mengisinya
         // otomatis untuk MailMessage, bukan untuk Mailable.
-        return (new PengaduanTahapBerubahMail($this->pengaduan, $this->dari, $this->ke, $this->urlUntuk($notifiable)))
+        return (new PengaduanTahapBerubahMail($this->pengaduan, $this->dari, $this->ke, TautanNotifikasi::untuk($notifiable, $this->pengaduan)))
             ->to($notifiable->routeNotificationFor('mail', $this));
     }
 
@@ -47,25 +48,8 @@ class PengaduanTahapBerubah extends Notification implements ShouldQueue
             'kode_tiket' => $this->pengaduan->kode_tiket,
             'tahap_lama' => $this->dari->value,
             'tahap_baru' => $this->ke->value,
-            'url' => $this->urlUntuk($notifiable),
+            'url' => TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             'pengaduan_id' => $this->pengaduan->id,
         ];
-    }
-
-    private function urlUntuk(object $notifiable): string
-    {
-        // Cek apakah notifiable adalah User (admin/unit) atau punya session pelapor
-        if (method_exists($notifiable, 'berperanAdmin') && $notifiable->berperanAdmin()) {
-            return route('admin.pengaduan.show', $this->pengaduan->kode_tiket);
-        }
-        if (method_exists($notifiable, 'berperanUnit') && $notifiable->berperanUnit()) {
-            // Tautan tidak pernah jatuh ke pemilih unit; petugas tanpa unit
-            // cukup mendarat di halaman penjelasan bahwa akunnya belum ditautkan.
-            $unit = $notifiable->unit()->first();
-
-            return $unit ? route('unit.disposisi.show', ['unit' => $unit->kode, 'kode' => $this->pengaduan->kode_tiket]) : route('unit.beranda');
-        }
-
-        return route('pengaduan.lacak');
     }
 }

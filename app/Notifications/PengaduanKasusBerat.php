@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Mail\PengaduanKasusBeratMail;
 use App\Models\Pengaduan;
+use App\Support\TautanNotifikasi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -46,7 +47,7 @@ class PengaduanKasusBerat extends Notification implements ShouldQueue
                 : "Penandaan kasus berat pada tiket {$this->pengaduan->kode_tiket} dilepas. Target kembali standar.",
             'kode_tiket' => $this->pengaduan->kode_tiket,
             'kasus_berat' => $this->aktif,
-            'url' => route('admin.pengaduan.show', $this->pengaduan->kode_tiket),
+            'url' => TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             'pengaduan_id' => $this->pengaduan->id,
         ];
     }
