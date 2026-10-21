@@ -11,7 +11,7 @@
             type="button"
             id="btn-notifikasi"
             data-mark-read-url="{{ route('unit.notifikasi.tandai-dibaca', $unit) }}"
-            class="relative p-2 rounded-full text-ink-muted hover:text-ink hover:bg-surface-container transition-colors"
+            class="relative p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
             aria-label="Notifikasi"
             aria-expanded="false"
             aria-haspopup="true"
@@ -42,7 +42,7 @@
             aria-orientation="vertical"
         >
             <div class="p-3 border-b border-outline-variant flex items-center justify-between">
-                <h3 class="font-title-sm text-title-sm font-bold text-ink">Notifikasi</h3>
+                <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Notifikasi</h3>
                 @if ($jumlahNotif > 0)
                     {{-- Formulir biasa tetap dikirim tanpa JavaScript; skrip
                          di layout mengambil alihnya lewat fetch. --}}
@@ -60,7 +60,7 @@
 
             <div id="daftar-notifikasi" class="max-h-[400px] overflow-y-auto">
                 @if ($notifikasi->isEmpty())
-                    <div class="p-4 text-center text-ink-muted text-body-sm">
+                    <div class="p-4 text-center text-on-surface-variant text-body-sm">
                         <x-symbol nama="notifications_none" class="text-[32px] mx-auto mb-2 block" />
                         Tidak ada notifikasi baru
                     </div>
@@ -106,10 +106,10 @@
                                     </span>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center justify-between gap-2">
-                                            <h4 class="font-title-sm text-title-sm font-bold text-ink truncate">{{ $title }}</h4>
-                                            <span class="text-[11px] text-ink-muted whitespace-nowrap shrink-0">{{ $notif->created_at->diffForHumans() }}</span>
+                                            <h4 class="font-title-sm text-title-sm font-bold text-on-surface truncate">{{ $title }}</h4>
+                                            <span class="text-[11px] text-on-surface-variant whitespace-nowrap shrink-0">{{ $notif->created_at->diffForHumans() }}</span>
                                         </div>
-                                        <p class="text-body-sm text-ink-muted mt-0.5 line-clamp-2">{{ $message }}</p>
+                                        <p class="text-body-sm text-on-surface-variant mt-0.5 line-clamp-2">{{ $message }}</p>
                                         @if ($kodeTiket)
                                             <div class="mt-1.5 flex items-center gap-1.5">
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 font-mono font-body-xs text-body-xs font-bold">
@@ -135,7 +135,7 @@
                 @endif
             </div>
 
-            <div class="p-2 border-t border-outline-variant text-center text-label-sm text-ink-muted">
+            <div class="p-2 border-t border-outline-variant text-center text-label-sm text-on-surface-variant">
                 Menampilkan {{ $notifikasi->count() }} notifikasi terbaru
             </div>
         </div>

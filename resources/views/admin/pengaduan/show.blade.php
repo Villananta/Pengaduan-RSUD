@@ -461,7 +461,7 @@
                                                         <img src="{{ $berkas['url'] }}" alt="Lampiran {{ $berkas['nama'] }}" class="w-full max-w-[240px] rounded-lg">
                                                     </a>
                                                 @else
-                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-ink">
+                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-on-surface">
                                                         <x-symbol nama="attach_file" class="text-[14px]" />
                                                         {{ $berkas['nama'] }}
                                                     </a>
@@ -598,7 +598,7 @@
                                                         <img src="{{ $berkas['url'] }}" alt="Lampiran {{ $berkas['nama'] }}" class="w-full max-w-[240px] rounded-lg">
                                                     </a>
                                                 @else
-                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-ink">
+                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-on-surface">
                                                         <x-symbol nama="attach_file" class="text-[14px]" />
                                                         {{ $berkas['nama'] }}
                                                     </a>

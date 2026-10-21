@@ -41,8 +41,8 @@
                 <div class="flex items-center gap-space-sm">
                     <x-brand-logo class="h-9 w-9 object-contain rounded-sm bg-surface-container-low p-0.5" />
                     <div class="flex flex-col">
-                        <span class="font-title-md text-title-md text-ink font-bold tracking-tight leading-none">RSUD Dr. Soetomo</span>
-                        <span class="font-label-sm text-label-sm text-ink-muted tracking-wider uppercase mt-1">Surabaya &bull; Jawa Timur</span>
+                        <span class="font-title-md text-title-md text-on-surface font-bold tracking-tight leading-none">RSUD Dr. Soetomo</span>
+                        <span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase mt-1">Surabaya &bull; Jawa Timur</span>
                     </div>
                 </div>
 
@@ -67,7 +67,7 @@
                 <button
                     type="button"
                     aria-label="Notifikasi penting"
-                    class="relative p-space-xs text-ink-muted hover:text-brand-800 transition-colors"
+                    class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors"
                 >
                     <x-symbol nama="notifications" class="text-[24px]" />
                     <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-white" aria-hidden="true"></span>
@@ -78,8 +78,8 @@
                         <x-symbol nama="person" class="text-on-primary text-[18px]" />
                     </span>
                     <div class="hidden xl:flex flex-col text-left">
-                        <span class="font-label-lg text-label-lg text-ink font-semibold leading-tight">{{ auth()->user()?->name ?? 'Admin Humas' }}</span>
-                        <span class="font-label-sm text-label-sm text-ink-muted leading-none">Tim Humas RSUD</span>
+                        <span class="font-label-lg text-label-lg text-on-surface font-semibold leading-tight">{{ auth()->user()?->name ?? 'Admin Humas' }}</span>
+                        <span class="font-label-sm text-label-sm text-on-surface-variant leading-none">Tim Humas RSUD</span>
                     </div>
                 </div>
 
@@ -90,7 +90,7 @@
                     <button
                         type="submit"
                         title="Keluar dari konsol admin"
-                        class="flex items-center gap-space-xs rounded-full px-space-sm py-2 text-ink-muted transition-colors hover:text-error font-label-md text-label-md font-semibold"
+                        class="flex items-center gap-space-xs rounded-full px-space-sm py-2 text-on-surface-variant transition-colors hover:text-error font-label-md text-label-md font-semibold"
                     >
                         <x-symbol nama="logout" class="text-[18px]" />
                         <span class="hidden sm:inline">Keluar</span>
@@ -117,7 +117,7 @@
                             @class([
                                 'flex items-center rounded-full px-3 py-1.5 transition-colors',
                                 'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                                'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
+                                'text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
                             ])
                             @if ($aktif) aria-current="page" @endif
                         >{{ $item['label'] }}</a>
@@ -125,11 +125,11 @@
                 @endforeach
             </nav>
 
-            <div class="hidden md:flex items-center gap-space-xs text-ink-muted font-label-md text-label-md">
+            <div class="hidden md:flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
                 <x-symbol nama="domain" class="text-[16px] text-outline" />
                 <span>Humas</span>
                 <x-symbol nama="chevron_right" class="text-[14px] text-outline-variant" />
-                <span class="text-ink font-semibold">Pelayanan Terpadu</span>
+                <span class="text-on-surface font-semibold">Pelayanan Terpadu</span>
             </div>
         </div>
         <!-- End of Navigasi Utama -->

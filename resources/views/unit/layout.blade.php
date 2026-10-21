@@ -64,8 +64,8 @@
                 <div class="flex items-center gap-space-sm">
                     <x-brand-logo class="h-9 w-9 object-contain rounded-sm bg-surface-container-low p-0.5" />
                     <div class="flex flex-col">
-                        <span class="font-title-md text-title-md text-ink font-bold tracking-tight leading-none">RSUD Dr. Soetomo</span>
-                        <span class="font-label-sm text-label-sm text-ink-muted tracking-wider uppercase mt-1">Surabaya &bull; Jawa Timur</span>
+                        <span class="font-title-md text-title-md text-on-surface font-bold tracking-tight leading-none">RSUD Dr. Soetomo</span>
+                        <span class="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase mt-1">Surabaya &bull; Jawa Timur</span>
                     </div>
                 </div>
 
@@ -100,10 +100,10 @@
                         <x-symbol nama="badge" class="text-on-primary text-[18px]" />
                     </span>
                     <div class="hidden xl:flex flex-col text-left">
-                        <span class="font-label-lg text-label-lg text-ink font-semibold leading-tight">
+                        <span class="font-label-lg text-label-lg text-on-surface font-semibold leading-tight">
                             {{ $unit?->pic ?? 'PIC belum ditetapkan' }}
                         </span>
-                        <span class="font-label-sm text-label-sm text-ink-muted leading-none">
+                        <span class="font-label-sm text-label-sm text-on-surface-variant leading-none">
                             {{ $unit?->jabatan_pic ?? 'Hubungi admin humas untuk penautan akun' }}
                         </span>
                     </div>
@@ -119,7 +119,7 @@
                     <button
                         type="submit"
                         title="Keluar dari konsol unit"
-                        class="flex items-center gap-space-xs rounded-full px-space-sm py-2 text-ink-muted transition-colors hover:text-error font-label-md text-label-md font-semibold"
+                        class="flex items-center gap-space-xs rounded-full px-space-sm py-2 text-on-surface-variant transition-colors hover:text-error font-label-md text-label-md font-semibold"
                     >
                         <x-symbol nama="logout" class="text-[18px]" />
                         <span class="hidden sm:inline">Keluar</span>
@@ -145,18 +145,18 @@
                         @class([
                             'flex items-center rounded-full px-3 py-1.5 transition-colors',
                             'bg-secondary-container text-on-secondary-container font-bold' => $aktif,
-                            'text-ink-muted hover:text-ink hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
+                            'text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-title-sm text-title-sm font-semibold' => ! $aktif,
                         ])
                         @if ($aktif) aria-current="page" @endif
                     >{{ $item['label'] }}</a>
                 @endforeach
             </nav>
 
-            <div class="hidden md:flex items-center gap-space-xs text-ink-muted font-label-md text-label-md">
+            <div class="hidden md:flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md">
                 <x-symbol nama="domain" class="text-[16px] text-outline" />
                 <span>Unit Pelayanan</span>
                 <x-symbol nama="chevron_right" class="text-[14px] text-outline-variant" />
-                <span class="text-ink font-semibold">{{ $unit?->nama ?? 'Belum ada unit' }}</span>
+                <span class="text-on-surface font-semibold">{{ $unit?->nama ?? 'Belum ada unit' }}</span>
             </div>
         </div>
         <!-- End of Navigasi Utama -->
@@ -292,7 +292,7 @@
 
                             const daftar = document.getElementById('daftar-notifikasi');
                             if (daftar) {
-                                daftar.innerHTML = '<div class="p-4 text-center text-ink-muted text-body-sm">Tidak ada notifikasi baru</div>';
+                                daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>';
                             }
 
                             badge?.remove();
@@ -426,10 +426,10 @@
                             </span>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between gap-2">
-                                    <h4 class="font-title-sm text-title-sm font-bold text-ink truncate">${escapeHtml(notif.title)}</h4>
-                                    <span class="text-[11px] text-ink-muted whitespace-nowrap shrink-0">${notif.waktu_relatif}</span>
+                                    <h4 class="font-title-sm text-title-sm font-bold text-on-surface truncate">${escapeHtml(notif.title)}</h4>
+                                    <span class="text-[11px] text-on-surface-variant whitespace-nowrap shrink-0">${notif.waktu_relatif}</span>
                                 </div>
-                                <p class="text-body-sm text-ink-muted mt-0.5 line-clamp-2">${escapeHtml(notif.message)}</p>
+                                <p class="text-body-sm text-on-surface-variant mt-0.5 line-clamp-2">${escapeHtml(notif.message)}</p>
                                 ${notif.kode_tiket ? `
                                     <div class="mt-1.5 flex items-center gap-1.5">
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 font-mono font-body-xs text-body-xs font-bold">
