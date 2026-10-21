@@ -1,9 +1,10 @@
 # DFD Level 1 — Sistem Pengaduan RSUD Dr. Soetomo
 
-**Tanggal:** 2026-10-16
-**Scope:** Dekomposisi proses tunggal Level 0 menjadi 10 sub-proses
-**Notasi:** Gane-Sarson (proses = bulat, entitas = persegi, data store = garis terbuka, aliran = panah)
-**Basis:** Rute terkini (`routes/web.php`, `routes/console.php`), controller, support class, dan model yang ada di codebase
+**Tanggal:** 2026-10-21  
+**Scope:** Dekomposisi proses tunggal Level 0 menjadi 10 sub-proses  
+**Notasi:** Gane-Sarson (proses = bulat, entitas = persegi, data store = garis terbuka, aliran = panah)  
+**Basis:** Rute terkini (`routes/web.php`, `routes/console.php`), controller, support class, dan model yang ada di codebase  
+**Status:** Updated untuk Batch 4-7, 9.3-9.4, 11, 13-17 (email notifications, controller split, export unit, health checks, structured logging)
 
 ---
 
@@ -15,12 +16,13 @@
 | **2.0** | Verifikasi & Pelacakan Tiket | Pelapor | `PengaduanController@verifikasi/lacak` |
 | **3.0** | Verifikasi Email OTP | Pelapor | `PengaduanController@verifikasiEmail/kirimUlangOtp` |
 | **4.0** | Percakapan Pelapor | Pelapor | `PengaduanController@kirimPesan` |
-| **5.0** | Pengelolaan Tiket Humas | Admin Humas | `Admin\PengaduanController` (semua method) |
+| **5.0** | Pengelolaan Tiket Humas | Admin Humas | `Admin\PengaduanController`, `Admin\DisposisiController`, `Admin\TahapController`, `Admin\KomunikasiController` |
 | **6.0** | Monitoring & Konsol Admin | Admin Humas | `Admin\DashboardController`, `Admin\MonitorController`, `Admin\RiwayatController` |
 | **7.0** | Manajemen Master Unit | Admin Humas | `Admin\UnitController` |
-| **8.0** | Penyajian Dashboard & Disposisi Unit | PIC Unit | `Unit\DashboardController`, `Unit\DisposisiController` |
+| **8.0** | Penyajian Dashboard & Disposisi Unit | PIC Unit | `Unit\DashboardController`, `Unit\DisposisiController`, `Unit\ExportController` |
 | **9.0** | Retensi & Monitoring SLA Otomatis | Scheduler | `pengaduan:bersihkan`, `pengaduan:cek-sla` |
 | **10.0** | Notifikasi Unit & Real-Time | PIC Unit | `Unit\NotificationController`, `Unit\RealTimeNotificationController` |
+| **11.0** | Health Check & Observability | System / Infra | `HealthCheckController` |
 
 ---
 
@@ -35,6 +37,7 @@ flowchart LR
     Scheduler["⏰ Scheduler<br/>(Laravel)"]
     SIMRS["🏥 SIMRS<br/>(read-only)"]
     Storage["☁️ Penyimpanan<br/>(S3/R2)"]
+    SMTP["📧 Server Email<br/>(SMTP)"]
 
     %% ===== SUB-PROSES =====
     P1["1.0<br/>Pendaftaran<br/>Aduan Publik"]
@@ -47,6 +50,7 @@ flowchart LR
     P8["8.0<br/>Dashboard &<br/>Disposisi Unit"]
     P9["9.0<br/>Retensi &<br/>Monitoring SLA"]
     P10["10.0<br/>Notifikasi<br/>Unit & Real-Time"]
+    P11["11.0<br/>Health Check &<br/>Observability"]
 
     %% ===== DATA STORE =====
     DS1[("pengaduan")]
@@ -74,6 +78,7 @@ flowchart LR
     PIC -->|"Pilih unit dari daftar<br/>(GET /unit)"| P8
     PIC -->|"Isi jawaban medis/teknis + lampiran<br/>(POST /unit/{unit}/pengaduan/{kode}/jawaban, throttle 20/m)"| P8
     PIC -->|"Tandai notifikasi dibaca<br/>(POST /unit/{unit}/notifikasi/baca, throttle 60/m)"| P10
+    PIC -->|"Polling real-time (GET /unit/{unit}/notifikasi/realtime)<br/>throttle 120/m"| P10
 
     %% ===== ALIRAN: SCHEDULER → PROSES =====
     Scheduler -->|"pengaduan:bersihkan --force<br/>dailyAt 02:00"| P9
@@ -88,7 +93,7 @@ flowchart LR
     P3 -->|"Status verifikasi email<br/>(berhasil / gagal / kadaluwarsa)"| Pelapor
 
     %% ===== ALIRAN: PROSES → ADMIN =====
-    P5 -->|"Detail tiket workspace: 4 pilar + 3 panel chat + 6 tombol aksi<br/>+ ekspor Excel / PDF / preview disposisi"| Admin
+    P5 -->|"Detail tiket workspace: 4 pilar + 3 panel chat + 6 tombol aksi + bulk action<br/>+ ekspor Excel / PDF / preview disposisi"| Admin
     P6 -->|"Dashboard beranda: 4 kartu tahap + KPI + banner + daftar tindakan<br/>+ Monitor Kanban 4 kolom + Riwayat aksi admin"| Admin
     P7 -->|"Tabel unit + KPI beban + form CRUD + toggle aktif"| Admin
 
@@ -111,6 +116,9 @@ flowchart LR
     P1 -->|"INSERT riwayat (dari=null, ke=Diterima)"| DS3
     P1 -->|"INSERT session (tiket_terverifikasi)"| DS6
     P1 -->|"lupaCache() x3"| DS7
+    P1 -->|"dispatch PengaduanEmailVerifikasi (OTP)"| Queue
+    P1 -->|"dispatch PengaduanDibuat (admin)"| Queue
+    P1 -->|"dispatch PengaduanDisposisi (unit, jika unit valid)"| Queue
 
     P2 -->|"SELECT pengaduan (kode_tiket, master_unit_id)"| DS1
     P2 -->|"SELECT pesan (jalurPelapor)"| DS2
@@ -127,6 +135,17 @@ flowchart LR
     P5 -->|"SELECT master_units (validasi bisaDitugaskan)"| DS4
     P5 -->|"SELECT users (notifikasi admin)"| DS5
     P5 -->|"lupaCache() x3"| DS7
+    P5 -->|"dispatch PengaduanDisposisi (PIC unit)"| Queue
+    P5 -->|"dispatch PengaduanTahapBerubah (admin + PIC)"| Queue
+    P5 -->|"dispatch PengaduanBalasanAdmin (pelapor)"| Queue
+    P5 -->|"dispatch PengaduanKoordinasi (PIC unit)"| Queue
+    P5 -->|"dispatch PengaduanKasusBerat (admin + PIC)"| Queue
+    P5 -->|"dispatch PengaduanNudgeUnit (PIC unit)"| Queue
+    P5 -->|"dispatch PengaduanEscalasiSla (PIC + atasan)"| Queue
+    P5 -->|"dispatch PengaduanEscalasiNudge (PIC + atasan)"| Queue
+    P5 -->|"dispatch PengaduanKasusBerat (admin + PIC)"| Queue
+    P5 -->|"dispatch PengaduanJawabanUnit (admin)"| Queue
+    P5 -->|"dispatch PengaduanBalasanAdmin (pelapor)"| Queue
 
     P6 -->|"SELECT pengaduan (agregat, filter, paginasi)"| DS1
     P6 -->|"SELECT riwayat_status_pengaduan"| DS3
@@ -151,6 +170,11 @@ flowchart LR
 
     P10 -->|"SELECT pengaduan (notifikasi baru)"| DS1
     P10 -->|"UPDATE master_units (notifikasi dibaca)"| DS4
+
+    P11 -->|"SELECT DB connection (PDO)"| DS1
+    P11 -->|"SELECT Cache (get/put)"| DS7
+    P11 -->|"SELECT Redis (ping)"| DS7
+    P11 -->|"SELECT Storage (writable)"| Storage
 ```
 
 ---
@@ -159,10 +183,10 @@ flowchart LR
 
 ### Proses 1.0 — Pendaftaran Aduan Publik
 
-**Pelaku:** Pelapor
-**Rute:** `GET /buat-aduan`, `POST /buat-aduan` (throttle 5/10m), `GET /buat-aduan/sukses`
-**Controller:** `PengaduanController@create/store/sukses`
-**Support:** `PengaduanMasuk`, `StatistikPengaduan`
+**Pelaku:** Pelapor  
+**Rute:** `GET /buat-aduan`, `POST /buat-aduan` (throttle 5/10m), `GET /buat-aduan/sukses`  
+**Controller:** `PengaduanController@create/store/sukses`  
+**Support:** `PengaduanMasuk`, `StatistikPengaduan`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -170,6 +194,9 @@ flowchart LR
 | **Proses** | 1. Validasi form (aturan + pesan custom)<br/>2. Generate kode tiket `ADUAN-{Ymd}-{5 huruf A-Z}` (loop sampai unik)<br/>3. Peta unit label → kode MASTER_UNITS (cek `bisaDitugaskan`)<br/>4. INSERT ke `pengaduan` (kasus_berat=false, status=Diterima)<br/>5. Simpan lampiran ke disk (`config pengaduan.disk_lampiran`)<br/>6. Generate OTP 6 digit (expired 15 menit)<br/>7. INSERT pesan pembuka (peran=`pembuka`, kanal=`pelapor`)<br/>8. `lupaCache()` x3 (StatistikDashboard, Pengaduan, Unit)<br/>9. Session put `tiket_terverifikasi` | |
 | **Output** | Redirect ke `pengaduan.sukses` dengan session berisi kode tiket | Kode tiket tidak di-URL (keamanan) |
 | **Output** | Pesan pembuka otomatis di halaman lacak: "Terima kasih... nomor tiket {kode}... maksimal 12 hari kerja" | Peran `pembuka` agar tidak terbaca "sudah terjawab" |
+| **Output** | **Dispatch Queue**: PengaduanEmailVerifikasi (OTP ke pelapor) | Queue |
+| **Output** | **Dispatch Queue**: PengaduanDibuat (notifikasi admin) | Queue |
+| **Output** | **Dispatch Queue**: PengaduanDisposisi (PIC unit, jika unit valid) | Queue |
 
 **Data Store yang Disentuh:**
 
@@ -180,14 +207,15 @@ flowchart LR
 | `riwayat_status_pengaduan` | INSERT (event created: dari=null, ke=Diterima) |
 | `sessions` | INSERT/UPDATE (`tiket_terverifikasi`) |
 | `cache` | INVALIDATE (lupaCache x3) |
+| `jobs` (queue) | INSERT (PengaduanEmailVerifikasi, PengaduanDibuat, PengaduanDisposisi) |
 
 ---
 
 ### Proses 2.0 — Verifikasi & Pelacakan Tiket
 
-**Pelaku:** Pelapor
-**Rute:** `GET /lacak-tiket`, `POST /lacak-tiket/verifikasi` (throttle 10/m)
-**Controller:** `PengaduanController@verifikasi/lacak`
+**Pelaku:** Pelapor  
+**Rute:** `GET /lacak-tiket`, `POST /lacak-tiket/verifikasi` (throttle 10/m)  
+**Controller:** `PengaduanController@verifikasi/lacak`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -209,14 +237,14 @@ flowchart LR
 
 ### Proses 3.0 — Verifikasi Email OTP
 
-**Pelaku:** Pelapor
-**Rute:** `GET/POST /verifikasi-email/{kode}` (throttle 10/m), `POST /verifikasi-email/{kode}/kirim-ulang` (throttle 3/m)
-**Controller:** `PengaduanController@verifikasiEmail/kirimUlangOtp`
+**Pelaku:** Pelapor  
+**Rute:** `GET/POST /verifikasi-email/{kode}` (throttle 10/m), `POST /verifikasi-email/{kode}/kirim-ulang` (throttle 3/m)  
+**Controller:** `PengaduanController@verifikasiEmail/kirimUlangOtp`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
 | **Input** | OTP 6 digit (dari email) | Valid 15 menit dari generate |
-| **Proses** | 1. Cari tiket by kode_tiket<br/>2. Cek apakah sudah terverifikasi<br/>3. Validasi OTP: cocok + belum expired<br/>4. UPDATE `email_verified_at = now()`, NULL-kan `email_otp` & `email_otp_expires_at` | |
+| **Proses** | 1. Cari tiket by kode_tiket<br/>2. Cek apakah sudah terverifikasi<br/>3. Validasi OTP: cocok + belum expired<br/>4. UPDATE `email_verified_at = now()`, NULL-kan `email_otp` & `email_otp_expires_at`<br/>5. **Rotasi token akses**: revoke token lama, generate baru (`generateAksesToken()`) | |
 | **Output** | Status verifikasi: berhasil / gagal / sudah terverifikasi sebelumnya | |
 | **Output** | Kirim ulang OTP baru (expired 15 menit) | Rate limit 3/menit |
 
@@ -224,15 +252,15 @@ flowchart LR
 
 | Data Store | Operasi |
 |------------|---------|
-| `pengaduan` | SELECT, UPDATE (email_verified_at, email_otp) |
+| `pengaduan` | SELECT, UPDATE (email_verified_at, email_otp, akses_token, akses_token_expires_at) |
 
 ---
 
 ### Proses 4.0 — Percakapan Pelapor
 
-**Pelaku:** Pelapor
-**Rute:** `POST /lacak-tiket/{kode}/pesan` (throttle 20/m)
-**Controller:** `PengaduanController@kirimPesan`
+**Pelaku:** Pelapor  
+**Rute:** `POST /lacak-tiket/{kode}/pesan` (throttle 20/m)  
+**Controller:** `PengaduanController@kirimPesan`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -251,9 +279,9 @@ flowchart LR
 
 ### Proses 5.0 — Pengelolaan Tiket Humas
 
-**Pelaku:** Admin Humas
-**Rute:** `GET/POST /admin/pengaduan/buat`, `GET /admin/pengaduan/{kode}`, `POST /admin/pengaduan/{kode}/*` (balas, koordinasi, tahap, disposisi, tangani-langsung, kasus-berat, nudge, bulk-action, draf), `GET /admin/pengaduan/ekspor/*`
-**Controller:** `Admin\PengaduanController`, `Admin\DraftController`, `Admin\ExportController`
+**Pelaku:** Admin Humas  
+**Rute:** `GET/POST /admin/pengaduan/buat`, `GET /admin/pengaduan/{kode}`, `POST /admin/pengaduan/{kode}/*` (balas, koordinasi, tahap, disposisi, tangani-langsung, kasus-berat, nudge, bulk-action, draf), `GET /admin/pengaduan/ekspor/*`  
+**Controller:** `Admin\PengaduanController`, `Admin\DisposisiController`, `Admin\TahapController`, `Admin\KomunikasiController`, `Admin\DraftController`, `Admin\ExportController`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -265,15 +293,21 @@ flowchart LR
 | **Input — Koordinasi Unit** | Isi pesan internal + lampiran | INSERT pesan peran=`admin`, kanal=`unit` |
 | **Input — Kasus Berat** | Toggle aktif/nonaktif | UPDATE `kasus_berat`, catatan ke riwayat |
 | **Input — Nudge Unit** | (tanpa input tambahan) | Notifikasi follow-up ke PIC unit |
-| **Input — Bulk Action** | Daftar kode tiket + aksi massal | Aksi: pindah tahap, tandai kasus berat |
+| **Input — Bulk Action** | Daftar kode tiket + aksi massal | Aksi: disposisi massal, toggle kasus berat massal |
 | **Input — Draf Jawaban** | Isi draf (auto-save) | UPDATE `draf_jawaban` di tabel `pengaduan` |
 | **Input — Export** | Filter periode/status/unit/kategori | Format: Excel, PDF (lembar disposisi), preview |
-| **Proses — Disposisi** | 1. Cek tiket belum selesai<br/>2. Validasi unit bisa ditugaskan<br/>3. DB transaction: UPDATE master_unit_id + pindahTahap(Diproses) atau catat riwayat<br/>4. Unit lama → disposisi=Terhubung<br/>5. Unit baru → disposisi=MenungguInvestigasi<br/>6. `lupaCache()` x3<br/>7. Kirim notifikasi ke PIC unit | `TindakLanjutPengaduan::disposisiKeUnit()` |
-| **Proses — Pindah Tahap** | 1. Cek transisi valid via `tujuanBerikutnya()`<br/>2. UPDATE status + selesai_at<br/>3. INSERT riwayat (dari, ke, catatan, admin_id) | `TahapService::pindahkan()` |
-| **Proses — Balas Pelapor** | 1. Validasi otorisasi admin<br/>2. Simpan lampiran<br/>3. INSERT pesan peran=`admin`, kanal=`pelapor` | `TindakLanjutPengaduan::balasPelapor()` |
-| **Proses — Koordinasi Unit** | 1. Validasi unit sudah ditugaskan<br/>2. Simpan lampiran<br/>3. INSERT pesan peran=`admin`, kanal=`unit` | `TindakLanjutPengaduan::koordinasiUnit()` |
-| **Output** | Detail tiket workspace: identitas, 4 pilar (kronologi, lampiran, audit, SLA), 3 panel chat, 6 tombol aksi | `DetailPengaduan::dariKode()` |
-| **Output** | Ekspor Excel / PDF / preview disposisi | Laravel Excel, dompdf |
+| **Proses — Disposisi** | 1. Cek tiket belum selesai<br/>2. Validasi unit bisa ditugaskan<br/>3. DB transaction: UPDATE master_unit_id + pindahTahap(Diproses) atau catat riwayat<br/>4. Unit lama → disposisi=Terhubung<br/>5. Unit baru → disposisi=MenungguInvestigasi<br/>6. `lupaCache()` x3<br/>6. Kirim notifikasi ke PIC unit | `DisposisiService::disposisiKeUnit()` |
+| **Proses — Tangani Langsung** | 1. Cek `tujuanTersedia()` mengandung Diproses<br/>2. DB transaction: master_unit_id = null, pindahTahap(Diproses)<br/>3. Unit lama → disposisi=Terhubung<br/>4. `lupaCache()` x3 | `DisposisiService::tanganiLangsung()` |
+| **Proses — Pindah Tahap** | 1. Cek transisi valid via `bisaBerpindahKe()`<br/>2. UPDATE status + selesai_at<br/>3. INSERT riwayat (dari, ke, catatan, admin_id) | `TahapService::pindahkan()` |
+| **Proses — Balas Pelapor** | 1. Validasi otorisasi admin<br/>2. Simpan lampiran<br/>3. INSERT pesan peran=`admin`, kanal=`pelapor` | `KomunikasiService::balasPelapor()` |
+| **Proses — Koordinasi Unit** | 1. Validasi unit sudah ditugaskan<br/>2. Simpan lampiran<br/>3. INSERT pesan peran=`admin`, kanal=`unit` | `KomunikasiService::koordinasiUnit()` |
+| **Proses — Kasus Berat** | Toggle aktif/nonaktif → `KasusBeratService::tandaiKasusBerat()` | |
+| **Proses — Nudge Unit** | 1. Cek cooldown 4 jam (via `is_nudge` index)<br/>2. INSERT riwayat + notifikasi ke PIC unit + admin | `KomunikasiService::nudgeUnit()` |
+| **Proses — Bulk Action** | Loop tiket: disposisi massal / toggle kasus berat | `Admin\PengaduanController@bulkAction` |
+| **Proses — Draf Jawaban** | UPDATE `draf_jawaban` (auto-save via AJAX) | `Admin\DraftController` |
+| **Proses — Export** | Filter periode/status/unit/kategori → Excel / PDF (lembar disposisi) / Preview | `Admin\ExportController` |
+| **Output** | Detail tiket workspace: identitas, 4 pilar (kronologi, lampiran, audit, SLA), 3 panel chat, 6 tombol aksi + bulk action | `DetailPengaduan::dariKode()` |
+| **Output** | Ekspor Excel / PDF (lembar disposisi) / Preview disposisi | Laravel Excel, dompdf |
 
 **Data Store yang Disentuh:**
 
@@ -281,19 +315,20 @@ flowchart LR
 |------------|---------|
 | `pengaduan` | SELECT, INSERT (admin input), UPDATE (status, master_unit_id, kasus_berat, draf_jawaban, lampiran) |
 | `pesan_pengaduan` | INSERT (balas, koordinasi) |
-| `riwayat_status_pengaduan` | INSERT (pindahTahap, kasusBerat) |
+| `riwayat_status_pengaduan` | INSERT (pindahTahap, kasusBerat, nudge) |
 | `master_units` | SELECT (validasi disposisi), UPDATE (disposisi status) |
 | `users` | SELECT (notifikasi admin) |
 | `cache` | INVALIDATE (lupaCache x3) |
+| `jobs` (queue) | INSERT (14 jenis notifikasi email) |
 
 ---
 
 ### Proses 6.0 — Monitoring & Konsol Admin
 
-**Pelaku:** Admin Humas
-**Rute:** `GET /admin`, `GET /admin/monitor`, `GET /admin/riwayat`
-**Controller:** `Admin\DashboardController`, `Admin\MonitorController`, `Admin\RiwayatController`
-**Support:** `Dashboard`, `MonitorDisposisi`, `RiwayatAdmin`, `StatistikDashboard`
+**Pelaku:** Admin Humas  
+**Rute:** `GET /admin`, `GET /admin/monitor`, `GET /admin/riwayat`  
+**Controller:** `Admin\DashboardController`, `Admin\MonitorController`, `Admin\RiwayatController`  
+**Support:** `Dashboard`, `MonitorDisposisi`, `RiwayatAdmin`, `StatistikDashboard`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -318,10 +353,10 @@ flowchart LR
 
 ### Proses 7.0 — Manajemen Master Unit
 
-**Pelaku:** Admin Humas
-**Rute:** `GET /admin/unit`, `GET/POST /admin/unit/tambah`, `GET/POST /admin/unit/{unit}/ubah`, `POST /admin/unit/{unit}/status`
-**Controller:** `Admin\UnitController`
-**Support:** `PemeliharaanUnit`, `DaftarUnit`
+**Pelaku:** Admin Humas  
+**Rute:** `GET /admin/unit`, `GET/POST /admin/unit/tambah`, `GET/POST /admin/unit/{unit}/ubah`, `POST /admin/unit/{unit}/status`  
+**Controller:** `Admin\UnitController`  
+**Support:** `PemeliharaanUnit`, `DaftarUnit`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -343,10 +378,10 @@ flowchart LR
 
 ### Proses 8.0 — Penyajian Dashboard & Disposisi Unit
 
-**Pelaku:** PIC Unit
-**Rute:** `GET /unit`, `GET /unit/{unit}/dashboard`, `GET /unit/{unit}/disposisi`, `GET /unit/{unit}/arsip`, `GET /unit/{unit}/pengaduan/{kode}`, `POST /unit/{unit}/pengaduan/{kode}/jawaban` (throttle 20/m), ekspor Excel/PDF
-**Middleware:** `PastikanUnitAktif`
-**Controller:** `Unit\DashboardController`, `Unit\DisposisiController`, `Unit\UnitExportController`
+**Pelaku:** PIC Unit  
+**Rute:** `GET /unit`, `GET /unit/{unit}/dashboard`, `GET /unit/{unit}/disposisi`, `GET /unit/{unit}/arsip`, `GET /unit/{unit}/pengaduan/{kode}`, `POST /unit/{unit}/pengaduan/{kode}/jawaban` (throttle 20/m), ekspor Excel/PDF  
+**Middleware:** `PastikanUnitAktif`  
+**Controller:** `Unit\DashboardController`, `Unit\DisposisiController`, `Unit\ExportController`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -357,11 +392,13 @@ flowchart LR
 | **Proses — Daftar Disposisi** | 1. Query: `master_unit_id` + scope `sudahDiteruskanHumas`<br/>2. Filter tab: Masuk (MenungguInvestigasi), Diproses (SedangInvestigasi/JawabanMasuk), Arsip (Selesai/Terhubung)<br/>3. Paginasi | `DaftarPengaduan::dariRequest()` |
 | **Proses — Detail** | 1. Cari tiket by kode + unit_id<br/>2. Ambil kronologi + lampiran pelapor (read-only)<br/>3. Ambil chat koordinasi (kanal=unit)<br/>4. Form jawaban (isi + lampiran) | |
 | **Proses — Kirim Jawaban** | 1. Simpan lampiran<br/>2. INSERT pesan: peran=`unit`, kanal=`unit`<br/>3. UPDATE `master_units.disposisi` = JawabanMasuk<br/>4. `lupaCache()` x3 | `JawabanUnit::kirim()` |
+| **Proses — Ekspor Excel** | `UnitPengaduanExport` (FromCollection, WithHeadings, WithMapping, WithStyles) | `Unit\ExportController` |
+| **Proses — Ekspor PDF** | Template: `exports/unit-daftar.blade.php` (landscape) | `Unit\ExportController` |
 | **Output** | Pemilih unit: 12 kartu + beban aktif + status koneksi SIMRS | |
 | **Output** | Dashboard unit: 3 kartu tahap + 4 KPI + 2 tiket mendesak + 8 tiket terbaru + stepper SLA | |
 | **Output** | Daftar disposisi: 3 tab + filter + paginasi | |
-| **Output** | Detail disposisi: kronologi pelapor + chat koordinasi + form jawaban + 5 tombol mati (Cetak, PDF, Excel, Eskalasi, TTD) | |
-| **Output** | Ekspor: Excel / PDF (daftar disposisi & arsip, lembar disposisi per tiket) | |
+| **Output** | Detail disposisi: kronologi pelapor + chat koordinasi 2 arah + form jawaban + 5 tombol mati (Cetak, PDF, Excel, Eskalasi, TTD) | |
+| **Output** | Ekspor: Excel (disposisi/arsip), PDF (daftar/lembar disposisi) | `Unit\ExportController`, `DisposisiController@eksporDisposisiPdf` |
 
 **Data Store yang Disentuh:**
 
@@ -377,8 +414,8 @@ flowchart LR
 
 ### Proses 9.0 — Retensi & Monitoring SLA Otomatis
 
-**Pelaku:** Scheduler (Laravel Console)
-**Command:** `pengaduan:bersihkan --force` (dailyAt 02:00), `pengaduan:cek-sla --kirim-notifikasi` (dailyAt 07:00)
+**Pelaku:** Scheduler (Laravel Console)  
+**Command:** `pengaduan:bersihkan --force` (dailyAt 02:00), `pengaduan:cek-sla --kirim-notifikasi` (dailyAt 07:00)  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -398,14 +435,15 @@ flowchart LR
 | `riwayat_status_pengaduan` | DELETE (cascade) |
 | `master_units` | SELECT (kirim notifikasi) |
 | `config/pengaduan.php` | READ (retensi_hari, sla.*) |
+| `jobs` (queue) | INSERT (notifikasi email) |
 
 ---
 
 ### Proses 10.0 — Notifikasi Unit & Real-Time
 
-**Pelaku:** PIC Unit
-**Rute:** `POST /unit/{unit}/notifikasi/baca` (throttle 60/m), `POST /unit/{unit}/notifikasi/baca-semua` (throttle 30/m), `GET /unit/{unit}/notifikasi/daftar` (throttle 60/m), `GET /unit/{unit}/notifikasi/realtime` (throttle 120/m), `POST /unit/{unit}/notifikasi/realtime/baca` (throttle 60/m), `POST /unit/{unit}/notifikasi/realtime/baca-semua` (throttle 30/m)
-**Controller:** `Unit\NotificationController`, `Unit\RealTimeNotificationController`
+**Pelaku:** PIC Unit  
+**Rute:** `POST /unit/{unit}/notifikasi/baca` (throttle 60/m), `POST /unit/{unit}/notifikasi/baca-semua` (throttle 30/m), `GET /unit/{unit}/notifikasi/daftar` (throttle 60/m), `GET /unit/{unit}/notifikasi/realtime` (throttle 120/m), `POST /unit/{unit}/notifikasi/realtime/baca` (throttle 60/m), `POST /unit/{unit}/notifikasi/realtime/baca-semua` (throttle 30/m)  
+**Controller:** `Unit\NotificationController`, `Unit\RealTimeNotificationController`  
 
 | Arah | Data | Keterangan |
 |------|------|------------|
@@ -421,6 +459,33 @@ flowchart LR
 |------------|---------|
 | `pengaduan` | SELECT |
 | `master_units` | UPDATE (notifikasi dibaca) |
+
+---
+
+### Proses 11.0 — Health Check & Observability
+
+**Pelaku:** System / Infra / Monitoring Client  
+**Rute:** `GET /health`, `GET /health/live`, `GET /health/ready`  
+**Controller:** `HealthCheckController`  
+
+| Arah | Data | Keterangan |
+|------|------|------------|
+| **Input** | GET request (tanpa auth, tanpa throttle) | |
+| **Proses — /health (full)** | 1. Cek DB connection (PDO + SELECT 1)<br/>2. Cek Cache (put/get/forget)<br/>3. Cek Redis (ping)<br/>4. Cek Storage (writable)<br/>5. Ukur latency tiap check | |
+| **Proses — /health/live** | Liveness probe: selalu 200 kalau aplikasi boot benar | Kubernetes livenessProbe |
+| **Proses — /health/ready** | Readiness probe: quick DB + Cache check | Kubernetes readinessProbe |
+| **Output — /health** | JSON: status (healthy/degraded/unhealthy), checks detail + latency_ms, timestamp, version | 200 / 503 |
+| **Output — /health/live** | JSON: status=alive, timestamp | 200 |
+| **Output — /health/ready** | JSON: status=ready/not_ready, error kalau gagal | 200 / 503 |
+
+**Data Store yang Disentuh:**
+
+| Data Store | Operasi |
+|------------|---------|
+| `pengaduan` (DB) | SELECT 1 |
+| `cache` | PUT/GET/FORGET |
+| `redis` | PING |
+| `storage` | FILE PUT/DELETE |
 
 ---
 
@@ -443,15 +508,19 @@ flowchart LR
 | Koordinasi unit | Admin | Proses 5.0 | isi (internal), lampiran[] |
 | Kasus berat | Admin | Proses 5.0 | aktif (boolean) |
 | Draf jawaban | Admin | Proses 5.0 | draf_jawaban (text) |
+| Bulk action | Admin | Proses 5.0 | kode_tiket[], aksi (disposisi/kasus_berat), unit, catatan, aktif |
 | Filter/monitor | Admin | Proses 6.0 | status, unit, kategori, kata_kunci, paginasi |
 | Data unit | Admin | Proses 7.0 | kode, nama, kategori, peran_pic, aktif, koneksi_simrs |
 | Toggle unit | Admin | Proses 7.0 | unit_id, status_baru (aktif/nonaktif) |
 | Pilih unit | PIC | Proses 8.0 | unit_kode |
 | Filter disposisi | PIC | Proses 8.0 | tab (masuk/diproses/arsip), status, kata_kunci, paginasi |
 | Jawaban unit | PIC | Proses 8.0 | isi (medis/teknis), lampiran[] (≤5) |
+| Ekspor Excel | PIC | Proses 8.0 | UnitPengaduanExport (FromCollection, WithHeadings, WithMapping, WithStyles) |
+| Ekspor PDF | PIC | Proses 8.0 | unit-daftar.blade.php / lembar-disposisi.blade.php |
 | Perintah retensi | Scheduler | Proses 9.0 | --force, retensi_hari (730) |
 | Perintah cek SLA | Scheduler | Proses 9.0 | --kirim-notifikasi, investigasi_hari_kerja (5) |
 | Tandai notifikasi | PIC | Proses 10.0 | notif_id / semua (boolean) |
+| Health check | Infra | Proses 11.0 | DB, Cache, Redis, Storage |
 
 ---
 
@@ -460,23 +529,37 @@ flowchart LR
 | Data Store | Proses yang Menulis | Proses yang Membaca |
 |------------|--------------------|--------------------|
 | `pengaduan` | 1.0 (INSERT), 3.0 (UPDATE), 5.0 (INSERT/UPDATE), 9.0 (DELETE) | 2.0, 4.0, 5.0, 6.0, 8.0, 9.0, 10.0 |
-| `pesan_pengaduan` | 1.0 (INSERT), 4.0 (INSERT), 5.0 (INSERT), 8.0 (INSERT) | 2.0, 5.0, 6.0, 8.0 |
+| `pesan_pengaduan` | 1.0 (INSERT), 4.0 (INSERT), 5.0 (INSERT), 8.0 (INSERT) | 2.0, 4.0, 5.0, 6.0, 8.0 |
 | `riwayat_status_pengaduan` | 1.0 (INSERT), 5.0 (INSERT) | 5.0, 6.0 |
 | `master_units` | 5.0 (UPDATE), 7.0 (CRUD), 8.0 (UPDATE), 10.0 (UPDATE) | 5.0, 6.0, 7.0, 8.0, 9.0 |
 | `sessions` | 1.0 (INSERT), 2.0 (INSERT/UPDATE/DELETE) | 2.0 |
 | `cache` | 1.0 (INVALIDATE), 5.0 (INVALIDATE), 7.0 (INVALIDATE), 8.0 (INVALIDATE) | 6.0 (READ), 8.0 (READ) |
 | `config/pengaduan.php` | — (read-only) | 8.0, 9.0 |
+| `jobs` (queue) | 1.0, 3.0, 5.0, 8.0, 9.0 | Queue worker |
+| `notifications` | 1.0, 5.0, 8.0, 9.0, 10.0 | 6.0, 8.0, 10.0 |
 
 ---
 
 ## Batasan DFD Level 1
 
-- **10 sub-proses** menggantikan satu proses tunggal Level 0 — masing-masing map ke controller/command yang ada di codebase
+- **11 sub-proses** menggantikan satu proses tunggal Level 0 — masing-masing map ke controller/command yang ada di codebase
 - **Proses 9.0 (Retensi & SLA)** digabung karena keduanya scheduler-driven dan read-only terhadap data utama
 - **Proses 10.0 (Notifikasi Unit)** dipisah dari Proses 8.0 karena punya throttle rate terpisah dan controller terpisah
+- **Proses 11.0 (Health Check & Observability)** baru ditambahkan untuk observability (logging, health check)
 - **SIMRS** tetap read-only manual entry — tidak ada API integrasi
 - **Auth** belum ada — aliran identitas (login) belum tergambar
 - **Export** (Excel/PDF) sudah terimplementasi di codebase, bukan lagi "tombol mati"
+- **Email Notifications** — 14 jenis notifikasi email via queue (tries=3, backoff=5)
+- **Structured Logging** — JSON channel dengan `AddContextProcessor` (request_id, user, trace_id, kode_tiket, unit_kode)
+- **Health Check** — 3 endpoint: `/health` (full), `/health/live` (liveness), `/health/ready` (readiness)
+- **Structured Logging** — JSON channel dengan `AddContextProcessor` (request_id, user, trace_id, kode_tiket, unit_kode)
+- **Controller Split** — `Admin\PengaduanController` dipisah jadi 4: `PengaduanController`, `DisposisiController`, `TahapController`, `KomunikasiController`
+- **NRM Normalisasi** — NRM dinormalisasi (uppercase, strip non-alphanumeric) sebelum disimpan via `PengaduanMasuk::simpan()`
+- **draf_jawaban** tetap di `$fillable` karena dipakai di `Admin\DraftController`
+- **MasterUnit default disposisi** — `'menunggu_investigasi'` via migration, unit baru tidak otomatis siap
+- **NRM Normalisasi** — NRM dinormalisasi (uppercase, strip non-alphanumeric) sebelum disimpan via `PengaduanMasuk::simpan()`
+- **draf_jawaban** tetap di `$fillable` karena dipakai di `Admin\DraftController`
+- **MasterUnit default disposisi** — `'menunggu_investigasi'` via migration, unit baru tidak otomatis siap
 
 ---
 
