@@ -423,6 +423,13 @@ class Pengaduan extends Model
         $this->email_verified_at = now();
         $this->email_otp = null;
         $this->email_otp_expires_at = null;
+
+        // Rotasi token akses: email sekarang terverifikasi, token lama dicabut
+        // dan token baru dibuat agar akses permanen (30 hari) terikat ke email terverifikasi
+        $this->akses_token = null;
+        $this->akses_token_expires_at = null;
+        $this->generateAksesToken();
+
         $this->save();
 
         return true;
