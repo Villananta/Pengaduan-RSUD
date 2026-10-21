@@ -73,9 +73,9 @@ final class KomunikasiService
             throw new RuntimeException('Tiket ini sudah selesai sehingga tidak perlu di-nudge.');
         }
 
-        // Cooldown: cek nudge terakhir, minimal 4 jam (240 menit)
+        // Cooldown: cek nudge terakhir via kolom is_nudge, minimal 4 jam (240 menit)
         $nudgeTerakhir = $pengaduan->riwayatStatus()
-            ->whereRaw("catatan LIKE 'Nudge manual ke unit:%'")
+            ->where('is_nudge', true)
             ->latest('created_at')
             ->first();
 
@@ -95,6 +95,7 @@ final class KomunikasiService
             'ke' => $pengaduan->status,
             'catatan' => 'Nudge manual ke unit: '.$catatan,
             'admin_id' => $adminId,
+            'is_nudge' => true,
         ]);
 
         // Kirim notifikasi ke PIC unit

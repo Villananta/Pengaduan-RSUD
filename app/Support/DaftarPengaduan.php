@@ -378,8 +378,7 @@ final class DaftarPengaduan
             },
             'ringkas' => $selesai
                 ? 'Total selesai: '.$lamaSelesai.' hari kerja'
-                : 'Sisa '.$pengaduan->sisaHariSla().' hari kerja, target '
-                    .$pengaduan->targetSla()->translatedFormat('d M Y'),
+                : $pengaduan->ringkasSla(),
         ];
     }
 

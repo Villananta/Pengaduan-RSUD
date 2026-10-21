@@ -22,11 +22,13 @@ class RiwayatStatusPengaduan extends Model
         'ke',
         'catatan',
         'admin_id',
+        'is_nudge',
     ];
 
     protected $casts = [
         'dari' => StatusPengaduan::class,
         'ke' => StatusPengaduan::class,
+        'is_nudge' => 'boolean',
     ];
 
     public function pengaduan(): BelongsTo

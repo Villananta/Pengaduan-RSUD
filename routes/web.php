@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DisposisiController as AdminDisposisiController;
 use App\Http\Controllers\Admin\DraftController as AdminDraftController;
 use App\Http\Controllers\Admin\ExportController as AdminExportController;
+use App\Http\Controllers\Admin\KomunikasiController as AdminKomunikasiController;
 use App\Http\Controllers\Admin\MonitorController as AdminMonitorController;
 use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
 use App\Http\Controllers\Admin\RiwayatController as AdminRiwayatController;
+use App\Http\Controllers\Admin\TahapController as AdminTahapController;
 use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\AktivasiUndanganController;
 use App\Http\Controllers\PengaduanController;
@@ -121,27 +124,27 @@ Route::prefix('admin')->name('admin.')
         // dibiarkan kosong, permintaan ke rute mana pun menambah hitungan yang
         // sama (domain|ip), sehingga satu tombol yang dipakai berulang bisa
         // menutup tombol lain yang belum tersentuh.
-        Route::post('/pengaduan/{kode}/balas', [AdminPengaduanController::class, 'balas'])
+        Route::post('/pengaduan/{kode}/balas', [AdminKomunikasiController::class, 'balas'])
             ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_BALAS)
             ->name('pengaduan.balas');
-        Route::post('/pengaduan/{kode}/koordinasi', [AdminPengaduanController::class, 'koordinasi'])
+        Route::post('/pengaduan/{kode}/koordinasi', [AdminKomunikasiController::class, 'koordinasi'])
             ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_KOORDINASI)
             ->name('pengaduan.koordinasi');
-        Route::post('/pengaduan/{kode}/tahap', [AdminPengaduanController::class, 'pindahTahap'])
+        Route::post('/pengaduan/{kode}/tahap', [AdminTahapController::class, 'update'])
             ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_TAHAP)
             ->name('pengaduan.tahap');
-        Route::post('/pengaduan/{kode}/disposisi', [AdminPengaduanController::class, 'disposisi'])
+        Route::post('/pengaduan/{kode}/disposisi', [AdminDisposisiController::class, 'store'])
             ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_DISPOSISI)
             ->name('pengaduan.disposisi');
-        Route::post('/pengaduan/{kode}/tangani-langsung', [AdminPengaduanController::class, 'tanganiLangsung'])
+        Route::post('/pengaduan/{kode}/tangani-langsung', [AdminDisposisiController::class, 'tanganiLangsung'])
             ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_TANGANI_LANGSUNG)
             ->name('pengaduan.tangani-langsung');
-        Route::post('/pengaduan/{kode}/kasus-berat', [AdminPengaduanController::class, 'kasusBerat'])
+        Route::post('/pengaduan/{kode}/kasus-berat', [AdminKomunikasiController::class, 'kasusBerat'])
             ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_KASUS_BERAT)
             ->name('pengaduan.kasus-berat');
 
         // Nudge manual ke unit
-        Route::post('/pengaduan/{kode}/nudge', [AdminPengaduanController::class, 'nudgeUnit'])
+        Route::post('/pengaduan/{kode}/nudge', [AdminKomunikasiController::class, 'nudge'])
             ->middleware('throttle:30,1,'.ThrottleKeys::ADMIN_NUDGE)
             ->name('pengaduan.nudge');
 

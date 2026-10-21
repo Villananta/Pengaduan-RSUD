@@ -4,15 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\KanalPengaduan;
 use App\Enums\KategoriPengaduan;
-use App\Enums\StatusPengaduan;
 use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Services\DisposisiService;
 use App\Services\KasusBeratService;
-use App\Services\KomunikasiService;
-use App\Services\TahapService;
 use App\Support\DaftarPengaduan;
 use App\Support\DetailPengaduan;
 use App\Support\PengaduanMasuk;
@@ -23,7 +20,6 @@ use App\Support\StatistikUnit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use RuntimeException;
 
@@ -115,225 +111,6 @@ class PengaduanController extends Controller
         return view('admin.pengaduan.show', [
             'detail' => DetailPengaduan::dariKode($kode),
         ]);
-    }
-
-    /** Tugaskan tiket ke instalasi teknis yang dipilih admin. */
-    public function disposisi(Request $request, string $kode): RedirectResponse
-    {
-        $pengaduan = $this->cariTiket($kode);
-
-        $validated = $request->validate([
-            'unit' => ['required', 'string', 'exists:master_units,kode'],
-            'catatan' => ['nullable', 'string', 'max:500'],
-        ], [
-            'unit.required' => 'Pilih unit tujuan lebih dulu.',
-            'unit.exists' => 'Unit tujuan tidak ditemukan pada master data.',
-            'catatan.max' => 'Catatan untuk unit maksimal 500 karakter.',
-        ]);
-
-        $unit = MasterUnit::where('kode', $validated['unit'])->firstOrFail();
-
-        try {
-            DisposisiService::disposisiKeUnit(
-                $pengaduan,
-                $unit,
-                $validated['catatan'] ?? null,
-            );
-        } catch (RuntimeException $alasan) {
-            // Alasan penolakan diarahkan ke field unit supaya muncul di dalam
-            // kartu keputusan, dekat dengan pilihan unitnya.
-            throw ValidationException::withMessages([
-                'unit' => $alasan->getMessage(),
-            ]);
-        }
-
-        return $this->kembali($pengaduan, 'Pengaduan didisposisikan ke '.$unit->namaLengkap().'.');
-    }
-
-    /** Jalur 2: humas menangani tiket langsung tanpa melibatkan unit teknis. */
-    public function tanganiLangsung(Request $request, string $kode): RedirectResponse
-    {
-        $pengaduan = $this->cariTiket($kode);
-
-        $validated = $request->validate([
-            'catatan' => ['nullable', 'string', 'max:500'],
-        ], [
-            'catatan.max' => 'Catatan penanganan maksimal 500 karakter.',
-        ]);
-
-        try {
-            DisposisiService::tanganiLangsung(
-                $pengaduan,
-                $validated['catatan'] ?? null,
-            );
-        } catch (RuntimeException $alasan) {
-            throw ValidationException::withMessages([
-                'catatan' => $alasan->getMessage(),
-            ]);
-        }
-
-        return $this->kembali($pengaduan, 'Pengaduan ditangani langsung humas dan dilepas dari disposisi unit.');
-    }
-
-    /**
-     * Tombol tahap pada panel bawah: Proses, Selesaikan, atau Revisi.
-     *
-     * Semua tombol dikirim ke endpoint yang sama; bedanya hanya nilai
-     * tujuan, supaya aturan perpindahan tahap tidak tercecer di tiga
-     * controller method yang berbeda.
-     */
-    public function pindahTahap(Request $request, string $kode): RedirectResponse
-    {
-        $pengaduan = $this->cariTiket($kode);
-
-        $validated = $request->validate([
-            'tujuan' => ['required', Rule::enum(StatusPengaduan::class)],
-            'catatan' => ['nullable', 'string', 'max:500'],
-        ], [
-            'tujuan.required' => 'Pilih tahap tujuan lebih dulu.',
-            'tujuan.enum' => 'Tahap tujuan tidak dikenal.',
-            'catatan.max' => 'Catatan untuk unit maksimal 500 karakter.',
-        ]);
-
-        $tujuan = StatusPengaduan::from($validated['tujuan']);
-
-        try {
-            TahapService::pindahkanTahap(
-                $pengaduan,
-                $tujuan,
-                $validated['catatan'] ?? null,
-            );
-        } catch (RuntimeException $alasan) {
-            // Alasan penolakan ditulis dengan nama field yang dipakai template,
-            // supaya pesan salahnya muncul di panel yang sama dengan tombolnya.
-            throw ValidationException::withMessages([
-                'tujuan' => $alasan->getMessage(),
-            ]);
-        }
-
-        return $this->kembali($pengaduan, TahapService::pesanTujuan($tujuan));
-    }
-
-    /**
-     * Balas di kolom percakapan, sama seperti yang dilakukan pelapor.
-     *
-     * Balasan ini tidak menutup tiket. Tutupannya tetap lewat tombol tahap,
-     * supaya admin bisa membalas berkali-kali tanpa mengubah status utama.
-     */
-    public function balas(Request $request, string $kode): RedirectResponse
-    {
-        $pengaduan = $this->cariTiket($kode);
-
-        $validated = $request->validate([
-            'isi' => ['required', 'string', 'max:2000'],
-            'lampiran' => ['nullable', 'array', 'max:5'],
-            'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-        ], [
-            'isi.required' => 'Tuliskan balasan lebih dulu sebelum dikirim.',
-            'isi.max' => 'Balasan maksimal 2000 karakter.',
-            'lampiran.max' => 'Maksimal 5 lampiran per balasan.',
-            'lampiran.*.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
-            'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 4 MB.',
-        ]);
-
-        KomunikasiService::balasPelapor(
-            $pengaduan,
-            $validated['isi'],
-            $request->file('lampiran', []) ?? [],
-        );
-
-        return $this->kembali($pengaduan, 'Balasan terkirim ke pelapor.');
-    }
-
-    /**
-     * Kirim pesan admin humas ke kanal koordinasi unit.
-     *
-     * Obrolan ini tidak mengubah tahap tiket dan tidak terlihat oleh pelapor;
-     * tujuannya hanya menjadi pengganti form jawaban unit yang dulu satu
-     * pintu, supaya humas bisa membalas PIC unit dari halaman yang sama.
-     */
-    public function koordinasi(Request $request, string $kode): RedirectResponse
-    {
-        $pengaduan = $this->cariTiket($kode);
-
-        $validated = $request->validate([
-            'isi' => ['required', 'string', 'max:2000'],
-            'lampiran' => ['nullable', 'array', 'max:5'],
-            'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-        ], [
-            'isi.required' => 'Tuliskan pesan koordinasi lebih dulu sebelum dikirim.',
-            'isi.max' => 'Pesan koordinasi maksimal 2000 karakter.',
-            'lampiran.max' => 'Maksimal 5 lampiran per pesan.',
-            'lampiran.*.mimes' => 'Lampiran hanya boleh berformat JPG, PNG, atau PDF.',
-            'lampiran.*.max' => 'Ukuran maksimal tiap lampiran adalah 4 MB.',
-        ]);
-
-        try {
-            KomunikasiService::koordinasiUnit(
-                $pengaduan,
-                $validated['isi'],
-                $request->file('lampiran', []) ?? [],
-            );
-        } catch (RuntimeException $alasan) {
-            // Tiket tanpa unit memang tidak punya kanal koordinasi, jadi
-            // penolakannya ditulis ke folder isi agar muncul di atas form.
-            throw ValidationException::withMessages([
-                'isi' => $alasan->getMessage(),
-            ]);
-        }
-
-        return $this->kembali($pengaduan, 'Pesan koordinasi terkirim ke unit.');
-    }
-
-    /** Nyalakan atau matikan penandaan kasus berat beserta ekstensi SLA-nya. */
-    public function kasusBerat(Request $request, string $kode): RedirectResponse
-    {
-        $pengaduan = $this->cariTiket($kode);
-
-        $validated = $request->validate([
-            'aktif' => ['required', 'boolean'],
-        ], [
-            'aktif.required' => 'Status kasus berat tidak terbaca.',
-        ]);
-
-        $aktif = $request->boolean('aktif');
-
-        KasusBeratService::tandaiKasusBerat($pengaduan, $aktif);
-
-        return $this->kembali(
-            $pengaduan,
-            $aktif
-                ? 'Tiket ditandai kasus berat, target penyelesaian digeser.'
-                : 'Penandaan kasus berat dilepas, target kembali ke standar.'
-        );
-    }
-
-    /**
-     * Kirim nudge (follow up manual) ke unit yang menangani tiket.
-     */
-    public function nudgeUnit(Request $request, string $kode): RedirectResponse
-    {
-        $pengaduan = $this->cariTiket($kode);
-
-        $validated = $request->validate([
-            'catatan' => ['required', 'string', 'max:500'],
-        ], [
-            'catatan.required' => 'Tuliskan catatan follow up untuk unit.',
-            'catatan.max' => 'Catatan maksimal 500 karakter.',
-        ]);
-
-        try {
-            KomunikasiService::nudgeUnit(
-                $pengaduan,
-                $validated['catatan'],
-            );
-        } catch (RuntimeException $alasan) {
-            throw ValidationException::withMessages([
-                'catatan' => $alasan->getMessage(),
-            ]);
-        }
-
-        return $this->kembali($pengaduan, 'Nudge terkirim ke unit '.($pengaduan->masterUnit?->namaLengkap() ?? '—').'.');
     }
 
     /**
