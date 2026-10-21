@@ -122,7 +122,7 @@
             'ukuran' => 'PDF · 840 KB',
             'isi' => '6 lembar kerja',
             'aksi' => 'Unduh Formulir',
-            'tombol' => 'terang',
+            'tombol' => 'gelap',
         ],
     ];
 @endphp

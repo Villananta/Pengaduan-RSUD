@@ -62,10 +62,10 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertSee('Menunggu Unit')
             ->getContent();
 
-        // Warna teks yang lama sama persis dengan warna latarnya, jadi label
-        // dan ikonnya menyatu dengan kolom. Teksnya wajib pakai warna on-.
-        $this->assertStringContainsString('rounded-xl bg-tertiary-container text-on-tertiary-container', $tampilan);
-        $this->assertStringNotContainsString('rounded-xl bg-tertiary-container text-tertiary-fixed', $tampilan);
+        // Warna teks harus kontras dengan latar. Sekali pakai secondary container
+        // (mint) yang sama dengan badgeAdmin Diterima, agar konsisten & terbaca.
+        $this->assertStringContainsString('rounded-xl bg-secondary-container text-on-secondary-container', $tampilan);
+        $this->assertStringNotContainsString('rounded-xl bg-tertiary-container text-on-tertiary-container', $tampilan);
     }
 
     public function test_halaman_kosong_menampilkan_pesan_bukan_tabel_kosong(): void

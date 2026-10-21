@@ -54,147 +54,17 @@
 
         <!-- End of Remah Roti -->
 
-        <!-- Kartu Identitas: data pengadu, unit terkait, dan penanda Lapis 2. -->
-        <section class="w-full bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col lg:flex-row lg:items-start justify-between gap-space-lg">
-            <div class="flex flex-col gap-space-sm min-w-0">
-                <div class="flex flex-wrap items-center gap-space-sm">
-                    <span class="px-space-sm py-0.5 rounded-sm bg-surface-container-highest text-on-surface font-label-md text-label-md font-bold tracking-wide">
-                        #{{ $detail->kode() }}
-                    </span>
+        <x-tiket-identitas
+            :kode="$detail->kode()"
+            :tiket="$tiket"
+            :unit="$unit"
+        />
 
-                    @if ($unit['tertaut'])
-                        <span class="px-space-sm py-0.5 rounded-full {{ $unit['nada'] }} font-label-sm text-label-sm font-bold flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-secondary" aria-hidden="true"></span>
-                            {{ $unit['nama'] }}
-                        </span>
-                    @else
-                        <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-bold flex items-center gap-1">
-                            <x-symbol nama="support_agent" class="text-[14px]" />
-                            {{ $unit['nama'] }}
-                        </span>
-                    @endif
-
-                    <span class="text-on-surface-variant font-label-sm text-label-sm">
-                        Masuk {{ $tiket->created_at->translatedFormat('d M Y, H:i') }} WIB
-                    </span>
-                </div>
-
-                <h1 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">
-                    {{ $tiket->subjek }}
-                </h1>
-
-                <div class="flex flex-wrap items-center gap-x-space-md gap-y-1 text-on-surface-variant font-body-sm text-body-sm">
-                    <span class="flex items-center gap-1">
-                        <x-symbol nama="person" class="text-[16px] text-secondary" />
-                        <span>{{ $tiket->nama_lengkap }}</span>
-                    </span>
-                    <span aria-hidden="true">&bull;</span>
-                    <span class="flex items-center gap-1">
-                        <x-symbol nama="badge" class="text-[16px] text-outline" />
-                        <span>NRM: <strong>{{ $tiket->nrm }}</strong></span>
-                    </span>
-                    <span aria-hidden="true">&bull;</span>
-                    <span class="flex items-center gap-1">
-                        <x-symbol nama="calendar_today" class="text-[16px] text-outline" />
-                        <span>Kejadian {{ $tiket->waktu_kejadian->translatedFormat('d M Y') }}</span>
-                    </span>
-                    <span aria-hidden="true">&bull;</span>
-                        <span>{{ $tiket->kategori->label() }}</span>
-                    <span aria-hidden="true">&bull;</span>
-                    <span class="flex items-center gap-1">
-                        <x-symbol nama="call" class="text-[16px] text-outline" />
-                        <span>{{ $tiket->no_wa }}</span>
-                    </span>
-                </div>
-            </div>
-
-            {{-- Penanda Lapis 2: unit yang ditugaskan. Titik kondisi koneksi
-                 SIMRS disembunyikan karena heartbeat-nya belum pernah ditulis. --}}
-
-            <div class="flex items-center gap-space-sm bg-surface-container-low p-space-sm rounded-lg shrink-0">
-                <span class="w-10 h-10 rounded-lg {{ $unit['tertaut'] ? 'bg-secondary text-on-secondary' : 'bg-surface-container-highest text-outline' }} flex items-center justify-center shrink-0">
-                    <x-symbol :nama="$unit['tertaut'] ? 'domain' : 'support_agent'" class="text-[22px]" />
-                </span>
-
-                <div class="flex flex-col">
-                    <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">
-                        Status Lapis 2 &bull; Unit Terkait
-                    </span>
-
-                    <div class="flex items-center gap-1.5">
-                        @if ($unit['tertaut'])
-                            <span class="w-2 h-2 rounded-full bg-secondary" aria-hidden="true"></span>
-                        @endif
-
-                        <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $unit['status'] }}</span>
-                    </div>
-
-                    <span class="font-label-sm text-label-sm text-on-surface-variant">{{ $unit['keterangan'] }}</span>
-                </div>
-            </div>
-        </section>
-        <!-- End of Kartu Identitas -->
-
-        <!-- Stepper Empat Tahap Pengaduan beserta posisi hari kerja -->
-        <section class="w-full bg-surface-container-low/40 rounded-lg p-space-md flex flex-col gap-space-sm">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
-                <span class="font-label-sm text-label-sm uppercase tracking-wider font-bold text-on-surface-variant">
-                    Progres Siklus Pengaduan RSUD (Lapis 1 &mdash; Humas Terpadu)
-                </span>
-                <span class="font-label-sm text-label-sm text-secondary font-semibold">
-                    {{ $tiket->ringkasSla() }}
-                </span>
-            </div>
-
-            <div class="relative flex flex-col sm:flex-row sm:items-start justify-between gap-space-sm">
-                {{-- Rail tipis di belakang node. Panjangnya hanya ikut tahap
-                     yang sudah dilalui, tahap terakhir tidak dicoret penuh. --}}
-                <div class="hidden sm:block absolute inset-x-6 top-4 h-1" aria-hidden="true">
-                    <div class="h-1 w-full rounded-full bg-surface-container-highest"></div>
-                    <div
-                        class="absolute left-0 top-0 h-1 rounded-full bg-secondary"
-                        style="width: {{ $sla['persen'] }}%"
-                    ></div>
-                </div>
-
-                @foreach ($detail->pilar as $pilar)
-                    <div class="flex flex-col items-start sm:items-center gap-1 relative z-10 flex-1">
-                        <span @class([
-                            'w-8 h-8 rounded-full flex items-center justify-center shadow-sm',
-                            'bg-secondary text-on-secondary' => $pilar['keadaan'] === 'tuntas',
-                            'bg-primary-container text-on-primary ring-4 ring-secondary-container' => $pilar['keadaan'] === 'berjalan',
-                            'bg-surface-container-lowest text-outline opacity-75' => $pilar['keadaan'] === 'menunggu',
-                        ])>
-                            <x-symbol :nama="$pilar['ikon']" class="text-[18px]" />
-                        </span>
-
-                        <span @class([
-                            'font-label-md text-label-md',
-                            'font-bold text-secondary' => $pilar['keadaan'] === 'tuntas',
-                            'font-bold text-primary-container' => $pilar['keadaan'] === 'berjalan',
-                            'font-semibold text-outline' => $pilar['keadaan'] === 'menunggu',
-                        ])>
-                            {{ $pilar['urut'] }}. {{ $pilar['label'] }}
-                        </span>
-
-                        <span class="font-label-sm text-label-sm text-on-surface-variant">
-                            {{ $pilar['waktu'] ?? $pilar['subStatus'] }}
-                        </span>
-                    </div>
-                @endforeach
-            </div>
-
-            <div class="flex items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant">
-                <x-symbol :nama="$sla['lewatUnit'] ? 'crisis_alert' : 'verified'" class="text-[16px] {{ $sla['lewatUnit'] ? 'text-error' : 'text-secondary' }}" />
-
-                @if ($sla['lewatUnit'])
-                    Investigasi unit sudah melewati batas {{ $sla['hariInvestigasi'] }} hari kerja, tiket masuk eskalasi.
-                @else
-                    Batas investigasi internal unit {{ $sla['hariInvestigasi'] }} hari kerja, target penyelesaian {{ $sla['target'] }}.
-                @endif
-            </div>
-        </section>
-        <!-- End of Stepper Empat Tahap Pengaduan -->
+        <x-stepper-tahap
+            :pilar="$detail->pilar"
+            :sla="$sla"
+            :ringkas-sla="$tiket->ringkasSla()"
+        />
 
         <!-- Panel Kasus Berat: penandaan yang menggeser target SLA. -->
         {{-- Menyalakannya menambah hari kerja SLA, jadi panel ini menampilkan

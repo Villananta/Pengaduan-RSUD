@@ -163,7 +163,7 @@ class PesanPengaduan extends Model
      * @param  array<int, UploadedFile|null>  $berkas
      * @return array<int, string>|null
      */
-    public static function simpanBerkas(array $berkas): ?array
+    public static function simpanBerkas(array $berkas): array
     {
         $daftar = [];
 
@@ -179,6 +179,6 @@ class PesanPengaduan extends Model
             }
         }
 
-        return $daftar === [] ? null : $daftar;
+        return $daftar === [] ? [] : $daftar;
     }
 }

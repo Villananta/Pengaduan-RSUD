@@ -57,7 +57,7 @@ class DetailPengaduanAdminTest extends TestCase
 
         $this->get(route('admin.pengaduan.show', 'ADUAN-STEP-01'))
             ->assertOk()
-            ->assertSee('Progres Siklus Pengaduan RSUD (Lapis 1 &mdash; Humas Terpadu)', false)
+            ->assertSee('Progres Siklus Pengaduan RSUD (Lapis 1 &mdash; Humas Terpadu)')
             ->assertSee('1. Diterima')
             ->assertSee('2. Diproses')
             ->assertSee('3. Perlu Revisi')

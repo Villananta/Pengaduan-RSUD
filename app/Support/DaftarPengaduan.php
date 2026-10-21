@@ -281,9 +281,8 @@ final class DaftarPengaduan
             return [
                 'label' => 'Menunggu Unit',
                 'ikon' => 'pending_actions',
-                // Teksnya harus warna on-tertiary-container: warna fixed justru
-                // sama persis dengan warna container, jadi label jadi tak terbaca.
-                'nada' => 'bg-tertiary-container text-on-tertiary-container',
+                // Pakai secondary container (mint) agar kontras & konsisten dengan badgeAdmin Diterima
+                'nada' => 'bg-secondary-container text-on-secondary-container',
             ];
         }
 

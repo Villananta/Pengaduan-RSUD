@@ -84,7 +84,7 @@ final class ThrottleKeys
     // Unit: real-time notifikasi (polling)
     public const UNIT_NOTIFIKASI_REALTIME = 'unit-notifikasi-realtime';
 
-    public const UNIT_NOTIFIKASI_REALTIME_BACA = 'unit-notifikatisi-realtime-baca';
+    public const UNIT_NOTIFIKASI_REALTIME_BACA = 'unit-notifikasi-realtime-baca';
 
     public const UNIT_NOTIFIKASI_REALTIME_BACA_SEMUA = 'unit-notifikasi-realtime-baca-semua';
 
