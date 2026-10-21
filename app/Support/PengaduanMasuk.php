@@ -93,6 +93,11 @@ final class PengaduanMasuk
      */
     public static function simpan(array $data, array $berkas = []): Pengaduan
     {
+        // Normalisasi NRM sebelum disimpan: hapus spasi, tanda hubung, titik, ubah ke uppercase
+        $data = array_merge($data, [
+            'nrm' => Pengaduan::normalisasiNrm($data['nrm'] ?? ''),
+        ]);
+
         $pengaduan = Pengaduan::buat(
             (new Collection($data))
                 ->except(['persetujuan', 'kanal', 'lampiran'])
