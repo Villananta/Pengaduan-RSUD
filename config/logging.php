@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -54,7 +55,7 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => explode(',', (string) env('LOG_STACK', env('APP_ENV') === 'production' ? 'json' : 'single')),
             'ignore_exceptions' => false,
         ],
 
@@ -133,6 +134,38 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        // Structured JSON logging for production (Logstash, Datadog, Loki, etc.)
+        'json' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/laravel-json.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'max_files' => env('LOG_DAILY_DAYS', 14),
+            'formatter' => JsonFormatter::class,
+            'formatter_with' => [
+                'batch_mode' => JsonFormatter::BATCH_MODE_JSON,
+                'append_newline' => true,
+            ],
+            'processors' => [
+                PsrLogMessageProcessor::class,
+                'App\\Logging\\AddContextProcessor', // custom processor untuk konteks request
+            ],
+            'replace_placeholders' => true,
+        ],
+
+        // Channel untuk audit trail (tindakan admin, nudge, disposisi, dll)
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+            'max_files' => 90,
+            'formatter' => JsonFormatter::class,
+            'formatter_with' => [
+                'batch_mode' => JsonFormatter::BATCH_MODE_JSON,
+                'append_newline' => true,
+            ],
+            'replace_placeholders' => true,
         ],
 
     ],

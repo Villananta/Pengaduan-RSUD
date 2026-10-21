@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\RiwayatController as AdminRiwayatController;
 use App\Http\Controllers\Admin\TahapController as AdminTahapController;
 use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\AktivasiUndanganController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\SesiController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
@@ -28,6 +29,12 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/buat-aduan');
 
 Route::view('/maklumat-prosedur', 'maklumat.index')->name('maklumat.index');
+
+// Health check endpoints (untuk load balancer, Kubernetes, monitoring)
+// Tidak memerlukan auth, rate limit longgar (hanya monitoring internal)
+Route::get('/health', [HealthCheckController::class, 'index'])->name('health');
+Route::get('/health/live', [HealthCheckController::class, 'live'])->name('health.live');
+Route::get('/health/ready', [HealthCheckController::class, 'ready'])->name('health.ready');
 
 // Batas percobaan agar kode tiket tidak bisa ditebak brute force dan
 // endpoint publik tidak bisa dipakai untuk spam.
