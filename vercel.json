@@ -1,7 +1,6 @@
 {
   "buildCommand": "composer install --no-dev --optimize-autoloader && npm ci && npm run build",
   "outputDirectory": "public/build",
-  "framework": "laravel",
   "functions": {
     "api/index.php": {
       "maxDuration": 30,
