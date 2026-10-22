@@ -3,18 +3,19 @@
   "outputDirectory": "public/build",
   "framework": "laravel",
   "functions": {
-    "app/public/index.php": {
+    "api/index.php": {
       "maxDuration": 30,
       "memory": 1024
     }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.php" }],
-  "env": {
-    "APP_ENV": "production",
-    "APP_DEBUG": "false",
-    "LOG_CHANNEL": "stderr",
-    "SESSION_DRIVER": "database",
-    "CACHE_STORE": "database",
-    "QUEUE_CONNECTION": "sync"
-  }
+  "rewrites": [
+    {
+      "source": "/build/(.*)",
+      "destination": "/build/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.php"
+    }
+  ]
 }
