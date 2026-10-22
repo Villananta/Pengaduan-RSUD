@@ -1,20 +1,14 @@
 {
-  "buildCommand": "composer install --no-dev --optimize-autoloader && npm ci && npm run build",
-  "outputDirectory": "public/build",
+  "version": 2,
   "functions": {
     "api/index.php": {
-      "maxDuration": 30,
-      "memory": 1024
+      "runtime": "vercel-php@0.7.3"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/build/(.*)",
-      "destination": "/build/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.php"
+      "src": "/(.*)",
+      "dest": "/api/index.php"
     }
   ]
 }
