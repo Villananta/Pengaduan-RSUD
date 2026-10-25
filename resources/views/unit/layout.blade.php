@@ -309,9 +309,6 @@
 
     {{-- Real-time Notification Polling (15 detik) --}}
     @if ($unit !== null)
-        {{-- Nilai rute dan waktu server dihitung Blade di luar @verbatim,
-             karena blok skripnya literal: tanda kurung kurawal ganda di
-             dalam template string tidak boleh ikut dikompilasi Blade. --}}
         <script>
             window.konfigurasiNotifikasi = {
                 urlPolling: @js(route('unit.notifikasi.realtime', $unit)),
