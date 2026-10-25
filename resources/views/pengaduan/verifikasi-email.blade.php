@@ -8,15 +8,15 @@
 <section class="flex min-h-[720px] flex-col items-center bg-brand-light px-8 py-14">
     <div class="mx-auto flex w-full max-w-[480px] flex-col items-center rounded-3xl bg-white p-10 text-center shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
 
-        <span class="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-            <svg class="h-8 w-8 text-amber-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <span class="flex h-16 w-16 items-center justify-center rounded-full bg-tertiary-container">
+            <svg class="h-8 w-8 text-on-tertiary-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <polyline points="22 6 12 13 2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </span>
 
-        <span class="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-xs font-semibold tracking-[0.24px] text-amber-500">
-            <svg class="h-3 w-3 text-amber-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <span class="mt-6 inline-flex items-center gap-2 rounded-full bg-tertiary-container px-4 py-1.5 text-xs font-semibold tracking-[0.24px] text-on-tertiary-container">
+            <svg class="h-3 w-3 text-on-tertiary-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                 <path d="m9 11 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -30,18 +30,18 @@
         <div class="mt-6 w-full rounded-xl bg-brand-light p-4">
             <p class="text-[11px] font-semibold uppercase tracking-[0.6px] text-brand-600">Nomor Tiket</p>
             <p class="mt-1 text-lg font-bold tracking-[0.5px] text-brand-800">{{ $pengaduan->kode_tiket }}</p>
-            <p class="mt-2 text-[13px] text-ink-muted">Kode OTP berlaku <span class="font-semibold text-amber-800">15 menit</span> sejak dikirim.</p>
+            <p class="mt-2 text-[13px] text-ink-muted">Kode OTP berlaku <span class="font-semibold text-on-tertiary-container">15 menit</span> sejak dikirim.</p>
         </div>
 
         @if (session('errors'))
-            <div class="mt-4 w-full rounded-lg bg-red-50 p-3 text-left">
-                <p class="text-sm text-red-800" role="alert">{{ session('errors')->first() }}</p>
+            <div class="mt-4 w-full rounded-lg bg-error-container p-3 text-left">
+                <p class="text-sm text-on-error-container" role="alert">{{ session('errors')->first() }}</p>
             </div>
         @endif
 
         @if (session('sukses'))
-            <div class="mt-4 w-full rounded-lg bg-green-50 p-3 text-left">
-                <p class="text-sm text-green-800" role="status">{{ session('sukses') }}</p>
+            <div class="mt-4 w-full rounded-lg bg-secondary-container p-3 text-left">
+                <p class="text-sm text-on-secondary-container" role="status">{{ session('sukses') }}</p>
             </div>
         @endif
 

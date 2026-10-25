@@ -33,8 +33,8 @@
             <h1 class="mb-10 text-3xl font-bold text-ink">Masuk</h1>
 
             @if (session('errors'))
-                <div class="mb-6 rounded-lg bg-red-50 p-3">
-                    <p class="text-sm text-red-800" role="alert">{{ session('errors')->first() }}</p>
+                <div class="mb-6 rounded-lg bg-error-container p-3">
+                    <p class="text-sm text-on-error-container" role="alert">{{ session('errors')->first() }}</p>
                 </div>
             @endif
 

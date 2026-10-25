@@ -12,8 +12,8 @@
 
             <!-- Panel Keberhasilan: token sudah terpakai, jadi halaman ini
                  tidak lagi menawarkan formulir apa pun. -->
-            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <svg class="h-8 w-8 text-green-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-secondary-container">
+                <svg class="h-8 w-8 text-on-secondary-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
                     <path d="m8.5 12.5 2.5 2.5 4.5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -26,8 +26,8 @@
 
             <!-- Token tidak dikenal: bisa jadi sudah pernah dipakai atau
                  memang bukan tautan yang dikeluarkan sistem ini. -->
-            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-                <svg class="h-8 w-8 text-red-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-error-container">
+                <svg class="h-8 w-8 text-on-error-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <polyline points="22 6 12 13 2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -40,8 +40,8 @@
 
             <!-- Token dikenal tapi masa berlakunya sudah lewat: pesannya
                  dipisah dari token asing supaya PIC tahu harus minta apa. -->
-            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-                <svg class="h-8 w-8 text-amber-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-tertiary-container">
+                <svg class="h-8 w-8 text-on-tertiary-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
                     <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -52,15 +52,15 @@
 
         @else
 
-            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-                <svg class="h-8 w-8 text-amber-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-tertiary-container">
+                <svg class="h-8 w-8 text-on-tertiary-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <polyline points="22 6 12 13 2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </span>
 
-            <span class="mt-6 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-xs font-semibold tracking-[0.24px] text-amber-500">
-                <svg class="h-3 w-3 text-amber-800" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <span class="mt-6 inline-flex items-center gap-2 rounded-full bg-tertiary-container px-4 py-1.5 text-xs font-semibold tracking-[0.24px] text-on-tertiary-container">
+                <svg class="h-3 w-3 text-on-tertiary-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                     <path d="m9 11 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -81,8 +81,8 @@
             </div>
 
             @if (session('errors'))
-                <div class="mt-4 w-full rounded-lg bg-red-50 p-3 text-left">
-                    <p class="text-sm text-red-800" role="alert">{{ session('errors')->first() }}</p>
+                <div class="mt-4 w-full rounded-lg bg-error-container p-3 text-left">
+                    <p class="text-sm text-on-error-container" role="alert">{{ session('errors')->first() }}</p>
                 </div>
             @endif
 

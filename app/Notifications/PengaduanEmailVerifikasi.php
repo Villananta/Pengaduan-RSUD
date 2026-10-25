@@ -26,12 +26,12 @@ class PengaduanEmailVerifikasi extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->subject('Verifikasi Email - Pengaduan RSUD Dr. Soetomo')
-            ->greeting('Halo ' . $this->pengaduan->nama_lengkap . ',')
-            ->line('Terima kasih telah mengirim pengaduan dengan nomor tiket **' . $this->pengaduan->kode_tiket . '**.')
+            ->greeting('Halo '.$this->pengaduan->nama_lengkap.',')
+            ->line('Terima kasih telah mengirim pengaduan dengan nomor tiket **'.$this->pengaduan->kode_tiket.'**.')
             ->line('Untuk memastikan email Anda valid dan dapat menerima notifikasi perkembangan pengaduan, silakan verifikasi email ini dengan kode OTP di bawah:')
-            ->line('**Kode OTP: ' . $this->otp . '**')
+            ->line('**Kode OTP: '.$this->otp.'**')
             ->line('Kode ini berlaku selama **15 menit**. Jangan bagikan kode ini kepada siapapun.')
-            ->action('Verifikasi Email', url('/verifikasi-email/' . $this->pengaduan->kode_tiket . '?otp=' . $this->otp))
+            ->action('Verifikasi Email', url('/verifikasi-email/'.$this->pengaduan->kode_tiket.'?otp='.$this->otp))
             ->line('Jika Anda tidak mengirim pengaduan ini, abaikan email ini.')
             ->salutation('Hormat kami,<br>Tim Humas & Pengaduan RSUD Dr. Soetomo');
     }
