@@ -116,10 +116,22 @@ final class PemeliharaanUnit
      *
      * Unit yang dinonaktifkan tidak dihapus supaya riwayat penugasan tiket
      * lama tetap punya nama unit yang bisa dibaca.
+     * Saat dinonaktifkan, status_akses diubah ke Dinonaktifkan.
+     * Saat diaktifkan kembali, status_akses kembali ke AkunAktif.
      */
     public static function alihStatus(MasterUnit $unit): MasterUnit
     {
         $unit->aktif = ! $unit->aktif;
+
+        // Sinkronkan status_akses dengan status aktif
+        if ($unit->aktif) {
+            // Diaktifkan kembali: kembali ke AkunAktif (PIC sudah punya akun)
+            $unit->status_akses = StatusAksesUnit::AkunAktif;
+        } else {
+            // Dinonaktifkan: tandai Dinonaktifkan
+            $unit->status_akses = StatusAksesUnit::Dinonaktifkan;
+        }
+
         $unit->save();
 
         StatistikDashboard::lupaCache();
