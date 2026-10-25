@@ -28,12 +28,12 @@ class DatabaseSeeder extends Seeder
         $this->call(PengaduanDemoSeeder::class);
         $this->call(PengaduanDummySeeder::class);
 
-        // Akun contoh dibuat satu kali saja supaya `db:seed` berulang
+        // Akun admin humas dibuat satu kali saja supaya `db:seed` berulang
         // tidak bentrok dengan batasan unik email.
         User::firstOrCreate(
-            ['email' => 'test@example.com'],
+            ['email' => 'admin@rsudsoetomo.go.id'],
             [
-                'name' => 'Test User',
+                'name' => 'Admin Humas',
                 'peran' => PeranPengguna::Admin,
                 'password' => bcrypt('password'),
             ],
