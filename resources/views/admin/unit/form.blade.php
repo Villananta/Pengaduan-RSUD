@@ -167,7 +167,7 @@
                         >
                     </div>
 
-                    <div class="flex items-end gap-2 pb-1">
+                    <div class="flex items-center gap-2 pb-1">
                         <input
                             id="aktif"
                             type="checkbox"

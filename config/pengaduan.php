@@ -28,6 +28,10 @@ return [
     // Data pribadi pengaduan dihapus setelah melewati masa retensi ini.
     'retensi_hari' => 730,
 
+    // Hari libur nasional yang dikecualikan dari perhitungan hari kerja SLA.
+    // Bisa diisi manual (array) atau lewat env HARI_LIBUR dipisah koma (YYYY-MM-DD).
+    'hari_libur' => array_values(array_filter(array_map('trim', explode(',', (string) env('HARI_LIBUR', ''))))),
+
     // Ambang minimum kepatuhan SLA yang ditampilkan pada kartu KPI
     // konsol admin. Angka ini standar Kemenkes, bukan angka sistem.
     'kepatuhan_standar_persen' => 90,
