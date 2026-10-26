@@ -2,9 +2,6 @@
 
 @section('title', 'Masuk')
 
-{{-- Alamat masuk sengaja tidak ditautkan di situs pelapor. noindex dipasang
-     sebagai penjaga kedua supaya halaman ini tidak muncul di hasil pencarian
-     meski alamatnya pernah terkirim lewat tautan atau pesan. --}}
 @section('robots')
     <meta name="robots" content="noindex, nofollow">
 @endsection
@@ -62,11 +59,6 @@
                            class="block w-full rounded-lg border border-brand-300 bg-white px-4 py-3 text-base text-ink placeholder:text-brand-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition" />
                 </div>
 
-                <!-- "Ingat saya" memakai checkbox asli yang disembunyikan lalu
-                     digambar ulang, supaya centangnya bisa diberi warna brand
-                     tanpa meninggalkan kontrol yang bisa diakses papan ketik.
-                     Tanda centang diletakkan sejajar dengan kotaknya (bukan
-                     di dalamnya) supaya varian peer-checked: tetap berlaku. -->
                 <div class="relative flex items-center gap-3">
                     <input type="checkbox"
                            id="ingat"

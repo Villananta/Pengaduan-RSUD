@@ -76,8 +76,7 @@
                         PIC Unit &bull; {{ $unit->namaLengkap() }}
                     </span>
                 @else
-                    {{-- Halaman belum ditautkan: label topbar mengikuti
-                         kondisi akun, bukan menunjuk unit tertentu. --}}
+                    
                     <span class="hidden lg:inline-flex items-center px-space-sm py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold uppercase tracking-wider">
                         Akun Belum Ditautkan
                     </span>
@@ -95,6 +94,8 @@
                     </div>
                 </div>
 
+                @include('unit.partials.notifikasi-dropdown')
+
                 <div class="flex items-center gap-space-sm pl-space-xs border-l border-outline-variant">
                     <span class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                         <x-symbol nama="badge" class="text-on-primary text-[18px]" />
@@ -110,10 +111,7 @@
                 </div>
 
                 {{-- Lonceng Notifikasi --}}
-                @include('unit.partials.notifikasi-dropdown')
-
-                <!-- Tombol Keluar: dipisah garis dari identitas supaya
-                     terbaca sebagai tindakan sesi, bukan bagian label PIC. -->
+                
                 <form method="POST" action="{{ route('keluar') }}" class="pl-space-xs border-l border-outline-variant">
                     @csrf
                     <button
