@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\TahapController as AdminTahapController;
 use App\Http\Controllers\Admin\UnitController as AdminUnitController;
 use App\Http\Controllers\AktivasiUndanganController;
 use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\LampiranController;
 use App\Http\Controllers\PengaduanController;
 use App\Http\Controllers\SesiController;
 use App\Http\Controllers\Unit\DashboardController as UnitDashboardController;
@@ -29,6 +30,12 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/buat-aduan');
 
 Route::view('/maklumat-prosedur', 'maklumat.index')->name('maklumat.index');
+
+// Lampiran terproteksi
+Route::get('/lampiran/pengaduan/{kode}/{file}', [LampiranController::class, 'pengaduan'])
+    ->name('lampiran.pengaduan');
+Route::get('/lampiran/pesan/{pesan}/{file}', [LampiranController::class, 'pesan'])
+    ->name('lampiran.pesan');
 
 // Health check endpoints (untuk load balancer, Kubernetes, monitoring)
 // Tidak memerlukan auth, rate limit longgar (hanya monitoring internal)

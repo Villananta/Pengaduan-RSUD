@@ -144,7 +144,35 @@ class PesanPengaduan extends Model
 
     public function urlLampiran(string $path): string
     {
-        return Storage::disk(config('pengaduan.disk_lampiran'))->url($path);
+        $disk = config('pengaduan.disk_lampiran');
+        $pengaduan = $this->pengaduan;
+
+        if (! $pengaduan) {
+            try {
+                return Storage::disk($disk)->url($path);
+            } catch (\Throwable $e) {
+                return '#';
+            }
+        }
+
+        if ($disk === 'public' || $disk === 'local') {
+            return route('lampiran.pesan', [
+                'pesan' => $this->id,
+                'file' => basename($path),
+            ]);
+        }
+
+        try {
+            return Storage::disk($disk)->temporaryUrl(
+                $path,
+                now()->addMinutes(60)
+            );
+        } catch (\Throwable $e) {
+            return route('lampiran.pesan', [
+                'pesan' => $this->id,
+                'file' => basename($path),
+            ]);
+        }
     }
 
     // Gambar ditampilkan langsung di dalam gelembung pesan, berkas lain lewat tautan unduh.

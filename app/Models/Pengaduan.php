@@ -316,7 +316,28 @@ class Pengaduan extends Model
 
     public function urlLampiran(string $path): string
     {
-        return Storage::disk(config('pengaduan.disk_lampiran'))->url($path);
+        $disk = config('pengaduan.disk_lampiran');
+
+        // Untuk keamanan, arahkan melalui route terproteksi
+        if ($disk === 'public' || $disk === 'local') {
+            return route('lampiran.pengaduan', [
+                'kode' => $this->kode_tiket,
+                'file' => basename($path),
+            ]);
+        }
+
+        // Untuk disk cloud (s3/r2), masih bisa pakai URL signed jika dikonfigurasi
+        try {
+            return Storage::disk($disk)->temporaryUrl(
+                $path,
+                now()->addMinutes(60)
+            );
+        } catch (\Throwable $e) {
+            return route('lampiran.pengaduan', [
+                'kode' => $this->kode_tiket,
+                'file' => basename($path),
+            ]);
+        }
     }
 
     public function namaLampiran(string $path): string
