@@ -64,14 +64,55 @@
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    aria-label="Notifikasi penting"
-                    class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors"
-                >
-                    <x-symbol nama="notifications" class="text-[24px]" />
-                    <span class="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-white" aria-hidden="true"></span>
-                </button>
+                <div class="relative" id="admin-notifikasi-wrapper">
+                    <button
+                        type="button"
+                        id="admin-btn-notifikasi"
+                        data-daftar-url="{{ route('admin.notifikasi.daftar') }}"
+                        data-baca-url="{{ route('admin.notifikasi.baca') }}"
+                        data-baca-semua-url="{{ route('admin.notifikasi.baca-semua') }}"
+                        aria-label="Notifikasi"
+                        aria-expanded="false"
+                        class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors"
+                    >
+                        <x-symbol nama="notifications" class="text-[24px]" />
+                        @php
+                            $jumlahNotifAdmin = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
+                        @endphp
+                        @if ($jumlahNotifAdmin > 0)
+                            <span
+                                id="admin-badge-notifikasi"
+                                class="absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center"
+                                aria-label="{{ $jumlahNotifAdmin }} notifikasi belum dibaca"
+                            >
+                                {{ $jumlahNotifAdmin > 9 ? '9+' : $jumlahNotifAdmin }}
+                            </span>
+                        @endif
+                    </button>
+
+                    <div
+                        id="admin-dropdown-notifikasi"
+                        class="hidden absolute right-0 top-full mt-2 w-96 max-h-[420px] overflow-y-auto bg-white rounded-lg shadow-lg border border-outline-variant z-[60]"
+                        role="menu"
+                        aria-orientation="vertical"
+                    >
+                        <div class="p-3 border-b border-outline-variant flex items-center justify-between">
+                            <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Notifikasi</h3>
+                            <form method="POST" action="{{ route('admin.notifikasi.baca-semua') }}" id="admin-form-tandai-semua" class="inline">
+                                @csrf
+                                <button
+                                    type="submit"
+                                    class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
+                                >
+                                    Tandai semua dibaca
+                                </button>
+                            </form>
+                        </div>
+                        <div id="admin-daftar-notifikasi" class="max-h-[360px] overflow-y-auto">
+                            <div class="p-4 text-center text-on-surface-variant text-body-sm">Memuat...</div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="flex items-center gap-space-sm pl-space-xs border-l border-outline-variant">
                     <span class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
@@ -165,6 +206,128 @@
     </footer>
     <!-- End of Footer -->
 
+    <script>
+        (function () {
+            const wrapper = document.getElementById('admin-notifikasi-wrapper');
+            const btn = document.getElementById('admin-btn-notifikasi');
+            const dropdown = document.getElementById('admin-dropdown-notifikasi');
+            const daftar = document.getElementById('admin-daftar-notifikasi');
+            const formBacaSemua = document.getElementById('admin-form-tandai-semua');
+            const badge = document.getElementById('admin-badge-notifikasi');
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+
+            if (!btn || !dropdown) {
+                return;
+            }
+
+            function muatNotifikasi() {
+                const url = btn.dataset.daftarUrl;
+                if (!url) return;
+                fetch(url, { headers: { 'Accept': 'application/json' } })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!daftar) return;
+                        if (!data.sukses || !data.notifications || data.notifications.length === 0) {
+                            daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>';
+                            if (badge) badge.remove();
+                            return;
+                        }
+                        if (badge) {
+                            const total = data.total_belum_dibaca || 0;
+                            badge.textContent = total > 9 ? '9+' : total;
+                            badge.setAttribute('aria-label', total + ' notifikasi belum dibaca');
+                        } else {
+                            const span = document.createElement('span');
+                            span.id = 'admin-badge-notifikasi';
+                            span.className = 'absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center';
+                            span.textContent = (data.total_belum_dibaca || 0) > 9 ? '9+' : (data.total_belum_dibaca || 0);
+                            btn.appendChild(span);
+                        }
+                        daftar.innerHTML = '<div class="divide-y divide-outline-variant"></div>';
+                        const container = daftar.querySelector('.divide-y');
+                        data.notifications.forEach(notif => {
+                            const item = document.createElement('div');
+                            item.className = 'p-3 hover:bg-surface-container-low transition-colors cursor-pointer admin-notif-item';
+                            item.dataset.notifId = notif.id;
+                            item.dataset.notifUrl = notif.url || '';
+                            item.innerHTML = `
+                                <div class="flex gap-2">
+                                    <span class="mt-0.5 text-primary"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160Zm320-300Zm0 420q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80ZM320-280h320v-280q0-66-47-113t-113-47q-66 0-113 47t-47 113v280Z"/></svg></span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="font-label-md text-label-md font-semibold text-on-surface">${notif.title}</p>
+                                        <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">${notif.message}</p>
+                                        <p class="font-label-sm text-label-sm text-on-surface-variant mt-1">${notif.created_at || ''}</p>
+                                    </div>
+                                </div>
+                            `;
+                            container.appendChild(item);
+                        });
+                    })
+                    .catch(() => {
+                        if (daftar) daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Gagal memuat notifikasi</div>';
+                    });
+            }
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+                if (!dropdown.classList.contains('hidden')) {
+                    muatNotifikasi();
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (wrapper && !wrapper.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+            daftar.addEventListener('click', function (e) {
+                const item = e.target.closest('.admin-notif-item');
+                if (!item) return;
+                const id = item.dataset.notifId;
+                const url = item.dataset.notifUrl;
+                const bacaUrl = btn.dataset.bacaUrl;
+                if (bacaUrl && id) {
+                    fetch(bacaUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': token
+                        },
+                        body: JSON.stringify({ notification_ids: [id] })
+                    }).catch(() => {});
+                }
+                if (url) {
+                    window.location.href = url;
+                }
+            });
+
+            if (formBacaSemua) {
+                formBacaSemua.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const bacaSemuaUrl = btn.dataset.bacaSemuaUrl;
+                    if (!bacaSemuaUrl) return formBacaSemua.submit();
+                    fetch(bacaSemuaUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': token
+                        }
+                    }).then(() => {
+                        if (badge) badge.remove();
+                        if (daftar) daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>';
+                    }).catch(() => formBacaSemua.submit());
+                });
+            }
+
+            if (badge) {
+                muatNotifikasi();
+            }
+        })();
+    </script>
     {{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}
     @stack('scripts')
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DraftController as AdminDraftController;
 use App\Http\Controllers\Admin\ExportController as AdminExportController;
 use App\Http\Controllers\Admin\KomunikasiController as AdminKomunikasiController;
 use App\Http\Controllers\Admin\MonitorController as AdminMonitorController;
+use App\Http\Controllers\Admin\NotifikasiController as AdminNotifikasiController;
 use App\Http\Controllers\Admin\PengaduanController as AdminPengaduanController;
 use App\Http\Controllers\Admin\RiwayatController as AdminRiwayatController;
 use App\Http\Controllers\Admin\TahapController as AdminTahapController;
@@ -118,6 +119,17 @@ Route::prefix('admin')->name('admin.')
         Route::get('/riwayat', [AdminRiwayatController::class, 'index'])->name('riwayat.index');
         Route::get('/monitor', [AdminMonitorController::class, 'index'])->name('monitor.index');
         Route::get('/pengaduan', [AdminPengaduanController::class, 'index'])->name('pengaduan.index');
+
+        // Notifikasi admin
+        Route::get('/notifikasi/daftar', [AdminNotifikasiController::class, 'daftar'])
+            ->middleware('throttle:120,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME)
+            ->name('notifikasi.daftar');
+        Route::post('/notifikasi/baca', [AdminNotifikasiController::class, 'tandaiDibaca'])
+            ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA)
+            ->name('notifikasi.baca');
+        Route::post('/notifikasi/baca-semua', [AdminNotifikasiController::class, 'tandaiSemuaDibaca'])
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA_SEMUA)
+            ->name('notifikasi.baca-semua');
 
         // Formulir pencatatan aduan yang masuk lewat telepon, SMS, atau loket.
         //
