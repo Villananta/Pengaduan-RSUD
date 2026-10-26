@@ -173,7 +173,7 @@ final class RiwayatAdmin
             $ikonJenis = 'warning';
         } elseif ($item->dariAwal()) {
             $jenis = 'Dibuat';
-            $labelJenis = 'bg-primary-container text-primary';
+            $labelJenis = 'bg-primary text-on-primary';
             $ikonJenis = 'add_circle';
         } elseif ($item->dari === $item->ke) {
             $jenis = 'Disposisi / Lainnya';
