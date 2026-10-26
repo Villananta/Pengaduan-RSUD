@@ -43,17 +43,15 @@
         >
             <div class="p-3 border-b border-outline-variant flex items-center justify-between">
                 <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Notifikasi</h3>
-                @if ($jumlahNotif > 0)
-                    <form method="POST" action="{{ route('unit.notifikasi.tandai-semua-dibaca', $unit) }}" id="form-tandai-semua" class="inline">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
-                        >
-                            Tandai semua dibaca
-                        </button>
-                    </form>
-                @endif
+                <form method="POST" action="{{ route('unit.notifikasi.tandai-semua-dibaca', $unit) }}" id="form-tandai-semua" class="inline">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
+                    >
+                        Tandai semua dibaca
+                    </button>
+                </form>
             </div>
 
             <div id="daftar-notifikasi" class="max-h-[360px] overflow-y-auto">
