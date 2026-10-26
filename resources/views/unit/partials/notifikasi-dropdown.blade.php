@@ -16,7 +16,9 @@
         <button
             type="button"
             id="btn-notifikasi"
-            @if($markReadUrl) data-mark-read-url="{{ $markReadUrl }}" @endif
+            data-mark-read-url="{{ $markReadUrl ?: route('unit.notifikasi.baca.user') }}"
+            data-daftar-url="{{ route('unit.notifikasi.daftar.user') }}"
+            data-baca-semua-url="{{ $markAllUrl ?: route('unit.notifikasi.baca-semua.user') }}"
             class="relative p-2 rounded-full text-on-surface-variant hover:text-brand-800 transition-colors"
             aria-label="Notifikasi"
             aria-expanded="false"
@@ -49,27 +51,15 @@
         >
             <div class="p-3 border-b border-outline-variant flex items-center justify-between">
                 <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Notifikasi</h3>
-                @if ($markAllUrl)
-                    <form method="POST" action="{{ $markAllUrl }}" id="form-tandai-semua" class="inline">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
-                        >
-                            Tandai semua dibaca
-                        </button>
-                    </form>
-                @else
-                    <form method="POST" action="{{ route('unit.notifikasi.tandai-semua-dibaca', $unitNotif ?? 0) }}" id="form-tandai-semua" class="inline">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
-                        >
-                            Tandai semua dibaca
-                        </button>
-                    </form>
-                @endif
+                <form method="POST" action="{{ $markAllUrl ?: route('unit.notifikasi.baca-semua.user') }}" id="form-tandai-semua" class="inline">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
+                    >
+                        Tandai semua dibaca
+                    </button>
+                </form>
             </div>
 
             <div id="daftar-notifikasi" class="max-h-[360px] overflow-y-auto">

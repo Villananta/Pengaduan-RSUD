@@ -242,6 +242,20 @@ Route::prefix('unit')->name('unit.')
         // Pintu masuk konsol unit: mengantar petugas ke unit miliknya sendiri.
         Route::get('/', [UnitDashboardController::class, 'beranda'])->name('beranda');
 
+        // Notifikasi untuk PIC tanpa unit (akun belum ditautkan)
+        Route::get('/notifikasi/daftar', [UnitNotificationController::class, 'daftar'])
+            ->defaults('unit', null)
+            ->middleware('throttle:120,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME)
+            ->name('notifikasi.daftar.user');
+        Route::post('/notifikasi/baca', [UnitNotificationController::class, 'tandaiDibaca'])
+            ->defaults('unit', null)
+            ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA)
+            ->name('notifikasi.baca.user');
+        Route::post('/notifikasi/baca-semua', [UnitNotificationController::class, 'tandaiSemuaDibaca'])
+            ->defaults('unit', null)
+            ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA_SEMUA)
+            ->name('notifikasi.baca-semua.user');
+
         Route::middleware([PastikanUnitSendiri::class, PastikanUnitAktif::class])->group(function () {
             Route::get('/{unit}/dashboard', [UnitDashboardController::class, 'index'])->name('dashboard');
 

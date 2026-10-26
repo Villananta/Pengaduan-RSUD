@@ -26,7 +26,7 @@ class NotificationController extends Controller
      * atau massal lewat tandaiSemuaDibaca. Saringan akun memastikan
      * notifikasi petugas lain tidak ikut terhapus meski ID-nya ditebak.
      */
-    public function tandaiDibaca(Request $request, MasterUnit $unit): JsonResponse
+    public function tandaiDibaca(Request $request, ?MasterUnit $unit = null): JsonResponse
     {
         $notificationIds = $request->input('notification_ids', []);
 
@@ -58,7 +58,7 @@ class NotificationController extends Controller
      * dropdown tetap bisa dipakai tanpa JavaScript, bukan memperlihatkan
      * halaman JSON mentah kepada petugas.
      */
-    public function tandaiSemuaDibaca(Request $request, MasterUnit $unit): JsonResponse|RedirectResponse
+    public function tandaiSemuaDibaca(Request $request, ?MasterUnit $unit = null): JsonResponse|RedirectResponse
     {
         $updated = $request->user()->unreadNotifications()->update(['read_at' => now()]);
 
@@ -76,7 +76,7 @@ class NotificationController extends Controller
     /**
      * Ambil daftar notifikasi untuk dropdown (AJAX).
      */
-    public function daftar(MasterUnit $unit, Request $request): JsonResponse
+    public function daftar(?MasterUnit $unit = null, Request $request): JsonResponse
     {
         $tipe = $request->query('tipe');
         $limit = $request->integer('limit', 10);
