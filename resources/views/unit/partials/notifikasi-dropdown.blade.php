@@ -1,16 +1,22 @@
 {{-- Dropdown Notifikasi Unit (Partial) --}}
-@if ($unit !== null && isset($notifikasiUnit))
+@php
+    $unitNotif = $unit ?? (auth()->check() ? auth()->user()->unit()->first() : null);
+    $notifikasiUnitObj = isset($notifikasiUnit) ? $notifikasiUnit : ($unitNotif ? new \App\Support\NotifikasiUnit($unitNotif, auth()->user()) : null);
+@endphp
+@if (auth()->check() && auth()->user()->berperanUnit())
     @php
-        $jumlahNotif = $notifikasiUnit->jumlahNotifikasiBelumDibaca();
-        $adaNudge = $notifikasiUnit->adaNudgeBelumDibaca();
-        $notifikasi = $notifikasiUnit->notifikasiTerbaru(10);
+        $jumlahNotif = $notifikasiUnitObj ? $notifikasiUnitObj->jumlahNotifikasiBelumDibaca() : auth()->user()->unreadNotifications()->count();
+        $adaNudge = $notifikasiUnitObj ? $notifikasiUnitObj->adaNudgeBelumDibaca() : auth()->user()->unreadNotifications()->where('data->type', 'pengaduan_nudge_unit')->exists();
+        $notifikasi = $notifikasiUnitObj ? $notifikasiUnitObj->notifikasiTerbaru(10) : auth()->user()->unreadNotifications()->latest()->limit(10)->get();
+        $markReadUrl = $unitNotif ? route('unit.notifikasi.tandai-dibaca', $unitNotif) : null;
+        $markAllUrl = $unitNotif ? route('unit.notifikasi.tandai-semua-dibaca', $unitNotif) : null;
     @endphp
 
     <div class="relative ml-space-md" id="notifikasi-wrapper">
         <button
             type="button"
             id="btn-notifikasi"
-            data-mark-read-url="{{ route('unit.notifikasi.tandai-dibaca', $unit) }}"
+            @if($markReadUrl) data-mark-read-url="{{ $markReadUrl }}" @endif
             class="relative p-2 rounded-full text-on-surface-variant hover:text-brand-800 transition-colors"
             aria-label="Notifikasi"
             aria-expanded="false"
@@ -43,15 +49,27 @@
         >
             <div class="p-3 border-b border-outline-variant flex items-center justify-between">
                 <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Notifikasi</h3>
-                <form method="POST" action="{{ route('unit.notifikasi.tandai-semua-dibaca', $unit) }}" id="form-tandai-semua" class="inline">
-                    @csrf
-                    <button
-                        type="submit"
-                        class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
-                    >
-                        Tandai semua dibaca
-                    </button>
-                </form>
+                @if ($markAllUrl)
+                    <form method="POST" action="{{ $markAllUrl }}" id="form-tandai-semua" class="inline">
+                        @csrf
+                        <button
+                            type="submit"
+                            class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
+                        >
+                            Tandai semua dibaca
+                        </button>
+                    </form>
+                @else
+                    <form method="POST" action="{{ route('unit.notifikasi.tandai-semua-dibaca', $unitNotif ?? 0) }}" id="form-tandai-semua" class="inline">
+                        @csrf
+                        <button
+                            type="submit"
+                            class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
+                        >
+                            Tandai semua dibaca
+                        </button>
+                    </form>
+                @endif
             </div>
 
             <div id="daftar-notifikasi" class="max-h-[360px] overflow-y-auto">
@@ -63,7 +81,7 @@
                     <div class="divide-y divide-outline-variant">
                         @foreach ($notifikasi as $notif)
                             @php
-                                $data = $notif->data ?? [];
+                                $data = is_array($notif->data) ? $notif->data : ($notif->data ?? []);
                                 $type = $data['type'] ?? 'unknown';
                                 $title = $data['title'] ?? 'Notifikasi';
                                 $message = $data['message'] ?? '';
