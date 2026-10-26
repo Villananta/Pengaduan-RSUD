@@ -58,7 +58,7 @@ class SesiController extends Controller
         return $this->arahkan($request->user());
     }
 
-    /** Akhiri sesi lalu kembali ke halaman pelapor. */
+    /** Akhiri sesi lalu kembali ke halaman login petugas. */
     public function keluar(Request $request): RedirectResponse
     {
         Auth::logout();
@@ -66,7 +66,9 @@ class SesiController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('pengaduan.create');
+        $ruteMasuk = '/'.(trim((string) config('pengaduan.rute_masuk'), '/') ?: 'petugas/masuk');
+
+        return redirect($ruteMasuk)->with('sukses', 'Anda telah keluar.');
     }
 
     /** Tujuan sesudah masuk ditentukan peran, bukan pilihan pengguna. */
