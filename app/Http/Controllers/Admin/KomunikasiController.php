@@ -79,6 +79,11 @@ class KomunikasiController extends Controller
             throw ValidationException::withMessages([
                 'isi' => $alasan->getMessage(),
             ]);
+        } catch (\Throwable $e) {
+            report($e);
+            throw ValidationException::withMessages([
+                'isi' => 'Terjadi kesalahan saat mengirim koordinasi. Silakan coba lagi.',
+            ]);
         }
 
         return $this->kembali($pengaduan, 'Pesan koordinasi terkirim ke unit.');
@@ -106,6 +111,11 @@ class KomunikasiController extends Controller
         } catch (RuntimeException $alasan) {
             throw ValidationException::withMessages([
                 'catatan' => $alasan->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+            throw ValidationException::withMessages([
+                'catatan' => 'Terjadi kesalahan saat mengirim nudge. Silakan coba lagi.',
             ]);
         }
 

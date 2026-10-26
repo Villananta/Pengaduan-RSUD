@@ -48,6 +48,11 @@ class TahapController extends Controller
             throw ValidationException::withMessages([
                 'tujuan' => $alasan->getMessage(),
             ]);
+        } catch (\Throwable $e) {
+            report($e);
+            throw ValidationException::withMessages([
+                'tujuan' => 'Terjadi kesalahan saat mengubah tahap pengaduan. Silakan coba lagi.',
+            ]);
         }
 
         return $this->kembali($pengaduan, TahapService::pesanTujuan($tujuan));

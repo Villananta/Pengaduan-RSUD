@@ -142,6 +142,11 @@ class DisposisiController extends Controller
             throw ValidationException::withMessages([
                 'isi' => $alasan->getMessage(),
             ]);
+        } catch (\Throwable $e) {
+            report($e);
+            throw ValidationException::withMessages([
+                'isi' => 'Terjadi kesalahan saat mengirim jawaban unit. Silakan coba lagi.',
+            ]);
         }
 
         return redirect()

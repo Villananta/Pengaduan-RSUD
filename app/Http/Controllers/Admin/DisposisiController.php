@@ -43,6 +43,11 @@ class DisposisiController extends Controller
             throw ValidationException::withMessages([
                 'unit' => $alasan->getMessage(),
             ]);
+        } catch (\Throwable $e) {
+            report($e);
+            throw ValidationException::withMessages([
+                'unit' => 'Terjadi kesalahan saat mendisposisikan tiket. Silakan coba lagi.',
+            ]);
         }
 
         return $this->kembali($pengaduan, 'Pengaduan didisposisikan ke '.$unit->namaLengkap().'.');
@@ -69,6 +74,11 @@ class DisposisiController extends Controller
         } catch (RuntimeException $alasan) {
             throw ValidationException::withMessages([
                 'catatan' => $alasan->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+            throw ValidationException::withMessages([
+                'catatan' => 'Terjadi kesalahan saat menangani langsung tiket. Silakan coba lagi.',
             ]);
         }
 
