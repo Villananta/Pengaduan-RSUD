@@ -381,6 +381,34 @@ class DisposisiUnitTest extends TestCase
         $this->assertStringNotContainsString('href="#"', $tampilan);
     }
 
+    public function test_tiket_tanpa_kategori_tetap_tampil_di_halaman_unit(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        // Tiket dari portal publik masuk tanpa kategori. Unit tetap harus
+        // bisa membaca tiketnya, jadi kolom kategori memakai teks pengganti
+        // dan tidak boleh memanggil label() pada nilai null.
+        $berjalan = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id, 'kategori' => null]);
+
+        $selesai = Pengaduan::factory()->selesai()
+            ->create(['master_unit_id' => $farmasi->id, 'kategori' => null]);
+
+        $this->get(route('unit.disposisi.index', $farmasi))
+            ->assertOk()
+            ->assertSee($berjalan->kode_tiket)
+            ->assertSee('Belum Ditentukan');
+
+        $this->get(route('unit.disposisi.show', ['unit' => $farmasi, 'kode' => $berjalan->kode_tiket]))
+            ->assertOk()
+            ->assertSee('Belum Ditentukan');
+
+        $this->get(route('unit.disposisi.arsip', $farmasi))
+            ->assertOk()
+            ->assertSee($selesai->kode_tiket)
+            ->assertSee('Belum Ditentukan');
+    }
+
     public function test_halaman_unit_tidak_memiliki_tautan_palsu(): void
     {
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();

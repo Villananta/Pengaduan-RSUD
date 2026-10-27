@@ -35,7 +35,13 @@ class PengaduanExport implements FromCollection, ShouldAutoSize, WithHeadings, W
             $query->whereHas('masterUnit', fn ($q) => $q->where('kode', $this->unitFilter));
         }
 
-        if ($this->kategoriFilter) {
+        // "belum" bukan nilai enum: itu penanda dari filter daftar untuk tiket
+        // yang kategorinya belum ditetapkan humas. Tanpa cabang ini, ekspor
+        // yang difilter "Belum Ditentukan" akan mencari kolom berisi teks
+        // "belum" dan menghasilkan berkas kosong.
+        if ($this->kategoriFilter === 'belum') {
+            $query->whereNull('kategori');
+        } elseif ($this->kategoriFilter) {
             $query->where('kategori', $this->kategoriFilter);
         }
 

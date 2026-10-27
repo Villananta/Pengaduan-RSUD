@@ -101,7 +101,11 @@ final class RiwayatAdmin
 
         $ringkas = [
             'total' => $riwayat->total(),
-            'perubahan_tahap' => $riwayat->getCollection()->filter(fn ($r) => ! $r->perubahanKasusBerat() && ! $r->perubahanKeparahan())->count(),
+            // Baris kategori dan keparahan tidak memindahkan tahap, jadi
+            // keduanya dikeluarkan dari hitungan perpindahan status. Tanpa
+            // pengecualian ini angkanya membengkak setiap kali humas
+            // menetapkan penanda, padahal status tiket tidak berubah.
+            'perubahan_tahap' => $riwayat->getCollection()->filter(fn ($r) => ! $r->perubahanKasusBerat() && ! $r->perubahanKeparahan() && ! $r->perubahanKategori())->count(),
             'kasus_berat' => $riwayat->getCollection()->filter(fn ($r) => $r->perubahanKasusBerat())->count(),
             'dengan_admin' => $riwayat->getCollection()->filter(fn ($r) => $r->admin_id !== null)->count(),
             'tanpa_admin' => $riwayat->getCollection()->filter(fn ($r) => $r->admin_id === null)->count(),

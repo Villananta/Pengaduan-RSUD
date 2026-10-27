@@ -8,6 +8,7 @@ use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Support\DetailPengaduan;
+use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -189,6 +190,28 @@ class DetailPengaduanAdminTest extends TestCase
         $this->assertNotNull($catatan->admin_id);
     }
 
+    public function test_kategori_yang_diganti_ulang_menambah_riwayat_baru(): void
+    {
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-KATEGORI-05',
+            'kategori' => null,
+        ]);
+
+        $this->post(route('admin.pengaduan.kategori', $pengaduan->kode_tiket), [
+            'kategori' => KategoriPengaduan::Medis->value,
+        ])->assertRedirect();
+
+        $this->post(route('admin.pengaduan.kategori', $pengaduan->kode_tiket), [
+            'kategori' => KategoriPengaduan::Fasilitas->value,
+        ])->assertRedirect();
+
+        $catatan = $pengaduan->riwayatStatus()->where('is_kategori', true)->get();
+
+        $this->assertCount(2, $catatan);
+        $this->assertStringContainsString('Pelayanan Medis', $catatan->first()->catatan);
+        $this->assertStringContainsString('Fasilitas & Pelayanan', $catatan->last()->catatan);
+    }
+
     public function test_kategori_tidak_dikenal_ditolak(): void
     {
         $pengaduan = Pengaduan::factory()->create([
@@ -224,5 +247,26 @@ class DetailPengaduanAdminTest extends TestCase
             'action="'.route('admin.pengaduan.kategori', 'ADUAN-KATEGORI-03').'"',
             $tampilan
         );
+    }
+
+    public function test_kategori_tidak_mengubah_target_sla(): void
+    {
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-KATEGORI-04',
+            'kategori' => null,
+        ]);
+        $targetAwal = $pengaduan->targetSla();
+
+        $this->post(route('admin.pengaduan.kategori', $pengaduan->kode_tiket), [
+            'kategori' => KategoriPengaduan::Medis->value,
+        ])->assertRedirect();
+
+        $pengaduan->refresh();
+
+        // Kategori hanya penanda alur, bukan dasar tenggat. Kalau suatu saat
+        // ada yang menambahkan perpanjangan khusus per kategori, test ini
+        // menangkap janji SLA yang berubah diam-diam ke pelapor.
+        $this->assertSame(Sla::hariKerja(), $pengaduan->totalHariKerjaSla());
+        $this->assertTrue($pengaduan->targetSla()->equalTo($targetAwal));
     }
 }
