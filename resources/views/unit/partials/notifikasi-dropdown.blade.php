@@ -12,14 +12,14 @@
         $markAllUrl = $unitNotif ? route('unit.notifikasi.tandai-semua-dibaca', $unitNotif) : null;
     @endphp
 
-    <div class="relative ml-space-md" id="notifikasi-wrapper">
+    <div class="relative" id="notifikasi-wrapper">
         <button
             type="button"
             id="btn-notifikasi"
             data-mark-read-url="{{ $markReadUrl ?: route('unit.notifikasi.baca.user') }}"
             data-daftar-url="{{ route('unit.notifikasi.daftar.user') }}"
             data-baca-semua-url="{{ $markAllUrl ?: route('unit.notifikasi.baca-semua.user') }}"
-            class="relative p-2 rounded-full text-on-surface-variant hover:text-brand-800 transition-colors"
+            class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors"
             aria-label="Notifikasi"
             aria-expanded="false"
             aria-haspopup="true"

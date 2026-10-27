@@ -48,6 +48,7 @@ class NotificationController extends Controller
             'sukses' => true,
             'pesan' => $updated.' notifikasi ditandai sudah dibaca.',
             'dibaca' => $updated,
+            'total_belum_dibaca' => $request->user()->unreadNotifications()->count(),
         ]);
     }
 
@@ -76,7 +77,7 @@ class NotificationController extends Controller
     /**
      * Ambil daftar notifikasi untuk dropdown (AJAX).
      */
-    public function daftar(?MasterUnit $unit = null, Request $request): JsonResponse
+    public function daftar(?MasterUnit $unit, Request $request): JsonResponse
     {
         $tipe = $request->query('tipe');
         $limit = $request->integer('limit', 10);

@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Carbon;
 
 /**
  * Ujung polling notifikasi konsol unit.
@@ -24,21 +25,58 @@ class RealTimeNotificationController extends Controller
      */
     public function index(MasterUnit $unit, Request $request): JsonResponse
     {
-        $since = $request->query('since'); // Patokan waktu berformat ISO8601
-        $limit = $request->integer('limit', 20);
+        $validated = $request->validate([
+            'since' => ['nullable', 'date'],
+            'limit' => ['nullable', 'integer', 'between:1,50'],
+        ]);
+
+        $since = $validated['since'] ?? null;
+        $limit = (int) ($validated['limit'] ?? 20);
+
+        // Database menyimpan created_at dalam zona aplikasi, sedangkan klien
+        // mengirim ISO8601 (UTC). Tanpa konversi ini jendela poll melebar
+        // beberapa jam dan notifikasi yang sudah tampil ikut terkirim ulang.
+        $sinceLokal = $since !== null
+            ? Carbon::parse($since)->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s')
+            : null;
+
+        // Patokan diambil sebelum query supaya notifikasi yang masuk saat
+        // query berjalan tetap tertangkap pada poll berikutnya.
+        $serverTime = now();
 
         $query = DatabaseNotification::query()
             ->where('notifiable_type', User::class)
             ->where('notifiable_id', $request->user()->id)
             ->whereNull('read_at')
-            ->latest('created_at')
             ->limit($limit);
 
-        if ($since !== null) {
-            $query->where('created_at', '>', $since);
+        if ($sinceLokal !== null) {
+            // Urutan naik saat ada patokan: halaman pertama berisi notifikasi
+            // paling lama setelah patokan. Kalau yang diambil justru yang
+            // terbaru, notifikasi di tengah jendela tidak pernah terkirim
+            // ketika jumlahnya melebihi batas satu poll.
+            $query->where('created_at', '>', $sinceLokal)->oldest('created_at');
+        } else {
+            // Tanpa patokan yang diminta adalah potret terbaru.
+            $query->latest('created_at');
         }
 
-        $notifications = $query->get()->map(function (DatabaseNotification $n) {
+        $notifications = $query->get();
+
+        // Hasil penuh hanya berarti "masih ada sisa" pada mode lanjutan;
+        // potret terbaru memang sengaja berhenti di batas itu.
+        $hasMore = $sinceLokal !== null && $notifications->count() >= $limit;
+
+        // Saat masih ada sisa, poll berikutnya melanjutkan dari notifikasi
+        // terakhir halaman ini. Kalau sudah habis, patokan dimundurkan satu
+        // detik: created_at berpresisi detik, jadi notifikasi yang lahir di
+        // detik yang sama dengan patokan bisa terlewat kalau memakai waktu
+        // server apa adanya. Duplikat dari tumpang tindih itu disaring klien.
+        $nextSince = $hasMore
+            ? $notifications->last()->created_at->toISOString()
+            : $serverTime->copy()->startOfSecond()->subSecond()->toISOString();
+
+        $notifications = $notifications->map(function (DatabaseNotification $n) {
             $data = $n->data;
 
             return [
@@ -61,7 +99,9 @@ class RealTimeNotificationController extends Controller
                 ->where('notifiable_id', $request->user()->id)
                 ->whereNull('read_at')
                 ->count(),
-            'server_time' => now()->toISOString(),
+            'server_time' => $serverTime->toISOString(),
+            'next_since' => $nextSince,
+            'has_more' => $hasMore,
         ]);
     }
 
@@ -90,6 +130,7 @@ class RealTimeNotificationController extends Controller
             'sukses' => true,
             'pesan' => $updated.' notifikasi ditandai sudah dibaca.',
             'dibaca' => $updated,
+            'total_belum_dibaca' => $request->user()->unreadNotifications()->count(),
         ]);
     }
 

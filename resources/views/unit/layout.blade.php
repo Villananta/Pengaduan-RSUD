@@ -110,8 +110,7 @@
                     </div>
                 </div>
 
-                {{-- Lonceng Notifikasi --}}
-                
+                {{-- Tombol Keluar --}}
                 <form method="POST" action="{{ route('keluar') }}" class="pl-space-xs border-l border-outline-variant">
                     @csrf
                     <button
@@ -193,13 +192,48 @@
     {{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}
     @stack('scripts')
 
+    {{-- Lencana lonceng dipegang dua skrip sekaligus: penandaan baca dan
+         polling. Kalau salah satunya menyimpan node sendiri, node itu lepas
+         dari DOM setiap kali yang lain menghapusnya, lalu lencana bisa hilang
+         permanen atau muncul dobel. Jadi keduanya lewat satu pintu ini. --}}
+    <script>
+        // Catatan bersama dua skrip notifikasi: id yang baru ditandai dibaca
+        // di halaman ini, dan nomor generasi untuk membuang respons poll yang
+        // berangkat sebelum aksi baca selesai.
+        window.statusNotifikasi = {
+            sudahDibaca: new Set(),
+            generasi: 0,
+        };
+
+        window.perbaruiLencanaNotifikasi = function (total) {
+            const btn = document.getElementById('btn-notifikasi');
+            if (!btn) return;
+
+            let badge = document.getElementById('badge-notifikasi');
+
+            if (total <= 0) {
+                badge?.remove();
+                return;
+            }
+
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.id = 'badge-notifikasi';
+                badge.className = 'absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center';
+                btn.appendChild(badge);
+            }
+
+            badge.textContent = total > 9 ? '9+' : total;
+            badge.setAttribute('aria-label', total + ' notifikasi belum dibaca');
+        };
+    </script>
+
     {{-- Script Notifikasi Unit (Global) --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const btn = document.getElementById('btn-notifikasi');
             const dropdown = document.getElementById('dropdown-notifikasi');
             const wrapper = document.getElementById('notifikasi-wrapper');
-            const badge = document.getElementById('badge-notifikasi');
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
             if (!btn || !dropdown) return;
@@ -247,13 +281,11 @@
                     .then(data => {
                         if (!data.sukses) return;
 
-                        // Perbarui angka lencana
-                        const sisa = parseInt(badge?.textContent || '0', 10) - 1;
-                        if (badge && sisa > 0) {
-                            badge.textContent = sisa > 9 ? '9+' : sisa;
-                        } else {
-                            badge?.remove();
-                        }
+                        // Server mengirim sisa yang sebenarnya, bukan tebakan
+                        // dari angka di layar, supaya lencana tetap benar
+                        // ketika notifikasi juga dibaca di tab lain.
+                        window.perbaruiLencanaNotifikasi(data.total_belum_dibaca ?? 0);
+                        window.statusNotifikasi.sudahDibaca.add(item.dataset.notifId);
 
                         // Hilangkan barisnya dari daftar (animasi singkat)
                         item.style.opacity = '0';
@@ -293,7 +325,10 @@
                                 daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>';
                             }
 
-                            badge?.remove();
+                            window.perbaruiLencanaNotifikasi(0);
+                            // Respons poll yang sudah berangkat tidak boleh
+                            // mengisi lagi daftar yang baru saja dikosongkan.
+                            window.statusNotifikasi.generasi += 1;
                             btn.querySelectorAll('.bg-warning').forEach(el => el.remove());
                             dropdown.classList.add('hidden');
                             btn.setAttribute('aria-expanded', 'false');
@@ -302,15 +337,17 @@
                 });
             }
         });
-    });
     </script>
 
     {{-- Real-time Notification Polling (15 detik) --}}
     @if ($unit !== null)
         <script>
+            // Patokan awal dimundurkan satu detik karena created_at hanya
+            // berpresisi detik; notifikasi yang masuk di detik yang sama
+            // dengan render halaman tetap ikut poll pertama.
             window.konfigurasiNotifikasi = {
                 urlPolling: @js(route('unit.notifikasi.realtime', $unit)),
-                waktuPollPertama: @js(now()->toISOString()),
+                waktuPollPertama: @js(now()->startOfSecond()->subSecond()->toISOString()),
             };
         </script>
 
@@ -319,7 +356,6 @@
             (function () {
                 const wrapper = document.getElementById('notifikasi-wrapper');
                 const btn = document.getElementById('btn-notifikasi');
-                const badge = document.getElementById('badge-notifikasi');
                 const dropdown = document.getElementById('dropdown-notifikasi');
                 const list = document.getElementById('daftar-notifikasi');
                 let lastPoll = window.konfigurasiNotifikasi.waktuPollPertama;
@@ -330,6 +366,7 @@
                 async function pollNotifications() {
                     if (isPolling) return;
                     isPolling = true;
+                    const generasi = window.statusNotifikasi.generasi;
 
                     try {
                         const url = window.konfigurasiNotifikasi.urlPolling + '?since=' + encodeURIComponent(lastPoll);
@@ -344,38 +381,62 @@
                         if (!response.ok) throw new Error('Gagal menarik notifikasi');
 
                         const data = await response.json();
-                        lastPoll = data.server_time;
 
-                        if (data.sukses && data.notifications.length > 0) {
-                            // Perbarui lencana
-                            if (badge) {
-                                badge.textContent = data.total_belum_dibaca > 9 ? '9+' : data.total_belum_dibaca;
-                                badge.style.display = 'flex';
-                            } else if (data.total_belum_dibaca > 0) {
-                                const newBadge = document.createElement('span');
-                                newBadge.id = 'badge-notifikasi';
-                                newBadge.className = 'absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center animate-pulse';
-                                newBadge.setAttribute('aria-label', data.total_belum_dibaca + ' notifikasi belum dibaca');
-                                newBadge.textContent = data.total_belum_dibaca > 9 ? '9+' : data.total_belum_dibaca;
-                                btn.appendChild(newBadge);
+                        // Aksi baca sesudah permintaan ini berangkat membuat
+                        // isinya sudah basi; patokan sengaja tidak dimajukan
+                        // supaya poll berikutnya tetap menyusul.
+                        if (window.statusNotifikasi.generasi !== generasi) return;
+
+                        // Hasil yang penuh berarti masih ada notifikasi di luar
+                        // halaman ini; patokan maju ke notifikasi terakhir
+                        // halaman supaya sisanya ikut terbawa, bukan dilewati.
+                        lastPoll = data.next_since || data.server_time;
+
+                        window.perbaruiLencanaNotifikasi(data.total_belum_dibaca ?? 0);
+
+                        let ditambahkan = 0;
+
+                        if (data.sukses && data.notifications.length > 0 && list) {
+                            // Item hasil polling harus masuk ke wadah ber-divider
+                            // yang sama dengan item dari server. Kalau daftar masih
+                            // berisi pesan "tidak ada notifikasi", pesan itu diganti
+                            // wadah kosong supaya tidak tertinggal di bawah item baru.
+                            let wadah = list.querySelector('.divide-y');
+                            if (!wadah) {
+                                list.innerHTML = '<div class="divide-y divide-outline-variant"></div>';
+                                wadah = list.querySelector('.divide-y');
                             }
 
-                            // Sisipkan notifikasi terbaru ke daftar
-                            if (list) {
-                                for (const notif of data.notifications.reverse()) {
-                                    const item = createNotificationElement(notif);
-                                    list.prepend(item);
-                                }
+                            // Server mengirim berurutan dari yang paling lama,
+                            // jadi menyisipkan satu per satu di atas menyisakan
+                            // yang terbaru di posisi teratas.
+                            for (const notif of data.notifications) {
+                                // Notifikasi yang sudah dirender server, sudah
+                                // masuk lewat poll sebelumnya, atau baru saja
+                                // ditandai dibaca tidak perlu ditambah lagi.
+                                if (window.statusNotifikasi.sudahDibaca.has(notif.id)) continue;
+                                if (wadah.querySelector('[data-notif-id="' + notif.id + '"]')) continue;
 
-                                // Titik follow up bila ada nudge yang belum dibuka
-                                const hasNudge = data.notifications.some(n => n.type === 'pengaduan_nudge_unit');
-                                if (hasNudge && !btn.querySelector('.bg-warning')) {
-                                    const nudgeDot = document.createElement('span');
-                                    nudgeDot.className = 'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-warning ring-2 ring-white';
-                                    nudgeDot.setAttribute('aria-label', 'Ada follow up (nudge) dari admin humas');
-                                    btn.appendChild(nudgeDot);
-                                }
+                                wadah.prepend(createNotificationElement(notif));
+                                ditambahkan++;
                             }
+
+                            // Titik follow up bila ada nudge yang belum dibuka
+                            const hasNudge = data.notifications.some(n => n.type === 'pengaduan_nudge_unit');
+                            if (hasNudge && !btn.querySelector('.bg-warning')) {
+                                const nudgeDot = document.createElement('span');
+                                nudgeDot.className = 'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-warning ring-2 ring-white';
+                                nudgeDot.setAttribute('aria-label', 'Ada follow up (nudge) dari admin humas');
+                                btn.appendChild(nudgeDot);
+                            }
+                        }
+
+                        // Masih ada sisa di luar batas satu poll: lanjutkan
+                        // segera supaya daftar tidak tertinggal belasan detik.
+                        // Tanpa tambahan baru, poll cepat hanya akan mengulang
+                        // halaman yang sama, jadi biarkan interval biasa.
+                        if (data.sukses && data.has_more && ditambahkan > 0) {
+                            setTimeout(pollNotifications, 1000);
                         }
                     } catch (e) {
                         console.warn('Gagal menarik notifikasi:', e);
@@ -395,16 +456,7 @@
                         'pengaduan_kasus_berat': 'warning',
                         default: 'notifications',
                     };
-                    const badgeClassMap = {
-                        'pengaduan_nudge_unit': 'bg-warning text-on-warning',
-                        'pengaduan_sla_lewat': 'bg-error-container text-on-error-container',
-                        'pengaduan_sla_mendekati': 'bg-tertiary-container text-on-tertiary-container',
-                        'pengaduan_jawaban_unit': 'bg-secondary-container text-on-secondary-container',
-                        'pengaduan_disposisi': 'bg-primary-container text-on-primary-container',
-                        default: 'bg-surface-container-highest text-on-surface-variant',
-                    };
                     const icon = iconMap[notif.type] || iconMap.default;
-                    const badgeClass = badgeClassMap[notif.type] || badgeClassMap.default;
 
                     const item = document.createElement('div');
                     item.className = 'p-3 hover:bg-surface-container-low transition-colors cursor-pointer notif-item';
@@ -415,28 +467,22 @@
                     item.tabIndex = 0;
 
                     item.innerHTML = `
-                        <div class="flex items-start gap-3">
-                            <span class="w-8 h-8 rounded-full ${badgeClass} flex items-center justify-center shrink-0 flex-shrink-0">
-                                <span class="material-symbols-outlined text-[18px]">${icon}</span>
+                        <div class="flex gap-2">
+                            <span class="mt-0.5 text-primary">
+                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">${icon}</span>
                             </span>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center justify-between gap-2">
-                                    <h4 class="font-title-sm text-title-sm font-bold text-on-surface truncate">${escapeHtml(notif.title)}</h4>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-start justify-between gap-2">
+                                    <p class="font-label-md text-label-md font-semibold text-on-surface">${escapeHtml(notif.title)}</p>
                                     <span class="text-[11px] text-on-surface-variant whitespace-nowrap shrink-0">${notif.waktu_relatif}</span>
                                 </div>
-                                <p class="text-body-sm text-on-surface-variant mt-0.5 line-clamp-2">${escapeHtml(notif.message)}</p>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-0.5">${escapeHtml(notif.message)}</p>
                                 ${notif.kode_tiket ? `
-                                    <div class="mt-1.5 flex items-center gap-1.5">
+                                    <div class="mt-1.5">
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 font-mono font-body-xs text-body-xs font-bold">
-                                            <span class="material-symbols-outlined text-[10px]">confirmation_number</span>
+                                            <span class="material-symbols-outlined text-[10px]" aria-hidden="true">confirmation_number</span>
                                             ${escapeHtml(notif.kode_tiket)}
                                         </span>
-                                        ${notif.url ? `
-                                            <a href="${notif.url}" class="text-label-sm text-secondary hover:text-secondary/80 font-semibold transition-colors whitespace-nowrap">
-                                                <span class="material-symbols-outlined text-[12px]">open_in_new</span>
-                                                Buka
-                                            </a>
-                                        ` : ''}
                                     </div>
                                 ` : ''}
                             </div>

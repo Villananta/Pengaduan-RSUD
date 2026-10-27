@@ -213,11 +213,37 @@
             const dropdown = document.getElementById('admin-dropdown-notifikasi');
             const daftar = document.getElementById('admin-daftar-notifikasi');
             const formBacaSemua = document.getElementById('admin-form-tandai-semua');
-            const badge = document.getElementById('admin-badge-notifikasi');
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
 
             if (!btn || !dropdown) {
                 return;
+            }
+
+            // Lencana dicari ulang setiap kali karena node-nya bisa sudah
+            // dihapus "tandai semua" atau diganti proses lain di halaman ini.
+            function perbaruiBadge(total) {
+                let badge = document.getElementById('admin-badge-notifikasi');
+
+                if (total <= 0) {
+                    badge?.remove();
+                    return;
+                }
+
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.id = 'admin-badge-notifikasi';
+                    badge.className = 'absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center';
+                    btn.appendChild(badge);
+                }
+
+                badge.textContent = total > 9 ? '9+' : total;
+                badge.setAttribute('aria-label', total + ' notifikasi belum dibaca');
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text ?? '';
+                return div.innerHTML;
             }
 
             function muatNotifikasi() {
@@ -226,23 +252,15 @@
                 fetch(url, { headers: { 'Accept': 'application/json' } })
                     .then(r => r.json())
                     .then(data => {
-                        if (!daftar) return;
-                        if (!data.sukses || !data.notifications || data.notifications.length === 0) {
+                        if (!daftar || !data.sukses) return;
+
+                        perbaruiBadge(data.total_belum_dibaca || 0);
+
+                        if (!data.notifications || data.notifications.length === 0) {
                             daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>';
-                            if (badge) badge.remove();
                             return;
                         }
-                        if (badge) {
-                            const total = data.total_belum_dibaca || 0;
-                            badge.textContent = total > 9 ? '9+' : total;
-                            badge.setAttribute('aria-label', total + ' notifikasi belum dibaca');
-                        } else {
-                            const span = document.createElement('span');
-                            span.id = 'admin-badge-notifikasi';
-                            span.className = 'absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center';
-                            span.textContent = (data.total_belum_dibaca || 0) > 9 ? '9+' : (data.total_belum_dibaca || 0);
-                            btn.appendChild(span);
-                        }
+
                         daftar.innerHTML = '<div class="divide-y divide-outline-variant"></div>';
                         const container = daftar.querySelector('.divide-y');
                         data.notifications.forEach(notif => {
@@ -254,9 +272,9 @@
                                 <div class="flex gap-2">
                                     <span class="mt-0.5 text-primary"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160Zm320-300Zm0 420q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80ZM320-280h320v-280q0-66-47-113t-113-47q-66 0-113 47t-47 113v280Z"/></svg></span>
                                     <div class="min-w-0 flex-1">
-                                        <p class="font-label-md text-label-md font-semibold text-on-surface">${notif.title}</p>
-                                        <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">${notif.message}</p>
-                                        <p class="font-label-sm text-label-sm text-on-surface-variant mt-1">${notif.created_at || ''}</p>
+                                        <p class="font-label-md text-label-md font-semibold text-on-surface">${escapeHtml(notif.title)}</p>
+                                        <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">${escapeHtml(notif.message)}</p>
+                                        <p class="font-label-sm text-label-sm text-on-surface-variant mt-1">${escapeHtml(notif.created_at)}</p>
                                     </div>
                                 </div>
                             `;
@@ -296,7 +314,11 @@
                             'Accept': 'application/json',
                             'X-CSRF-TOKEN': token
                         },
-                        body: JSON.stringify({ notification_ids: [id] })
+                        body: JSON.stringify({ notification_ids: [id] }),
+                        // Navigasi ke tiket langsung setelah ini; tanpa
+                        // keepalive permintaannya ikut dibatalkan browser
+                        // sehingga notifikasi tetap terhitung belum dibaca.
+                        keepalive: true
                     }).catch(() => {});
                 }
                 if (url) {
@@ -317,13 +339,15 @@
                             'X-CSRF-TOKEN': token
                         }
                     }).then(() => {
-                        if (badge) badge.remove();
+                        perbaruiBadge(0);
                         if (daftar) daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>';
                     }).catch(() => formBacaSemua.submit());
                 });
             }
 
-            if (badge) {
+            // Lencana yang dirender server menandakan ada yang belum dibaca;
+            // isi dropdown-nya lebih awal supaya klik pertama tidak menunggu.
+            if (document.getElementById('admin-badge-notifikasi')) {
                 muatNotifikasi();
             }
         })();
