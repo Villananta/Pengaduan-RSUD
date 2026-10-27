@@ -558,15 +558,21 @@ class PengaduanTest extends TestCase
             'lampiran' => [UploadedFile::fake()->create('label-obat.jpg', 40, 'image/jpeg')],
         ])->assertRedirect(route('pengaduan.lacak'));
 
-        $fotoPelapor = $pengaduan->pesan()->firstWhere('peran', 'pelapor')->daftarLampiran()[0];
+        $pesanHumas = $pengaduan->pesan()->firstWhere('peran', 'admin');
+        $pesanPelapor = $pengaduan->pesan()->firstWhere('peran', 'pelapor');
 
         // Foto di kedua sisi gelembung harus dibungkus tautan tab baru,
         // karena gambar biasa tidak bisa dibuka ukuran penuh oleh pembaca.
         $tampilan = $this->get(route('pengaduan.lacak'))->assertOk()->getContent();
 
-        foreach ([$fotoHumas, $fotoPelapor] as $foto) {
+        // Lampiran tidak lagi disajikan langsung dari disk publik: tautannya
+        // menunjuk rute terlindung yang memeriksa hak akses lebih dulu.
+        foreach ([$pesanHumas, $pesanPelapor] as $pesan) {
             $this->assertStringContainsString(
-                '<a href="'.Storage::disk('public')->url($foto).'" target="_blank" rel="noopener">',
+                '<a href="'.route('lampiran.pesan', [
+                    'pesan' => $pesan->id,
+                    'file' => basename($pesan->daftarLampiran()[0]),
+                ]).'" target="_blank" rel="noopener">',
                 $tampilan
             );
         }

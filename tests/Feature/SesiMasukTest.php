@@ -174,12 +174,14 @@ class SesiMasukTest extends TestCase
         ])->assertCookie('remember_web_'.sha1(SessionGuard::class));
     }
 
-    public function test_keluar_mengakhiri_sesi_dan_kembali_ke_halaman_pelapor(): void
+    public function test_keluar_mengakhiri_sesi_dan_kembali_ke_halaman_masuk(): void
     {
         $this->masukSebagaiAdmin();
 
+        // Petugas yang keluar dikembalikan ke pintu masuk petugas, bukan ke
+        // formulir pelapor, supaya tidak tertukar kanal saat hendak masuk lagi.
         $this->post(route('keluar'))
-            ->assertRedirect(route('pengaduan.create'));
+            ->assertRedirect(route('masuk'));
 
         $this->assertGuest();
     }

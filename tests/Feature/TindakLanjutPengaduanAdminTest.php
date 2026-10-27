@@ -598,14 +598,18 @@ class TindakLanjutPengaduanAdminTest extends TestCase
             'lampiran' => [UploadedFile::fake()->create('antrean-loket.jpg', 80, 'image/jpeg')],
         ])->assertRedirect(route('pengaduan.lacak'));
 
-        $foto = $pengaduan->pesan()->firstWhere('peran', 'pelapor')->daftarLampiran()[0];
+        $pesan = $pengaduan->pesan()->firstWhere('peran', 'pelapor');
+        $url = route('lampiran.pesan', [
+            'pesan' => $pesan->id,
+            'file' => basename($pesan->daftarLampiran()[0]),
+        ]);
 
         // Halaman admin harus memuat gambar itu sebagai pratinjau yang
         // dibungkus tautan, bukan sekadar nama berkas yang tidak terbaca foto.
         $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
             ->assertOk()
-            ->assertSee('src="'.Storage::disk('public')->url($foto).'"', false)
-            ->assertSee('<a href="'.Storage::disk('public')->url($foto).'" target="_blank" rel="noopener">', false);
+            ->assertSee('src="'.$url.'"', false)
+            ->assertSee('<a href="'.$url.'" target="_blank" rel="noopener">', false);
     }
 
     public function test_foto_lampiran_aduan_tampil_sebagai_pratinjau_di_halaman_admin(): void
@@ -617,9 +621,14 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $pengaduan = $this->tiketDiproses('ADUAN-FOTO-07');
         $pengaduan->forceFill(['lampiran' => [$path]])->save();
 
+        $url = route('lampiran.pengaduan', [
+            'kode' => $pengaduan->kode_tiket,
+            'file' => basename($path),
+        ]);
+
         $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
             ->assertOk()
-            ->assertSee('src="'.Storage::disk('public')->url($path).'"', false);
+            ->assertSee('src="'.$url.'"', false);
     }
 
     public function test_balasan_admin_tidak_perlu_admin_tiket_sudah_selesai(): void
