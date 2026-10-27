@@ -205,6 +205,23 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertDontSee('ADUAN-KATEGORI-ADA');
     }
 
+    public function test_tautan_ekspor_membawa_filter_yang_sedang_aktif(): void
+    {
+        Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-EKSPOR-01']);
+
+        // Halaman daftar memakai q untuk pencarian, sedangkan ekspor membaca
+        // cari. Kalau pemetaan ini lepas, admin mengunduh berkas yang isinya
+        // tidak sama dengan tabel yang sedang dilihatnya.
+        $this->get(route('admin.pengaduan.index', [
+            'kategori' => 'belum',
+            'q' => 'ADUAN-EKSPOR',
+        ]))
+            ->assertOk()
+            ->assertSee(
+                route('admin.pengaduan.ekspor.excel', ['kategori' => 'belum', 'cari' => 'ADUAN-EKSPOR']),
+            );
+    }
+
     public function test_filter_tidak_dikenal_diabaikan(): void
     {
         Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-AMAN-01']);

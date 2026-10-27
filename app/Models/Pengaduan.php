@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class Pengaduan extends Model
@@ -176,18 +177,20 @@ class Pengaduan extends Model
      */
     public function pindahTahap(StatusPengaduan $tujuan, ?string $catatan = null, ?int $adminId = null): void
     {
-        $sebelumnya = $this->status;
+        DB::transaction(function () use ($tujuan, $catatan, $adminId): void {
+            $sebelumnya = $this->status;
 
-        $this->status = $tujuan;
-        $this->selesai_at = $tujuan->selesai() ? now() : null;
-        $this->save();
+            $this->status = $tujuan;
+            $this->selesai_at = $tujuan->selesai() ? now() : null;
+            $this->save();
 
-        $this->riwayatStatus()->create([
-            'dari' => $sebelumnya,
-            'ke' => $tujuan,
-            'catatan' => $catatan,
-            'admin_id' => $adminId,
-        ]);
+            $this->riwayatStatus()->create([
+                'dari' => $sebelumnya,
+                'ke' => $tujuan,
+                'catatan' => $catatan,
+                'admin_id' => $adminId,
+            ]);
+        });
     }
 
     /**
@@ -202,18 +205,20 @@ class Pengaduan extends Model
             return;
         }
 
-        $this->kasus_berat = $aktif;
-        $this->kasus_berat_at = $aktif ? now() : null;
-        $this->save();
+        DB::transaction(function () use ($aktif, $adminId): void {
+            $this->kasus_berat = $aktif;
+            $this->kasus_berat_at = $aktif ? now() : null;
+            $this->save();
 
-        $this->riwayatStatus()->create([
-            'dari' => $this->status,
-            'ke' => $this->status,
-            'catatan' => $aktif
-                ? self::CATATAN_KASUS_BERAT_AKTIF
-                : self::CATATAN_KASUS_BERAT_LEPAS,
-            'admin_id' => $adminId,
-        ]);
+            $this->riwayatStatus()->create([
+                'dari' => $this->status,
+                'ke' => $this->status,
+                'catatan' => $aktif
+                    ? self::CATATAN_KASUS_BERAT_AKTIF
+                    : self::CATATAN_KASUS_BERAT_LEPAS,
+                'admin_id' => $adminId,
+            ]);
+        });
     }
 
     /**
@@ -231,20 +236,23 @@ class Pengaduan extends Model
         }
 
         $sebelumnya = $this->tingkat_keparahan;
-        $this->tingkat_keparahan = $tingkat;
-        $this->save();
 
-        $this->riwayatStatus()->create([
-            'dari' => $this->status,
-            'ke' => $this->status,
-            'catatan' => 'Tingkat keparahan diubah dari '
-                .($sebelumnya?->label() ?? 'Belum Ditetapkan')
-                .' ke '
-                .($tingkat?->label() ?? 'Belum Ditetapkan')
-                .'.',
-            'admin_id' => $adminId,
-            'is_keparahan' => true,
-        ]);
+        DB::transaction(function () use ($sebelumnya, $tingkat, $adminId): void {
+            $this->tingkat_keparahan = $tingkat;
+            $this->save();
+
+            $this->riwayatStatus()->create([
+                'dari' => $this->status,
+                'ke' => $this->status,
+                'catatan' => 'Tingkat keparahan diubah dari '
+                    .($sebelumnya?->label() ?? 'Belum Ditetapkan')
+                    .' ke '
+                    .($tingkat?->label() ?? 'Belum Ditetapkan')
+                    .'.',
+                'admin_id' => $adminId,
+                'is_keparahan' => true,
+            ]);
+        });
     }
 
     /**
@@ -262,20 +270,23 @@ class Pengaduan extends Model
         }
 
         $sebelumnya = $this->kategori;
-        $this->kategori = $kategori;
-        $this->save();
 
-        $this->riwayatStatus()->create([
-            'dari' => $this->status,
-            'ke' => $this->status,
-            'catatan' => 'Kategori diubah dari '
-                .($sebelumnya?->label() ?? 'Belum Ditentukan')
-                .' ke '
-                .($kategori?->label() ?? 'Belum Ditentukan')
-                .'.',
-            'admin_id' => $adminId,
-            'is_kategori' => true,
-        ]);
+        DB::transaction(function () use ($sebelumnya, $kategori, $adminId): void {
+            $this->kategori = $kategori;
+            $this->save();
+
+            $this->riwayatStatus()->create([
+                'dari' => $this->status,
+                'ke' => $this->status,
+                'catatan' => 'Kategori diubah dari '
+                    .($sebelumnya?->label() ?? 'Belum Ditentukan')
+                    .' ke '
+                    .($kategori?->label() ?? 'Belum Ditentukan')
+                    .'.',
+                'admin_id' => $adminId,
+                'is_kategori' => true,
+            ]);
+        });
     }
 
     /**

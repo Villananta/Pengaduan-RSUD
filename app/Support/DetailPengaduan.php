@@ -284,7 +284,6 @@ final class DetailPengaduan
             'totalHariKerja' => $pengaduan->totalHariKerjaSla(),
             'tambahanHariKerja' => Sla::tambahanKasusBerat(),
             'keparahan' => $pengaduan->tingkat_keparahan,
-            'kategori' => $pengaduan->kategori,
         ];
     }
 

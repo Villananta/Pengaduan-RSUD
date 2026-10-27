@@ -33,6 +33,16 @@
             'keparahan' => $daftar->keparahan?->value ?? ($daftar->keparahanBelum ? 'belum' : null),
             'q' => $daftar->cari,
         ]);
+
+        // Ekspor memakai nama parameter sendiri (cari, bukan q) dan hanya
+        // membaca empat dimensi, jadi tautannya disusun terpisah dari
+        // $filterAktif agar berkasnya berisi tiket yang sama dengan layar.
+        $tautanEkspor = array_filter([
+            'status' => $daftar->status?->value,
+            'unit' => $daftar->unit?->kode,
+            'kategori' => $daftar->kategori?->value ?? ($daftar->kategoriBelum ? 'belum' : null),
+            'cari' => $daftar->cari,
+        ]);
     @endphp
 
     <div class="w-full px-margin py-space-md flex flex-col gap-space-lg">
@@ -75,6 +85,15 @@
                         </span>
                     </div>
                 </div>
+
+                <a
+                    href="{{ route('admin.pengaduan.ekspor.excel', $tautanEkspor) }}"
+                    class="flex items-center gap-1.5 px-3 py-2 rounded-sm bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors"
+                    title="Unduh daftar pengaduan sesuai filter yang sedang aktif"
+                >
+                    <x-symbol nama="download" class="text-[16px]" />
+                    Ekspor Excel
+                </a>
 
                 <a
                     href="{{ route('admin.pengaduan.index') }}"
@@ -222,6 +241,10 @@
 
             <form method="GET" action="{{ route('admin.pengaduan.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
                 @foreach ($filterAktif as $nama => $nilai)
+                    {{-- Kolom yang punya kontrol sendiri di form ini tidak perlu
+                         dibawa sebagai hidden input; selain menggandakan parameter
+                         di URL, nilainya juga bisa saling menimpa. --}}
+                    @continue(in_array($nama, ['q', 'unit', 'kategori'], true))
 
                     <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
 
@@ -615,7 +638,6 @@
         </div>
         <!-- End of Tabel Utama Daftar Pengaduan -->
     </div>
-</form>
 @endsection
 
 <x-bulk-action-scripts />

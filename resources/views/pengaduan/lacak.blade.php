@@ -228,8 +228,12 @@
                                 <p class="font-mono text-base font-bold text-brand-800">{{ $tiket->kode_tiket }}</p>
                             </div>
                             <div class="flex items-center gap-2">
+                                {{-- Kategori ditentukan humas setelah tiket masuk, jadi
+                                     tiket baru memang belum punya. Kalimatnya sengaja
+                                     berbeda dari "Belum Ditentukan" di konsol supaya
+                                     pelapor tidak mengira ada isian yang tertinggal. --}}
                                 <span class="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-ink-muted">
-                                    {{ $tiket->labelKategori() }}
+                                    {{ $tiket->kategori?->label() ?? 'Sedang ditelaah humas' }}
                                 </span>
                                 <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $tiket->status->badge() }}">
                                     {{ $tiket->status->label() }}

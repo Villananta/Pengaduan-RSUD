@@ -20,7 +20,6 @@ final class RiwayatAdmin
 {
     public function __construct(
         public readonly LengthAwarePaginator $riwayat,
-        public readonly array $ringkas,
         public readonly array $filterAktif,
         public readonly string $ruteRiwayat,
     ) {}
@@ -99,18 +98,6 @@ final class RiwayatAdmin
 
         $riwayat = $query->paginate($perHalaman)->withQueryString();
 
-        $ringkas = [
-            'total' => $riwayat->total(),
-            // Baris kategori dan keparahan tidak memindahkan tahap, jadi
-            // keduanya dikeluarkan dari hitungan perpindahan status. Tanpa
-            // pengecualian ini angkanya membengkak setiap kali humas
-            // menetapkan penanda, padahal status tiket tidak berubah.
-            'perubahan_tahap' => $riwayat->getCollection()->filter(fn ($r) => ! $r->perubahanKasusBerat() && ! $r->perubahanKeparahan() && ! $r->perubahanKategori())->count(),
-            'kasus_berat' => $riwayat->getCollection()->filter(fn ($r) => $r->perubahanKasusBerat())->count(),
-            'dengan_admin' => $riwayat->getCollection()->filter(fn ($r) => $r->admin_id !== null)->count(),
-            'tanpa_admin' => $riwayat->getCollection()->filter(fn ($r) => $r->admin_id === null)->count(),
-        ];
-
         $filterAktif = [
             'dari' => $request->input('dari'),
             'ke' => $request->input('ke'),
@@ -125,7 +112,6 @@ final class RiwayatAdmin
 
         return new self(
             riwayat: $riwayat,
-            ringkas: $ringkas,
             filterAktif: $filterAktif,
             ruteRiwayat: 'admin.riwayat.index',
         );

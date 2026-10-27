@@ -179,7 +179,7 @@ class PengaduanTest extends TestCase
 
         $this->get(route('pengaduan.lacak'))
             ->assertOk()
-            ->assertSee('Belum Ditentukan');
+            ->assertSee('Sedang ditelaah humas');
     }
 
     public function test_nomor_whatsapp_harus_format_telepon(): void
