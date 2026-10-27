@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
+use App\Enums\TingkatKeparahan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Carbon\CarbonInterface;
@@ -54,5 +55,11 @@ class PengaduanFactory extends Factory
     public function status(StatusPengaduan $status): static
     {
         return $this->state(fn (): array => ['status' => $status]);
+    }
+
+    /** Tiket yang tingkat keparahannya sudah ditetapkan admin. */
+    public function keparahan(TingkatKeparahan $tingkat): static
+    {
+        return $this->state(fn (): array => ['tingkat_keparahan' => $tingkat]);
     }
 }

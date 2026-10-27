@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
+use App\Enums\TingkatKeparahan;
 use App\Enums\ZonaSla;
 use App\Support\Sla;
 use Carbon\CarbonInterface;
@@ -61,6 +62,7 @@ class Pengaduan extends Model
         'status',
         'master_unit_id',
         'kasus_berat',
+        'tingkat_keparahan',
         'draf_jawaban',
         'akses_token',
         'akses_token_expires_at',
@@ -73,6 +75,7 @@ class Pengaduan extends Model
         'email_otp_expires_at' => 'datetime',
         'kasus_berat' => 'boolean',
         'kasus_berat_at' => 'datetime',
+        'tingkat_keparahan' => TingkatKeparahan::class,
         'akses_token_expires_at' => 'datetime',
         'lampiran' => 'array',
         'kategori' => KategoriPengaduan::class,
@@ -192,6 +195,37 @@ class Pengaduan extends Model
                 ? self::CATATAN_KASUS_BERAT_AKTIF
                 : self::CATATAN_KASUS_BERAT_LEPAS,
             'admin_id' => $adminId,
+        ]);
+    }
+
+    /**
+     * Tetapkan tingkat keparahan tiket dan catat perubahannya.
+     *
+     * Keparahan sengaja tidak menyentuh target SLA: yang berubah hanya
+     * penanda warna dan filter di konsol, supaya keputusan admin tidak
+     * menggeser tenggat yang sudah dijanjikan ke pelapor. Baris riwayat
+     * memakai tahap asal dan tujuan yang sama karena status tidak berubah.
+     */
+    public function aturTingkatKeparahan(?TingkatKeparahan $tingkat, ?int $adminId = null): void
+    {
+        if ($tingkat === $this->tingkat_keparahan) {
+            return;
+        }
+
+        $sebelumnya = $this->tingkat_keparahan;
+        $this->tingkat_keparahan = $tingkat;
+        $this->save();
+
+        $this->riwayatStatus()->create([
+            'dari' => $this->status,
+            'ke' => $this->status,
+            'catatan' => 'Tingkat keparahan diubah dari '
+                .($sebelumnya?->label() ?? 'Belum Ditetapkan')
+                .' ke '
+                .($tingkat?->label() ?? 'Belum Ditetapkan')
+                .'.',
+            'admin_id' => $adminId,
+            'is_keparahan' => true,
         ]);
     }
 

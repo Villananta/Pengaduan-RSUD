@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\TingkatKeparahan;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaduan;
 use App\Services\KasusBeratService;
 use App\Services\KomunikasiService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
@@ -145,6 +147,31 @@ class KomunikasiController extends Controller
                 ? 'Tiket ditandai kasus berat, target penyelesaian digeser.'
                 : 'Penandaan kasus berat dilepas, target kembali ke standar.'
         );
+    }
+
+    /**
+     * Tetapkan tingkat keparahan tiket.
+     *
+     * Hanya penanda warna dan filter di konsol. Target SLA sengaja tidak
+     * ikut bergeser supaya keputusan admin tidak mengubah janji waktu yang
+     * sudah dihitung untuk pelapor.
+     */
+    public function keparahan(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'tingkat' => ['required', Rule::enum(TingkatKeparahan::class)],
+        ], [
+            'tingkat.required' => 'Tingkat keparahan tidak terbaca.',
+            'tingkat.enum' => 'Tingkat keparahan tidak dikenal.',
+        ]);
+
+        $tingkat = TingkatKeparahan::from($validated['tingkat']);
+
+        $pengaduan->aturTingkatKeparahan($tingkat, auth()->id());
+
+        return $this->kembali($pengaduan, 'Tingkat keparahan ditetapkan: '.$tingkat->label().'.');
     }
 
     /**

@@ -23,12 +23,14 @@ class RiwayatStatusPengaduan extends Model
         'catatan',
         'admin_id',
         'is_nudge',
+        'is_keparahan',
     ];
 
     protected $casts = [
         'dari' => StatusPengaduan::class,
         'ke' => StatusPengaduan::class,
         'is_nudge' => 'boolean',
+        'is_keparahan' => 'boolean',
     ];
 
     public function pengaduan(): BelongsTo
@@ -61,5 +63,17 @@ class RiwayatStatusPengaduan extends Model
             Pengaduan::CATATAN_KASUS_BERAT_AKTIF,
             Pengaduan::CATATAN_KASUS_BERAT_LEPAS,
         ], true);
+    }
+
+    /**
+     * True bila baris ini mencatat perubahan tingkat keparahan.
+     *
+     * Tahap asal dan tujuan pada baris ini sama, sama seperti penandaan
+     * kasus berat. Penanda kolom dipakai supaya halaman riwayat tidak
+     * salah menyebutnya sebagai disposisi.
+     */
+    public function perubahanKeparahan(): bool
+    {
+        return (bool) $this->is_keparahan;
     }
 }

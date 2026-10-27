@@ -5,6 +5,7 @@
 @use('App\Enums\KategoriPengaduan')
 @use('App\Enums\StatusInvestigasi')
 @use('App\Enums\StatusPengaduan')
+@use('App\Enums\TingkatKeparahan')
 @use('App\Models\MasterUnit')
 @use('App\Support\DaftarPengaduan')
 @use('Illuminate\Support\Str')
@@ -29,6 +30,7 @@
             'investigasi' => $daftar->investigasi?->value,
             'unit' => $daftar->unit?->kode,
             'kategori' => $daftar->kategori?->value,
+            'keparahan' => $daftar->keparahan?->value ?? ($daftar->keparahanBelum ? 'belum' : null),
             'q' => $daftar->cari,
         ]);
     @endphp
@@ -167,6 +169,54 @@
                             ({{ number_format($daftar->jumlahInvestigasi[$investigasi->value], 0, ',', '.') }})
                         </a>
                     @endforeach
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pt-space-xs">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-xs bg-error-container text-on-error-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Keparahan</span>
+                    <span class="font-title-sm text-title-sm text-on-surface-variant font-medium">Tingkat Keparahan Tiket:</span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <a
+                        href="{{ $daftar->urlTanpa('keparahan') }}"
+                        @class([
+                            'px-3 py-1 rounded-sm font-label-sm text-label-sm',
+                            'bg-surface-container-highest text-on-surface font-bold' => $daftar->keparahan === null && ! $daftar->keparahanBelum,
+                            'bg-surface-container-low hover:bg-surface-container text-on-surface-variant transition-colors' => $daftar->keparahan !== null || $daftar->keparahanBelum,
+                        ])
+                    >
+                        Semua ({{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }})
+                    </a>
+
+                    @foreach (TingkatKeparahan::cases() as $tingkat)
+                        <a
+                            href="{{ $daftar->urlTanpa('keparahan', $tingkat->value) }}"
+                            @class([
+                                'px-3 py-1 rounded-sm font-label-sm text-label-sm flex items-center gap-1 transition-colors',
+                                'bg-surface-container-highest text-on-surface font-bold' => $daftar->keparahan === $tingkat,
+                                'bg-surface-container-low hover:bg-surface-container text-on-surface-variant' => $daftar->keparahan !== $tingkat,
+                            ])
+                        >
+                            <span class="w-1.5 h-1.5 rounded-full {{ $tingkat->titik() }}" aria-hidden="true"></span>
+                            {{ $tingkat->label() }}
+                            ({{ number_format($daftar->jumlahKeparahan[$tingkat->value], 0, ',', '.') }})
+                        </a>
+                    @endforeach
+
+                    <a
+                        href="{{ $daftar->urlTanpa('keparahan', 'belum') }}"
+                        @class([
+                            'px-3 py-1 rounded-sm font-label-sm text-label-sm flex items-center gap-1 transition-colors',
+                            'bg-surface-container-highest text-on-surface font-bold' => $daftar->keparahanBelum,
+                            'bg-surface-container-low hover:bg-surface-container text-on-surface-variant' => ! $daftar->keparahanBelum,
+                        ])
+                    >
+                        <span class="w-1.5 h-1.5 rounded-full bg-outline" aria-hidden="true"></span>
+                        Belum Ditetapkan
+                        ({{ number_format($daftar->jumlahKeparahan['belum'], 0, ',', '.') }})
+                    </a>
                 </div>
             </div>
 
@@ -324,6 +374,18 @@
                                             <x-symbol :nama="$baris['prioritas']['ikon']" class="text-[12px]" />
                                             {{ $baris['prioritas']['label'] }}
                                         </span>
+
+                                        @if ($baris['keparahan'])
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-xl {{ $baris['keparahan']->badge() }} font-label-sm text-label-sm font-bold w-fit">
+                                                <x-symbol :nama="$baris['keparahan']->ikon()" class="text-[12px]" />
+                                                {{ $baris['keparahan']->label() }}
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-xl bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-bold w-fit">
+                                                <x-symbol nama="flag" class="text-[12px]" />
+                                                Belum Ditetapkan
+                                            </span>
+                                        @endif
                                     </div>
                                 </td>
 

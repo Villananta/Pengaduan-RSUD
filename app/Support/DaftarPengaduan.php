@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
+use App\Enums\TingkatKeparahan;
 use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
@@ -35,6 +36,7 @@ final class DaftarPengaduan
     /**
      * @param  array<string, int>  $jumlahTahap  Indeks 'semua' dan nilai enum tahap.
      * @param  array<string, int>  $jumlahInvestigasi  Indeks nilai enum StatusInvestigasi.
+     * @param  array<string, int>  $jumlahKeparahan  Indeks nilai enum TingkatKeparahan dan 'belum'.
      * @param  array<string, mixed>  $ringkas  Angka untuk strip konteks, kartu kaki, dan paginasi.
      * @param  bool  $halamanUnit  True bila halaman ini dibuka dari sisi unit, bukan konsol humas.
      * @param  string  $ruteDaftar  Nama rute yang dipakai untuk tautan tab dan paginasi.
@@ -45,6 +47,7 @@ final class DaftarPengaduan
         public readonly LengthAwarePaginator $daftar,
         public readonly array $jumlahTahap,
         public readonly array $jumlahInvestigasi,
+        public readonly array $jumlahKeparahan,
         public readonly ?StatusPengaduan $status,
         public readonly ?StatusInvestigasi $investigasi,
         public readonly ?KategoriPengaduan $kategori,
@@ -53,6 +56,8 @@ final class DaftarPengaduan
         public readonly int $perHalaman,
         public readonly Collection $pilihanUnit,
         public readonly array $ringkas,
+        public readonly ?TingkatKeparahan $keparahan = null,
+        public readonly bool $keparahanBelum = false,
         public readonly bool $halamanUnit = false,
         public readonly string $ruteDaftar = 'admin.pengaduan.index',
         public readonly string $ruteTiket = 'admin.pengaduan.show',
@@ -90,6 +95,13 @@ final class DaftarPengaduan
         // seperti "12 34 56 78" tetap menemukan tiketnya.
         $nrmCari = Pengaduan::normalisasiNrm($cari);
         $perHalaman = self::perHalaman($request->query('per_halaman'));
+
+        // Filter keparahan hanya ada di konsol humas. Parameter yang sama
+        // diabaikan di halaman unit supaya PIC tidak menyaring tiket dengan
+        // penanda yang kewenangannya ada di tangan humas.
+        $keparahanMentah = $request->query('keparahan');
+        $keparahan = $terkunci === null ? TingkatKeparahan::dariNilai($keparahanMentah) : null;
+        $keparahanBelum = $terkunci === null && $keparahanMentah === 'belum';
 
         // Closure ini adalah query dasar tanpa filter dimensinya sendiri,
         // dipakai ulang untuk menghitung tiap tab dan untuk menarik baris.
@@ -138,9 +150,27 @@ final class DaftarPengaduan
             $jumlahInvestigasi[$pilihan->value] = $pilihan->terapkan($dasar())->count();
         }
 
+        // Hitungan per keparahan juga memakai query dasar tanpa dimensi itu
+        // sendiri, jadi angka tiap chip tetap terlihat walaupun satu warna
+        // sedang dipilih. Nilai kosong dihitung sebagai 'belum'.
+        $jumlahKeparahan = [];
+
+        $perKeparahan = $dasar()
+            ->selectRaw('tingkat_keparahan, count(*) as jumlah')
+            ->groupBy('tingkat_keparahan')
+            ->pluck('jumlah', 'tingkat_keparahan');
+
+        foreach (TingkatKeparahan::cases() as $tingkat) {
+            $jumlahKeparahan[$tingkat->value] = (int) ($perKeparahan[$tingkat->value] ?? 0);
+        }
+
+        $jumlahKeparahan['belum'] = (int) ($perKeparahan[''] ?? 0);
+
         $daftar = $dasar()
             ->when($status !== null, fn (Builder $q): Builder => $q->where('status', $status->value))
             ->when($investigasi !== null, fn (Builder $q): Builder => $investigasi->terapkan($q))
+            ->when($keparahan !== null, fn (Builder $q): Builder => $q->where('tingkat_keparahan', $keparahan->value))
+            ->when($keparahanBelum, fn (Builder $q): Builder => $q->whereNull('tingkat_keparahan'))
             ->with('masterUnit')
             // Hanya jawaban PIC unit yang dihitung untuk kalimat "N balasan
             // unit masuk". Pesan pembuka, balasan pelapor, dan obrolan humas
@@ -160,6 +190,7 @@ final class DaftarPengaduan
             daftar: $daftar,
             jumlahTahap: $jumlahTahap,
             jumlahInvestigasi: $jumlahInvestigasi,
+            jumlahKeparahan: $jumlahKeparahan,
             status: $status,
             investigasi: $investigasi,
             kategori: $kategori,
@@ -174,6 +205,8 @@ final class DaftarPengaduan
             ringkas: $terkunci !== null
                 ? self::ringkasUnit($terkunci, $jumlahTahap)
                 : self::ringkas($jumlahTahap),
+            keparahan: $keparahan,
+            keparahanBelum: $keparahanBelum,
             halamanUnit: $terkunci !== null,
             ruteDaftar: $ruteDaftar,
             ruteTiket: $ruteTiket,
@@ -187,7 +220,9 @@ final class DaftarPengaduan
         return $this->status !== null
             || $this->investigasi !== null
             || $this->kategori !== null
-            || $this->unit !== null;
+            || $this->unit !== null
+            || $this->keparahan !== null
+            || $this->keparahanBelum;
     }
 
     /**
@@ -220,6 +255,7 @@ final class DaftarPengaduan
         return [
             'kode' => $pengaduan->kode_tiket,
             'prioritas' => $this->prioritas($pengaduan),
+            'keparahan' => $pengaduan->tingkat_keparahan,
             'pelapor' => $pengaduan->nama_lengkap,
             'nrm' => Pengaduan::normalisasiNrm($pengaduan->nrm),
             'unit' => $pengaduan->masterUnit?->namaLengkap() ?? $pengaduan->unit,

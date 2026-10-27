@@ -101,7 +101,7 @@ final class RiwayatAdmin
 
         $ringkas = [
             'total' => $riwayat->total(),
-            'perubahan_tahap' => $riwayat->getCollection()->filter(fn ($r) => ! $r->perubahanKasusBerat())->count(),
+            'perubahan_tahap' => $riwayat->getCollection()->filter(fn ($r) => ! $r->perubahanKasusBerat() && ! $r->perubahanKeparahan())->count(),
             'kasus_berat' => $riwayat->getCollection()->filter(fn ($r) => $r->perubahanKasusBerat())->count(),
             'dengan_admin' => $riwayat->getCollection()->filter(fn ($r) => $r->admin_id !== null)->count(),
             'tanpa_admin' => $riwayat->getCollection()->filter(fn ($r) => $r->admin_id === null)->count(),
@@ -165,9 +165,14 @@ final class RiwayatAdmin
     public function baris(RiwayatStatusPengaduan $item): array
     {
         $pengaduan = $item->pengaduan;
+        $adalahKeparahan = $item->perubahanKeparahan();
         $adalahKasusBerat = $item->perubahanKasusBerat();
 
-        if ($adalahKasusBerat) {
+        if ($adalahKeparahan) {
+            $jenis = 'Tingkat Keparahan';
+            $labelJenis = 'bg-tertiary-container text-on-tertiary-container';
+            $ikonJenis = 'flag';
+        } elseif ($adalahKasusBerat) {
             $jenis = 'Kasus Berat';
             $labelJenis = 'bg-error-container text-error';
             $ikonJenis = 'warning';
@@ -216,6 +221,7 @@ final class RiwayatAdmin
             'total_riwayat' => RiwayatStatusPengaduan::query()->count(),
             'pengaduan_unik' => RiwayatStatusPengaduan::query()->distinct('pengaduan_id')->count('pengaduan_id'),
             'perubahan_tahap' => RiwayatStatusPengaduan::query()
+                ->where('is_keparahan', false)
                 ->whereNotIn('catatan', [Pengaduan::CATATAN_KASUS_BERAT_AKTIF, Pengaduan::CATATAN_KASUS_BERAT_LEPAS])
                 ->count(),
             'kasus_berat' => RiwayatStatusPengaduan::query()

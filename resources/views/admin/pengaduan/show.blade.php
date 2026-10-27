@@ -2,6 +2,8 @@
 
 @section('title', 'Detail Tiket '.$detail->kode())
 
+@use('App\Enums\TingkatKeparahan')
+
 @section('content')
 
     @php
@@ -66,68 +68,65 @@
             :ringkas-sla="$tiket->ringkasSla()"
         />
 
-        <!-- Panel Kasus Berat: penandaan yang menggeser target SLA. -->
-        {{-- Menyalakannya menambah hari kerja SLA, jadi panel ini menampilkan
-             berapa lama target ikut bergeser. --}}
+        <!-- Panel Tingkat Keparahan: penanda warna yang ditetapkan humas. -->
+        {{-- Keparahan hanya penanda warna dan filter di konsol. Target SLA
+             tetap dihitung dari App\Support\Sla supaya keputusan admin tidak
+             menggeser tenggat yang sudah dijanjikan ke pelapor. --}}
 
-        <div @class([
-            'w-full rounded-lg shadow-sm px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md',
-            'bg-error-container/40 border border-error/30' => $sla['kasusBerat'],
-            'bg-surface-container-lowest' => ! $sla['kasusBerat'],
-        ])>
+        <div class="w-full rounded-lg shadow-sm bg-surface-container-lowest px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md">
             <div class="flex items-start gap-space-sm">
                 <span @class([
                     'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                    'bg-error text-on-error' => $sla['kasusBerat'],
-                    'bg-error-container text-on-error-container' => ! $sla['kasusBerat'],
+                    $sla['keparahan']?->badge() ?? 'bg-surface-container-highest text-on-surface-variant',
                 ])>
-                    <x-symbol nama="emergency" class="text-[20px]" />
+                    <x-symbol :nama="$sla['keparahan']?->ikon() ?? 'flag'" class="text-[20px]" />
                 </span>
 
                 <div>
                     <h2 class="font-title-md text-title-md text-on-surface font-bold">
-                        @if ($sla['kasusBerat'])
-                            Kasus Berat Aktif
-                        @else
-                            Tandai sebagai Kasus Berat
-                        @endif
+                        Tingkat Keparahan
                     </h2>
 
                     <p class="font-body-sm text-body-sm text-on-surface-variant">
-                        Kasus berat menambah {{ $sla['tambahanHariKerja'] }} hari kerja pada target penyelesaian,
-                        jadi standar {{ $sla['hariKerja'] }} hari kerja menjadi
-                        <strong>{{ $sla['totalHariKerja'] }} hari kerja</strong>.
-
-                        @if ($sla['kasusBeratAt'])
-                            Ditandai sejak {{ $sla['kasusBeratAt'] }} WIB.
+                        @if ($sla['keparahan'])
+                            Tiket ini ditandai <strong>{{ $sla['keparahan']->label() }}</strong>.
+                        @else
+                            Belum ditetapkan. Pilih satu warna supaya tiket mudah dikenali di daftar.
                         @endif
+
+                        Penanda ini tidak mengubah target SLA.
                     </p>
                 </div>
             </div>
 
-            {{-- Satu form untuk dua arah: tombol mengirim nilai aktif yang
-                 kebalikan dari penandaan sekarang. --}}
+            {{-- Tiga tombol mengirim nilai yang berbeda ke rute yang sama.
+                 Tombol yang sedang aktif tetap bisa ditekan, tetapi model
+                 mengabaikannya karena nilainya tidak berubah. --}}
 
-            <form method="POST" action="{{ route('admin.pengaduan.kasus-berat', $kode) }}" class="shrink-0">
-                @csrf
+            <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                @foreach (TingkatKeparahan::cases() as $tingkat)
+                    <form method="POST" action="{{ route('admin.pengaduan.keparahan', $kode) }}">
+                        @csrf
 
-                <input type="hidden" name="aktif" value="{{ $sla['kasusBerat'] ? 0 : 1 }}">
+                        <input type="hidden" name="tingkat" value="{{ $tingkat->value }}">
 
-                <button
-                    type="submit"
-                    aria-pressed="{{ $sla['kasusBerat'] ? 'true' : 'false' }}"
-                    @class([
-                        'px-space-lg py-2.5 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 transition-colors',
-                        'bg-surface-container text-on-surface-variant hover:bg-surface-container-highest' => $sla['kasusBerat'],
-                        'bg-error text-on-error hover:opacity-90' => ! $sla['kasusBerat'],
-                    ])
-                >
-                    <x-symbol :nama="$sla['kasusBerat'] ? 'toggle_off' : 'toggle_on'" class="text-[18px]" />
-                    {{ $sla['kasusBerat'] ? 'Lepas Penandaan' : 'Tandai Kasus Berat' }}
-                </button>
-            </form>
+                        <button
+                            type="submit"
+                            aria-pressed="{{ $sla['keparahan'] === $tingkat ? 'true' : 'false' }}"
+                            @class([
+                                'px-space-md py-2 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 transition-colors',
+                                $tingkat->badge().' hover:opacity-90' => $sla['keparahan'] === $tingkat,
+                                'bg-surface-container text-on-surface-variant hover:bg-surface-container-highest' => $sla['keparahan'] !== $tingkat,
+                            ])
+                        >
+                            <span class="w-2 h-2 rounded-full {{ $tingkat->titik() }}" aria-hidden="true"></span>
+                            {{ $tingkat->label() }}
+                        </button>
+                    </form>
+                @endforeach
+            </div>
         </div>
-        <!-- End of Panel Kasus Berat -->
+        <!-- End of Panel Tingkat Keparahan -->
 
         <!-- Kolom Kerja: kiri kronologi dan formulasi, kanan keputusan,
              bawahnya baris penuh buat panel percakapan -->

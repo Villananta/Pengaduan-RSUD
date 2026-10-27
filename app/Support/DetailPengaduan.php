@@ -123,7 +123,7 @@ final class DetailPengaduan
         $terakhir = null;
 
         foreach ($this->audit as $baris) {
-            if (filled($baris['catatan']) && ! $baris['kasusBerat']) {
+            if (filled($baris['catatan']) && ! $baris['kasusBerat'] && ! $baris['keparahan']) {
                 $terakhir = $baris;
             }
         }
@@ -283,6 +283,7 @@ final class DetailPengaduan
             'kasusBeratAt' => $pengaduan->kasus_berat_at?->translatedFormat('d M Y, H:i'),
             'totalHariKerja' => $pengaduan->totalHariKerjaSla(),
             'tambahanHariKerja' => Sla::tambahanKasusBerat(),
+            'keparahan' => $pengaduan->tingkat_keparahan,
         ];
     }
 
@@ -380,18 +381,27 @@ final class DetailPengaduan
         return $pengaduan->riwayatStatus
             ->map(fn (RiwayatStatusPengaduan $baris): array => [
                 'sumber' => $baris->dariAwal() ? 'Sistem' : 'Humas',
-                'nada' => $baris->dariAwal()
-                    ? 'bg-surface-container-highest text-on-surface'
-                    : 'bg-secondary-container text-on-secondary-container',
-                'ikon' => $baris->dariAwal() ? 'inbox' : 'swap_horiz',
+                'nada' => $baris->perubahanKeparahan()
+                    ? 'bg-tertiary-container text-on-tertiary-container'
+                    : ($baris->dariAwal()
+                        ? 'bg-surface-container-highest text-on-surface'
+                        : 'bg-secondary-container text-on-secondary-container'),
+                'ikon' => $baris->perubahanKeparahan()
+                    ? 'flag'
+                    : ($baris->dariAwal() ? 'inbox' : 'swap_horiz'),
                 'waktu' => $baris->created_at->translatedFormat('d M Y, H:i').' WIB',
-                'judul' => $baris->ke->label(),
-                'kalimat' => $baris->dariAwal()
-                    ? 'Pengaduan masuk melalui portal publik dan langsung disimpan sebagai '.$baris->ke->label().'.'
-                    : 'Tahap pengaduan dipindahkan dari '.$baris->dari->label().' ke '.$baris->ke->label().'.',
-                'catatan' => $baris->catatan,
+                'judul' => $baris->perubahanKeparahan() ? 'Keparahan' : $baris->ke->label(),
+                'kalimat' => $baris->perubahanKeparahan()
+                    ? $baris->catatan
+                    : ($baris->dariAwal()
+                        ? 'Pengaduan masuk melalui portal publik dan langsung disimpan sebagai '.$baris->ke->label().'.'
+                        : 'Tahap pengaduan dipindahkan dari '.$baris->dari->label().' ke '.$baris->ke->label().'.'),
+                // Kalimat keparahan sudah memuat perubahannya, jadi tidak
+                // diulang lagi sebagai catatan di lembar disposisi.
+                'catatan' => $baris->perubahanKeparahan() ? null : $baris->catatan,
                 'aktor' => $baris->admin?->name ?? 'Sistem Pengaduan',
                 'kasusBerat' => $baris->perubahanKasusBerat(),
+                'keparahan' => $baris->perubahanKeparahan(),
             ])
             ->all();
     }

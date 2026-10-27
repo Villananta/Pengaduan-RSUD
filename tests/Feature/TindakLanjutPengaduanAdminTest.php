@@ -387,17 +387,24 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame(Sla::hariKerja(), $pengaduan->totalHariKerjaSla());
     }
 
-    public function test_halaman_detail_menampilkan_total_hari_kerja_kasus_berat(): void
+    public function test_halaman_detail_tidak_lagi_menampilkan_panel_kasus_berat(): void
     {
         $pengaduan = $this->tiketDiproses('ADUAN-BERAT-03');
         $pengaduan->tandaiKasusBerat(true);
 
         $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
             ->assertOk()
-            ->assertSee('Kasus Berat Aktif')
-            ->assertSee(Sla::tambahanKasusBerat().' hari kerja')
-            ->assertSee(Sla::hariKerja().' hari kerja menjadi')
-            ->assertSee('Lepas Penandaan');
+            ->assertDontSee('Kasus Berat Aktif')
+            ->assertDontSee('Tandai Kasus Berat')
+            ->assertDontSee('Lepas Penandaan')
+            ->assertDontSee(route('admin.pengaduan.kasus-berat', $pengaduan->kode_tiket));
+
+        // Penandaan kasus berat tetap berlaku di balik layar: SLA masih
+        // memakai tambahan hari kerjanya walaupun panelnya tidak tampil.
+        $this->assertSame(
+            Sla::hariKerja() + Sla::tambahanKasusBerat(),
+            $pengaduan->fresh()->totalHariKerjaSla()
+        );
     }
 
     public function test_tiket_selesai_tidak_menawarkan_tindakan_lagi(): void
@@ -658,6 +665,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->post(route('admin.pengaduan.disposisi', $kode), ['unit' => 'IFP-01'])->assertNotFound();
         $this->post(route('admin.pengaduan.tangani-langsung', $kode))->assertNotFound();
         $this->post(route('admin.pengaduan.kasus-berat', $kode), ['aktif' => 1])->assertNotFound();
+        $this->post(route('admin.pengaduan.keparahan', $kode), ['tingkat' => 'berat'])->assertNotFound();
     }
 
     private function tiketDiproses(string $kode, ?StatusPengaduan $status = null): Pengaduan

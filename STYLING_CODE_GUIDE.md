@@ -1,6 +1,10 @@
 # Panduan Styling Code - Sistem Pengaduan RSUD Dr. Soetomo
 
-Dokumen ini merupakan konsolidasi lengkap dari semua pola styling dan konvensi kode yang digunakan di project ini. Dibuat berdasarkan analisis kodebase, `STYLING_GUIDE.md`, `STYLE_GUIDE.md`, dan `STYLE.md`.
+Dokumen ini merupakan konsolidasi lengkap dari semua pola styling dan konvensi kode yang digunakan di project ini. Isinya sudah dicocokkan langsung dengan kode di `app/`, `resources/views/`, `resources/css/app.css`, dan `tests/` — bukan hanya disalin dari dokumen lain.
+
+Versi ringkas untuk pekerjaan sehari-hari ada di `STYLE.md`. Kalau keduanya berbeda, yang berlaku adalah kode yang ada di repository; perbarui dokumen ini setelah polanya berubah.
+
+Stack yang menjadi acuan: Laravel 13, PHP 8.4, Tailwind CSS 4 (`@theme` di `resources/css/app.css`), Blade + vanilla JS, dan PHPUnit.
 
 ## Daftar Isi
 
@@ -32,13 +36,19 @@ Semua warna didefinisikan di `resources/css/app.css` dalam blok `@theme`. **Jang
 | `brand-800` | `#0f7a3c` | **Warna merek utama** - tombol, ikon, tautan |
 | `brand-700` | `#158a4a` | Hover tombol utama |
 | `brand-600` | `#146c3e` | Teks kecil yang tetap terbaca |
+| `brand-500` | `#17804c` | Teks aksen kecil |
+| `brand-300` / `brand-250` / `brand-200` | `#86dcab` / `#a9e7c2` / `#c3efd5` | Garis dan latar mint bertingkat |
 | `brand-150` / `brand-light` | `#d7f5e3` / `#f7fcf9` | Latar kartu & panel |
-| `brand-100` | `#e3f9ec` | Badge "Selesai", latar chat admin |
+| `brand-100` | `#e3f9ec` | Pil navigasi aktif, latar kartu ringan |
+| `brand-50` | `#effaf4` | Hover paling ringan |
+| `brand-section` / `brand-deep` | `#e3f9ec` / `#0a4a27` | Latar section dan teks hijau pekat |
 | `gold-500` | `#d4af37` | Emas - **hanya** untuk lencana penghargaan & badge SLA |
 | `ink` | `#1a1a2e` | Teks utama |
 | `ink-muted` | `#6b7280` | Teks sekunder |
-| `alert` | `#ba1a1a` | Error/peringatan |
-| `alert-light` | `#ffdad6` | Latar error |
+| `placeholder` | `#9ca3af` | Placeholder form publik |
+| `chat-admin` / `chat-accent` | `#e3f9ec` / `#8ee7b4` | Gelembung chat humas dan aksennya |
+| `info` / `info-light` | `#003ea8` / `#dbeafe` | Pesan informasi |
+| `alert` / `alert-dark` / `alert-light` | `#ba1a1a` / `#93000a` / `#ffdad6` | Error/peringatan |
 
 > **Aturan emas**: Emas tidak dipakai untuk UI biasa. Hanya untuk piagam, medali, badge standar pencapaian.
 
@@ -70,12 +80,17 @@ Di template: `px-margin`, `py-space-md`, `gap-space-lg`, dll.
 
 ### 1.4 Border Radius
 
-Design memakai skala radius kustom (berbeda dari default Tailwind):
-- `rounded-xs` = `0.125rem` 
-- `rounded-sm` = `0.25rem`
-- `rounded-lg` = `0.5rem`
-- `rounded-xl` = `0.75rem`
-- `rounded-full` = `9999px`
+Tidak ada override radius di `@theme`; yang dipakai adalah skala bawaan Tailwind v4. Design konsol memakai nama radius yang satu tingkat lebih kecil, jadi padanannya ditulis seperti ini:
+
+| Di design | Class yang ditulis | Nilai |
+|-----------|--------------------|-------|
+| `rounded` | `rounded-xs` | `0.125rem` |
+| `rounded-lg` | `rounded-sm` | `0.25rem` |
+| `rounded-xl` | `rounded-lg` | `0.5rem` |
+| `rounded-full` | `rounded-xl` | `0.75rem` |
+| pil / bulat penuh | `rounded-full` | `9999px` |
+
+Contoh nyata: chip status memakai `rounded-xl` (0.75rem), navigasi pill memakai `rounded-full`, dan kartu memakai `rounded-lg` (0.5rem). Jangan menambah token radius baru hanya untuk satu komponen.
 
 ---
 
@@ -278,7 +293,7 @@ Gunakan kelas `font-*` dan `text-*` semantik yang sudah terdaftar di `@theme`, *
 ```
 
 **Aturan tabel:**
-- `min-w-[1180px]` + `overflow-x-auto` → scroll horizontal di mobile
+- `min-w-[...]` + `overflow-x-auto` → scroll horizontal di mobile. Lebarnya mengikuti jumlah kolom: `min-w-[900px]` untuk tabel unit ringkas, `min-w-[1000px]`/`min-w-[1180px]` untuk daftar pengaduan, `min-w-[1200px]` untuk riwayat admin
 - `colgroup` dengan `w-[%]` → lebar kolom terkunci
 - Baris selesai (`redup`): `bg-surface-container-low/50` + tidak hover
 - Baris aktif: hover `bg-surface-container-low`
@@ -293,11 +308,22 @@ Gunakan kelas `font-*` dan `text-*` semantik yang sudah terdaftar di `@theme`, *
 </span>
 ```
 
-Warna dari enum `StatusPengaduan::badgeAdmin()`:
-- `Diterima` → `bg-tertiary-container text-on-tertiary-container`
-- `Diproses` → `bg-primary-container text-on-primary`
-- `Revisi` → `bg-warning-container text-on-warning-container`
+Warna dari enum `StatusPengaduan::badgeAdmin()` (kondisi per Oktober 2026):
+
+- `Diterima` → `bg-secondary-container text-on-secondary-container`
+- `Diproses` → `bg-secondary-container text-on-secondary-container`
+- `Revisi` → `bg-error text-on-error`
 - `Selesai` → `bg-secondary-container text-on-secondary-container`
+
+Tiga tahap memakai mint yang sama; yang membedakan tahapnya adalah label dan
+ikon, bukan warnanya. `Revisi` memakai `bg-error` karena satu-satunya tahap yang
+menuntut tindakan pelapor.
+
+> Token `warning-*` **tidak ada** di `app.css`. Jangan mengarang nama token; kalau
+> butuh nada peringatan, pakai `tertiary-*` (emas) atau `error-*`.
+
+Ukuran chip mengikuti tempatnya: `px-2.5 py-1` untuk kolom tabel, dan
+`px-space-xs py-0.5` untuk badge ringkas di kartu/dashboard.
 
 ### 4.4 Tombol (Button)
 
@@ -367,6 +393,22 @@ Simpan class dasar di variabel `@php`:
 <input type="file" id="lampiran" name="lampiran[]" accept=".jpg,.jpeg,.png,.pdf" multiple class="hidden">
 ```
 
+**Halaman publik memakai variabel sendiri.** Form di `pengaduan/create.blade.php`
+tidak memakai token konsol, melainkan palet brand dan ukuran teks biasa:
+
+```blade
+@php
+    $input = 'w-full rounded-xl bg-brand-light px-4 py-3.5 text-sm text-ink placeholder-placeholder outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-brand-800';
+    $label = 'block text-sm font-semibold text-ink';
+    $errorClass = 'mt-1.5 text-[11px] font-medium text-alert';
+    $stepBadge = 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-800 text-[11px] font-bold text-white';
+@endphp
+```
+
+Nama variabelnya memang tidak seragam: form admin memakai `$galat`, form publik
+memakai `$errorClass`. Ikuti nama yang sudah ada di file yang sedang disunting
+supaya diff tetap kecil.
+
 ### 4.6 Alert / Notifikasi
 
 **Error:**
@@ -422,10 +464,12 @@ Simpan class dasar di variabel `@php`:
 
 ### 6.1 Class & Method
 
-- Class di `app/Support/` dan enum yang tidak diwariskan ditulis `final`
+- Class di `app/Support/` dan `app/Services/` ditulis `final`
+- Enum, model, controller, middleware, command, mail, dan notification **tidak** memakai `final` (enum memang tidak bisa diwariskan)
 - Model Eloquent tidak `final`
-- Semua query dan perhitungan di `App\Support\*`, bukan di Blade/Controller
-- Controller hanya memvalidasi, memanggil Support, return view/redirect
+- Semua query dan perhitungan tampilan di `App\Support\*`, bukan di Blade
+- Proses tulis multi-langkah (disposisi, tahap, komunikasi, kasus berat) ada di `app/Services/*`, dibungkus `DB::transaction`, dan melempar `RuntimeException` untuk aturan yang dilanggar
+- Controller hanya memvalidasi, memanggil Support/Service, lalu return view/redirect. Query database tidak ditulis di controller
 - Method publik dengan perilaku tidak jelas pakai docblock penuh
 - Method yang namanya jelas cukup satu baris `/** ... */`
 
@@ -466,10 +510,14 @@ final class Sla
 - Factory method bernama bahasa Indonesia: `dariRequest()`, `buat()`, dll.
 - Import class/enum di Blade pakai `@use()` di baris atas, bukan `use` di `@php`
 
-```php
+```blade
 @use('App\Enums\StatusPengaduan')
 @use('Illuminate\Support\Str')
 ```
+
+Bentuk tanpa kutip juga diterima: `@use(App\Support\Sla)`. FQCN langsung seperti
+`{{ \App\Support\Sla::hariKerja() }}` masih ada di layout lama; view baru
+sebaiknya memakai `@use()` supaya isi template tetap bersih.
 
 ### 6.4 Model
 
@@ -528,9 +576,9 @@ enum StatusPengaduan: string
     public function badgeAdmin(): string
     {
         return match ($this) {
-            self::Diterima => 'bg-tertiary-container text-on-tertiary-container',
-            self::Diproses => 'bg-primary-container text-on-primary',
-            self::Revisi => 'bg-error-container text-on-error-container',
+            self::Diterima => 'bg-secondary-container text-on-secondary-container',
+            self::Diproses => 'bg-secondary-container text-on-secondary-container',
+            self::Revisi => 'bg-error text-on-error',
             self::Selesai => 'bg-secondary-container text-on-secondary-container',
         };
     }
@@ -539,13 +587,18 @@ enum StatusPengaduan: string
     {
         return match ($this) {
             self::Diterima => 'inbox',
-            self::Diproses => 'pending_actions',
-            self::Revisi => 'edit',
-            self::Selesai => 'check_circle',
+            self::Diproses => 'autorenew',
+            self::Revisi => 'rate_review',
+            self::Selesai => 'task_alt',
         };
     }
 }
 ```
+
+Method bantu enum yang sudah dipakai dan sebaiknya ditambah di sini, bukan di
+template: `label()`, `badge()` (halaman publik), `badgeAdmin()` (konsol),
+`ikon()`, `subStatus()`, `warnaAngka()`, `warnaIkon()`, `chip()`, `tahap()`,
+`tujuanBerikutnya()`, `bisaBerpindahKe()`, dan `perluAksi()`.
 
 ### 6.6 Config
 
@@ -620,6 +673,11 @@ enum StatusPengaduan: string
 @endpush
 ```
 
+Script yang sudah menjadi bagian layout (misalnya dropdown notifikasi di
+`admin/layout.blade.php`) ditulis langsung di layout sebelum `@stack('scripts')`.
+Script milik satu halaman tetap masuk `@push('scripts')` di view halaman itu.
+Jangan menaruh script halaman di tengah HTML.
+
 ### 7.4 Kondisional Class
 
 Gunakan `@class()` untuk kondisional class:
@@ -676,8 +734,9 @@ Menu disimpan di array PHP di awal file:
 
 ## 8. JavaScript Inline
 
-- Ditaruh di akhir file view, dalam `@push('scripts')`
-- Pakai `DOMContentLoaded`
+- Script khusus halaman ditaruh di akhir view, dalam `@push('scripts')`
+- Script yang melekat pada layout ditulis langsung di layout sebelum `@stack('scripts')`
+- Pakai `DOMContentLoaded` untuk script halaman; script layout boleh memakai IIFE `(function () { ... })();`
 - Variabel `const` untuk elemen DOM
 - Fungsi kecil, nama deskriptif
 - Komentar singkat di atas blok logika kompleks
@@ -725,54 +784,65 @@ Menu disimpan di array PHP di awal file:
 | **Body class** | `font-sans bg-brand-light text-ink antialiased` | `bg-surface font-body-md text-on-surface min-h-screen` |
 | **Topbar** | Single bar `h-20`, fixed | Double bar (identitas + navigasi), fixed `pt-28` di main |
 | **Warna** | Brand tokens (`brand-*`, `ink`, `gold-*`) | Material 3 tokens (`surface-*`, `primary`, `secondary`) |
-| **Navigasi** | Pill mint untuk aktif | Pill mint untuk aktif |
+| **Navigasi** | Pill brand (`bg-brand-100 text-brand-800`) untuk aktif | Pill mint (`bg-secondary-container`) untuk aktif |
 | **Footer** | 4 kolom, kaya informasi | Minimal, info SLA |
 | **Widget** | Aksesibilitas + TTS (Web Speech API) | Notifikasi dropdown |
+| **Script** | Inline di bawah konten + `@stack('scripts')` | Script layout di dalam layout + `@push('scripts')` per halaman |
 
 ---
 
 ## 10. Test
 
-- Class test di `tests/Feature/` mengikuti fitur yang diuji
+- Class test di `tests/Feature/` mengikuti fitur yang diuji; perhitungan murni seperti `Sla::` boleh di `tests/Unit/`
 - Nama method: `test_<fitur>_<kondisi>_<hasil>` (bahasa Indonesia)
 - Gunakan `RefreshDatabase`
-- Helper method `form()` untuk data valid default
-- Factory dipakai untuk menyiapkan data
+- Untuk halaman admin, mulai dari helper `tests/TestCase.php`: `masukSebagaiAdmin()`, bukan `actingAs(User::factory()->create())` manual
+- Untuk konsol unit, pakai `masukSebagaiPicUntuk($unit)` atau `picUntuk($unit)` supaya akun benar-benar terhubung ke unit
+- Helper method `form()` dipakai kalau payload form yang sama diulang di banyak test
+- Factory dipakai untuk menyiapkan data, termasuk state seperti `->status(StatusPengaduan::Diproses)` dan `->admin()`
 - Waktu dibekukan dengan `Carbon::setTestNow()`, reset di `tearDown()`
 - Assert database state, bukan hanya response
 
 ```php
-class PengaduanTest extends TestCase
+class DaftarPengaduanAdminTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function form(array $ubah = []): array
+    protected User $admin;
+
+    protected function setUp(): void
     {
-        return array_merge([
-            'kategori' => 'fasilitas',
-            'nama_lengkap' => 'Budi Santoso',
-            'nrm' => '12-34-56-78',
-            'no_wa' => '8123456789',
-            'email' => 'budi@example.com',
-            'alamat' => 'Jl. Test',
-            'waktu_kejadian' => now()->format('Y-m-d\TH:i'),
-            'unit' => 'Instalasi Rawat Jalan (Poliklinik)',
-            'subjek' => 'Tes pengaduan',
-            'deskripsi' => 'Deskripsi pengaduan untuk testing',
-            'persetujuan' => '1',
-        ], $ubah);
+        parent::setUp();
+
+        $this->seed(MasterUnitSeeder::class);
+        StatistikDashboard::lupaCache();
+
+        $this->admin = $this->masukSebagaiAdmin();
     }
 
-    public function test_pengaduan_dapat_disimpan(): void
+    public function test_halaman_daftar_pengaduan_butuh_login(): void
     {
-        $this->post(route('pengaduan.store'), $this->form())
-            ->assertRedirect(route('pengaduan.sukses'));
+        auth()->logout();
 
-        $this->assertDatabaseCount('pengaduan', 1);
-        $pengaduan = Pengaduan::first();
-        $this->assertSame(KategoriPengaduan::Fasilitas, $pengaduan->kategori);
-        $this->assertStringStartsWith('ADUAN-', $pengaduan->kode_tiket);
+        $this->get(route('admin.pengaduan.index'))->assertRedirect(route('masuk'));
     }
+}
+```
+
+Test formulir publik tetap memakai helper `form()` di dalam class-nya sendiri:
+
+```php
+public function test_pengaduan_dapat_disimpan(): void
+{
+    $this->post(route('pengaduan.store'), $this->form())
+        ->assertRedirect(route('pengaduan.sukses'));
+
+    $this->assertDatabaseCount('pengaduan', 1);
+
+    $pengaduan = Pengaduan::first();
+
+    $this->assertSame(KategoriPengaduan::Fasilitas, $pengaduan->kategori);
+    $this->assertStringStartsWith('ADUAN-', $pengaduan->kode_tiket);
 }
 ```
 
@@ -790,20 +860,23 @@ vendor/bin/pint
 - [ ] Kode mengikuti indent 4 spasi (Pint/PSR-12)
 - [ ] Komentar bahasa Indonesia, menjelaskan "kenapa" bukan "apa"
 - [ ] Tidak ada query di Blade
+- [ ] Class baru di `app/Support/` atau `app/Services/` ditulis `final`
 - [ ] Enum dipakai untuk status, warna, ikon, label
 - [ ] Config SLA tidak di-hardcode
 - [ ] Kode tiket tidak di-$fillable
 - [ ] Rate limiting & validasi ada
-- [ ] Test lulus (`php artisan test`)
-- [ ] Pint bersih (`./vendor/bin/pint`)
+- [ ] Script halaman ada di `@push('scripts')`, bukan di tengah HTML
+- [ ] Test halaman admin memakai helper `masukSebagaiAdmin()` / `masukSebagaiPicUntuk()`
+- [ ] Test lulus (`php artisan test --compact`)
+- [ ] Pint bersih (`vendor/bin/pint --dirty --format agent`)
 
 ### Menambah Halaman Baru
 - [ ] Extend layout yang benar: `admin.layout`, `unit.layout`, atau `layouts.guest`
 - [ ] Set `@section('title', '...')`
 - [ ] Struktur: strip konteks, filter/toolbar, kartu/tabel/form, footer tabel (jika ada)
-- [ ] Warna hanya pakai token
+- [ ] Warna hanya pakai token yang benar-benar ada di `@theme`
 - [ ] Spasi pakai `space-*`, `margin`, `gutter`
-- [ ] Tipografi pakai `font-* text-*` semantik
+- [ ] Tipografi konsol pakai `font-* text-*` semantik
 - [ ] Ikon pakai `<x-symbol nama="..." />`
 - [ ] Aksesibilitas: `aria-label`, `role="alert"/"status"`, `scope="col"`, `aria-current="page"`
 - [ ] Script masuk `@push('scripts')`, bukan inline di tengah HTML
@@ -829,7 +902,9 @@ vendor/bin/pint
 | **Pakai `declare(strict_types=1)`** | Project tidak memakainya |
 | **Pakai `href="javascript:void(0)"`** | Gunakan `button` atau `span` |
 | **Campur gaya atribut PHP `#[Fillable]` dengan `$fillable`** | Hanya `User` yang boleh pakai atribut PHP |
-| **Pakai `text-base`, `text-lg` langsung** | Gunakan tipografi semantik |
+| **Pakai `text-base`, `text-lg` di konsol admin** | Gunakan tipografi semantik; halaman publik yang lebih bebas tetap boleh memakai ukuran biasa |
+| **Mengarang nama token warna (mis. `warning-*`)** | Token hanya yang ada di `@theme`; pakai `tertiary-*` atau `error-*` |
+| **Memakai `final` di enum, model, atau controller** | Tidak sesuai pola project; `final` hanya untuk Support/Service |
 | **Tulis hex/RGB langsung** | Gunakan design token |
 
 ---
@@ -846,8 +921,9 @@ vendor/bin/pint
 | Tombol sekunder | `px-space-md py-2 rounded-lg bg-surface-container text-on-surface font-label-lg text-label-lg hover:bg-surface-container-high transition-colors` |
 | Input form | `w-full py-2.5 px-space-md rounded-lg bg-surface-container-low text-on-surface placeholder:text-outline font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-secondary/40` |
 | Badge aktif (pill) | `inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-bold` |
-| Tabel scroll | `overflow-x-auto w-full` + `table min-w-[1180px]` |
+| Chip status tabel | `inline-flex items-center gap-1 px-2.5 py-1 rounded-xl {{ $status->badgeAdmin() }} font-label-md text-label-md font-bold w-fit shadow-xs` |
+| Tabel scroll | `overflow-x-auto w-full` + `table min-w-[900px]` sampai `min-w-[1200px]` sesuai jumlah kolom |
 
 ---
 
-*Dokumen ini dikonsolidasi dari STYLING_GUIDE.md, STYLE_GUIDE.md, STYLE.md, dan analisis kodebase. Terakhir diperbarui: 25 Oktober 2026.*
+*Dokumen ini dikonsolidasi dari `STYLING_GUIDE.md`, `STYLE_GUIDE.md`, `STYLE.md`, dan analisis kodebase. Terakhir dicocokkan dengan kode: 27 Oktober 2026.*
