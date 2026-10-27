@@ -80,7 +80,7 @@ class PengaduanExport implements FromCollection, ShouldAutoSize, WithHeadings, W
         return [
             $pengaduan->kode_tiket,
             $pengaduan->created_at->format('d/m/Y H:i'),
-            $pengaduan->kategori->label(),
+            $pengaduan->labelKategori(),
             $pengaduan->nama_lengkap,
             $pengaduan->nrm,
             $pengaduan->no_wa,

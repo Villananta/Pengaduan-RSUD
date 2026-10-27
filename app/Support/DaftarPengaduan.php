@@ -58,6 +58,7 @@ final class DaftarPengaduan
         public readonly array $ringkas,
         public readonly ?TingkatKeparahan $keparahan = null,
         public readonly bool $keparahanBelum = false,
+        public readonly bool $kategoriBelum = false,
         public readonly bool $halamanUnit = false,
         public readonly string $ruteDaftar = 'admin.pengaduan.index',
         public readonly string $ruteTiket = 'admin.pengaduan.show',
@@ -87,7 +88,9 @@ final class DaftarPengaduan
     ): self {
         $status = $kunciTahap ?? StatusPengaduan::dariNilai($request->query('status'));
         $investigasi = StatusInvestigasi::dariNilai($request->query('investigasi'));
-        $kategori = self::kategori($request->query('kategori'));
+        $kategoriMentah = $request->query('kategori');
+        $kategori = self::kategori($kategoriMentah);
+        $kategoriBelum = $terkunci === null && $kategoriMentah === 'belum';
         $unit = $terkunci ?? self::unit($request->query('unit'));
         $cari = trim((string) $request->query('q', ''));
         // NRM pada kolom masih mentah, sedangkan yang tampil sudah dinormalkan.
@@ -127,7 +130,8 @@ final class DaftarPengaduan
             // Humas. master_unit_id saja belum cukup karena pilihan unit
             // pelapor sudah mengisinya sejak tiket masih 'Diterima'.
             ->when($terkunci !== null, fn (Builder $q): Builder => $q->sudahDiteruskanHumas())
-            ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value));
+            ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value))
+            ->when($kategoriBelum, fn (Builder $q): Builder => $q->whereNull('kategori'));
 
         // Hitungan per tahap digabung dalam satu query group-by, bukan lima
         // query count terpisah. Total dihitung sendiri (bukan dijumlah dari
@@ -207,6 +211,7 @@ final class DaftarPengaduan
                 : self::ringkas($jumlahTahap),
             keparahan: $keparahan,
             keparahanBelum: $keparahanBelum,
+            kategoriBelum: $kategoriBelum,
             halamanUnit: $terkunci !== null,
             ruteDaftar: $ruteDaftar,
             ruteTiket: $ruteTiket,
@@ -220,6 +225,7 @@ final class DaftarPengaduan
         return $this->status !== null
             || $this->investigasi !== null
             || $this->kategori !== null
+            || $this->kategoriBelum
             || $this->unit !== null
             || $this->keparahan !== null
             || $this->keparahanBelum;

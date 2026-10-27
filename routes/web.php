@@ -171,6 +171,9 @@ Route::prefix('admin')->name('admin.')
         Route::post('/pengaduan/{kode}/keparahan', [AdminKomunikasiController::class, 'keparahan'])
             ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_KEPARAHAN)
             ->name('pengaduan.keparahan');
+        Route::post('/pengaduan/{kode}/kategori', [AdminKomunikasiController::class, 'kategori'])
+            ->middleware('throttle:60,1,'.ThrottleKeys::ADMIN_KATEGORI)
+            ->name('pengaduan.kategori');
 
         // Nudge manual ke unit
         Route::post('/pengaduan/{kode}/nudge', [AdminKomunikasiController::class, 'nudge'])

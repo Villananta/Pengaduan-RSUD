@@ -69,7 +69,7 @@ class PengaduanController extends Controller
         $validated = $request->validate(
             PengaduanMasuk::aturan([
                 'kanal' => ['required', Rule::enum(KanalPengaduan::class)],
-            ]),
+            ], wajibKategori: true),
             PengaduanMasuk::pesanValidasi([
                 'kanal.required' => 'Pilih kanal penerimaan aduan lebih dulu.',
                 'kanal.enum' => 'Kanal penerimaan aduan tidak dikenal.',

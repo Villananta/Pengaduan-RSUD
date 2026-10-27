@@ -24,6 +24,7 @@ class RiwayatStatusPengaduan extends Model
         'admin_id',
         'is_nudge',
         'is_keparahan',
+        'is_kategori',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class RiwayatStatusPengaduan extends Model
         'ke' => StatusPengaduan::class,
         'is_nudge' => 'boolean',
         'is_keparahan' => 'boolean',
+        'is_kategori' => 'boolean',
     ];
 
     public function pengaduan(): BelongsTo
@@ -75,5 +77,16 @@ class RiwayatStatusPengaduan extends Model
     public function perubahanKeparahan(): bool
     {
         return (bool) $this->is_keparahan;
+    }
+
+    /**
+     * True bila baris ini mencatat penetapan atau perubahan kategori.
+     *
+     * Sama seperti keparahan, baris kategori tidak memindahkan tahap. Halaman
+     * riwayat memakai penanda ini supaya aksinya tidak disebut disposisi.
+     */
+    public function perubahanKategori(): bool
+    {
+        return (bool) $this->is_kategori;
     }
 }

@@ -187,6 +187,24 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertDontSee('ADUAN-FARMASI-01');
     }
 
+    public function test_filter_kategori_belum_ditentukan_menampilkan_tiket_tanpa_kategori(): void
+    {
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-KATEGORI-ADA',
+            'kategori' => KategoriPengaduan::Medis,
+        ]);
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-KATEGORI-KOSONG',
+            'kategori' => null,
+        ]);
+
+        $this->get(route('admin.pengaduan.index', ['kategori' => 'belum']))
+            ->assertOk()
+            ->assertSee('ADUAN-KATEGORI-KOSONG')
+            ->assertSee('Belum Ditentukan')
+            ->assertDontSee('ADUAN-KATEGORI-ADA');
+    }
+
     public function test_filter_tidak_dikenal_diabaikan(): void
     {
         Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-AMAN-01']);

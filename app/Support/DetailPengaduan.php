@@ -111,10 +111,10 @@ final class DetailPengaduan
      * Satu-satunya arahan humas yang tersimpan permanen pada tiket adalah
      * catatan pada baris riwayat perpindahan tahap, jadi halaman unit cukup
      * menarik yang paling baru tanpa membaca kolomnya sendiri. Baris penandaan
-     * kasus berat sengaja dilewati karena kalimatnya ditulis sistem, bukan
-     * arahan kerja untuk unit. Null ketika belum ada admin yang pernah menulis
-     * catatan, supaya template bisa menampilkan penjelas pengganti alih-alih
-     * baris kosong.
+     * kasus berat, keparahan, dan kategori sengaja dilewati karena kalimatnya
+     * ditulis sistem, bukan arahan kerja untuk unit. Null ketika belum ada admin
+     * yang pernah menulis catatan, supaya template bisa menampilkan penjelas
+     * pengganti alih-alih baris kosong.
      *
      * @return array<string, mixed>|null
      */
@@ -123,7 +123,7 @@ final class DetailPengaduan
         $terakhir = null;
 
         foreach ($this->audit as $baris) {
-            if (filled($baris['catatan']) && ! $baris['kasusBerat'] && ! $baris['keparahan']) {
+            if (filled($baris['catatan']) && ! $baris['kasusBerat'] && ! $baris['keparahan'] && ! $baris['kategori']) {
                 $terakhir = $baris;
             }
         }
@@ -284,6 +284,7 @@ final class DetailPengaduan
             'totalHariKerja' => $pengaduan->totalHariKerjaSla(),
             'tambahanHariKerja' => Sla::tambahanKasusBerat(),
             'keparahan' => $pengaduan->tingkat_keparahan,
+            'kategori' => $pengaduan->kategori,
         ];
     }
 
@@ -379,30 +380,44 @@ final class DetailPengaduan
     private static function audit(Pengaduan $pengaduan): array
     {
         return $pengaduan->riwayatStatus
-            ->map(fn (RiwayatStatusPengaduan $baris): array => [
-                'sumber' => $baris->dariAwal() ? 'Sistem' : 'Humas',
-                'nada' => $baris->perubahanKeparahan()
-                    ? 'bg-tertiary-container text-on-tertiary-container'
-                    : ($baris->dariAwal()
-                        ? 'bg-surface-container-highest text-on-surface'
-                        : 'bg-secondary-container text-on-secondary-container'),
-                'ikon' => $baris->perubahanKeparahan()
-                    ? 'flag'
-                    : ($baris->dariAwal() ? 'inbox' : 'swap_horiz'),
-                'waktu' => $baris->created_at->translatedFormat('d M Y, H:i').' WIB',
-                'judul' => $baris->perubahanKeparahan() ? 'Keparahan' : $baris->ke->label(),
-                'kalimat' => $baris->perubahanKeparahan()
-                    ? $baris->catatan
-                    : ($baris->dariAwal()
-                        ? 'Pengaduan masuk melalui portal publik dan langsung disimpan sebagai '.$baris->ke->label().'.'
-                        : 'Tahap pengaduan dipindahkan dari '.$baris->dari->label().' ke '.$baris->ke->label().'.'),
-                // Kalimat keparahan sudah memuat perubahannya, jadi tidak
-                // diulang lagi sebagai catatan di lembar disposisi.
-                'catatan' => $baris->perubahanKeparahan() ? null : $baris->catatan,
-                'aktor' => $baris->admin?->name ?? 'Sistem Pengaduan',
-                'kasusBerat' => $baris->perubahanKasusBerat(),
-                'keparahan' => $baris->perubahanKeparahan(),
-            ])
+            ->map(function (RiwayatStatusPengaduan $baris): array {
+                $keparahan = $baris->perubahanKeparahan();
+                $kategori = $baris->perubahanKategori();
+
+                return [
+                    'sumber' => $baris->dariAwal() ? 'Sistem' : 'Humas',
+                    'nada' => match (true) {
+                        $kategori => 'bg-brand-100 text-brand-800',
+                        $keparahan => 'bg-tertiary-container text-on-tertiary-container',
+                        $baris->dariAwal() => 'bg-surface-container-highest text-on-surface',
+                        default => 'bg-secondary-container text-on-secondary-container',
+                    },
+                    'ikon' => match (true) {
+                        $kategori => 'category',
+                        $keparahan => 'flag',
+                        $baris->dariAwal() => 'inbox',
+                        default => 'swap_horiz',
+                    },
+                    'waktu' => $baris->created_at->translatedFormat('d M Y, H:i').' WIB',
+                    'judul' => match (true) {
+                        $kategori => 'Kategori',
+                        $keparahan => 'Keparahan',
+                        default => $baris->ke->label(),
+                    },
+                    'kalimat' => $kategori || $keparahan
+                        ? $baris->catatan
+                        : ($baris->dariAwal()
+                            ? 'Pengaduan masuk melalui portal publik dan langsung disimpan sebagai '.$baris->ke->label().'.'
+                            : 'Tahap pengaduan dipindahkan dari '.$baris->dari->label().' ke '.$baris->ke->label().'.'),
+                    // Kalimat kategori dan keparahan sudah memuat perubahannya,
+                    // jadi tidak diulang lagi sebagai catatan di lembar disposisi.
+                    'catatan' => $kategori || $keparahan ? null : $baris->catatan,
+                    'aktor' => $baris->admin?->name ?? 'Sistem Pengaduan',
+                    'kasusBerat' => $baris->perubahanKasusBerat(),
+                    'keparahan' => $keparahan,
+                    'kategori' => $kategori,
+                ];
+            })
             ->all();
     }
 }

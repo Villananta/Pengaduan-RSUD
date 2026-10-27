@@ -29,7 +29,7 @@
             'status' => $daftar->status?->value,
             'investigasi' => $daftar->investigasi?->value,
             'unit' => $daftar->unit?->kode,
-            'kategori' => $daftar->kategori?->value,
+            'kategori' => $daftar->kategori?->value ?? ($daftar->kategoriBelum ? 'belum' : null),
             'keparahan' => $daftar->keparahan?->value ?? ($daftar->keparahanBelum ? 'belum' : null),
             'q' => $daftar->cari,
         ]);
@@ -266,6 +266,7 @@
                                 {{ $pilihan->label() }}
                             </option>
                         @endforeach
+                        <option value="belum" @selected($daftar->kategoriBelum)>Belum Ditentukan</option>
                     </select>
                     <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
                 </div>
@@ -396,7 +397,7 @@
                                             <x-symbol nama="badge" class="text-[14px] text-outline" />
                                             <span class="truncate">NRM: <strong class="text-on-surface">{{ $baris['nrm'] }}</strong></span>
                                         </div>
-                                        <span class="text-outline font-label-sm text-label-sm">{{ $baris['kategori']->label() }}</span>
+                                        <span class="text-outline font-label-sm text-label-sm">{{ $baris['kategori']?->label() ?? 'Belum Ditentukan' }}</span>
                                     </div>
                                 </td>
 

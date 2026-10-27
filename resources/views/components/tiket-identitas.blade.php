@@ -29,7 +29,7 @@
 
             @if ($showKategori)
                 <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-bold">
-                    {{ $tiket->kategori->label() }}
+                    {{ $tiket->labelKategori() }}
                 </span>
             @endif
 
@@ -59,7 +59,7 @@
             </span>
             @if (! $showKategori)
                 <span aria-hidden="true">&bull;</span>
-                <span>{{ $tiket->kategori->label() }}</span>
+                <span>{{ $tiket->labelKategori() }}</span>
             @endif
             @if ($showNoWa)
                 <span aria-hidden="true">&bull;</span>

@@ -197,7 +197,7 @@
                                         </p>
 
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-xl bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-bold w-fit">
-                                            {{ $baris['kategori']->label() }}
+                                            {{ $baris['kategori']?->label() ?? 'Belum Ditentukan' }}
                                         </span>
                                     </div>
                                 </td>

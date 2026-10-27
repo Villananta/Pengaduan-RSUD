@@ -2,6 +2,7 @@
 
 @section('title', 'Detail Tiket '.$detail->kode())
 
+@use('App\Enums\KategoriPengaduan')
 @use('App\Enums\TingkatKeparahan')
 
 @section('content')
@@ -67,6 +68,56 @@
             :sla="$sla"
             :ringkas-sla="$tiket->ringkasSla()"
         />
+
+        <!-- Panel Kategori: ruang lingkup tiket ditentukan humas. -->
+        {{-- Tiket dari portal publik masuk tanpa kategori, jadi panel ini
+             satu-satunya tempat menetapkannya. Kategori tidak mengubah SLA;
+             nilainya hanya memilih alur penanganan dan filter di daftar. --}}
+
+        <div class="w-full rounded-lg shadow-sm bg-surface-container-lowest px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+            <div class="flex items-start gap-space-sm">
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-surface-container-highest text-on-surface-variant">
+                    <x-symbol nama="category" class="text-[20px]" />
+                </span>
+
+                <div>
+                    <h2 class="font-title-md text-title-md text-on-surface font-bold">
+                        Kategori Pengaduan
+                    </h2>
+
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">
+                        @if ($tiket->kategori)
+                            Tiket ini masuk kategori <strong>{{ $tiket->kategori->label() }}</strong>.
+                        @else
+                            Belum ditentukan. Pilih kategori supaya tiket masuk alur penanganan yang tepat.
+                        @endif
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                @foreach (KategoriPengaduan::cases() as $pilihan)
+                    <form method="POST" action="{{ route('admin.pengaduan.kategori', $kode) }}">
+                        @csrf
+
+                        <input type="hidden" name="kategori" value="{{ $pilihan->value }}">
+
+                        <button
+                            type="submit"
+                            aria-pressed="{{ $tiket->kategori === $pilihan ? 'true' : 'false' }}"
+                            @class([
+                                'px-space-md py-2 rounded-full font-label-md text-label-md font-bold transition-colors',
+                                'bg-brand-100 text-brand-800 hover:opacity-90' => $tiket->kategori === $pilihan,
+                                'bg-surface-container text-on-surface-variant hover:bg-surface-container-highest' => $tiket->kategori !== $pilihan,
+                            ])
+                        >
+                            {{ $pilihan->label() }}
+                        </button>
+                    </form>
+                @endforeach
+            </div>
+        </div>
+        <!-- End of Panel Kategori -->
 
         <!-- Panel Tingkat Keparahan: penanda warna yang ditetapkan humas. -->
         {{-- Keparahan hanya penanda warna dan filter di konsol. Target SLA
@@ -150,7 +201,7 @@
                         </div>
 
                         <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold">
-                            {{ $tiket->kategori->judul() }}
+                            {{ $tiket->judulKategori() }}
                         </span>
                     </div>
 

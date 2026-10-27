@@ -29,6 +29,8 @@ final class ThrottleKeys
 
     public const ADMIN_KEPARAHAN = 'admin-keparahan';
 
+    public const ADMIN_KATEGORI = 'admin-kategori';
+
     public const ADMIN_NUDGE = 'admin-nudge';
 
     public const ADMIN_BULK_ACTION = 'admin-bulk-action';

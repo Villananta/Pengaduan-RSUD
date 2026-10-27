@@ -47,7 +47,7 @@
                     <td>{{ $item->created_at->format('d/m/Y') }}</td>
                     <td>{{ $item->nama_lengkap }}</td>
                     <td>{{ $item->nrm }}</td>
-                    <td>{{ $item->kategori->label() }}</td>
+                    <td>{{ $item->labelKategori() }}</td>
                     <td>{{ $item->subjek }}</td>
                     <td class="text-center">
                         <span class="badge badge-{{ $item->status->value }}">{{ $item->status->label() }}</span>

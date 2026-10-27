@@ -20,9 +20,11 @@ use Illuminate\Validation\Rule;
  * Penyimpanan pengaduan baru dari kanal mana pun.
  *
  * Formulir pelapor dan formulir input aduan admin memakai kolom, aturan,
- * dan pemetaan unit yang sama. Kalau keduanya dipisah, admin bisa membuat
- * tiket yang tidak bisa dibuat pelapor, dan standar pelayanan dua kanal itu
- * perlahan keluar jalur.
+ * dan pemetaan unit yang sama. Kategori satu-satunya pengecualian: pelapor
+ * tidak memilihnya, humas yang menentukan belakangan, sedangkan admin yang
+ * mencatat aduan langsung memilihnya. Pemisahan lain akan membuat admin bisa
+ * membuat tiket yang tidak bisa dibuat pelapor, dan standar pelayanan dua
+ * kanal itu perlahan keluar jalur.
  */
 final class PengaduanMasuk
 {
@@ -32,13 +34,17 @@ final class PengaduanMasuk
      * Parameter $khusus dipakai untuk kolom yang hanya ada di satu kanal,
      * misalnya pilihan kanal penerimaan yang hanya ada di formulir admin.
      *
+     * Kategori hanya wajib di formulir admin. Pelapor tidak memilih kategori,
+     * karena humas yang menentukannya saat tiket ditelaah. Kalau aturan ini
+     * dipakai apa adanya di portal publik, tiket baru tidak akan pernah bisa
+     * masuk.
+     *
      * @param  array<string, array<int, mixed>>  $khusus
      * @return array<string, array<int, mixed>>
      */
-    public static function aturan(array $khusus = []): array
+    public static function aturan(array $khusus = [], bool $wajibKategori = false): array
     {
-        return array_merge([
-            'kategori' => ['required', Rule::enum(KategoriPengaduan::class)],
+        $aturan = [
             'nama_lengkap' => ['required', 'string', 'min:3', 'max:255'],
             'nrm' => ['required', 'string', 'min:4', 'max:64', new NormalizedNrmRule],
             'no_wa' => ['required', 'string', 'regex:/^\+?[0-9]{9,15}$/'],
@@ -51,7 +57,13 @@ final class PengaduanMasuk
             'lampiran' => ['nullable', 'array', 'max:5'],
             'lampiran.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
             'persetujuan' => ['required', 'accepted'],
-        ], $khusus);
+        ];
+
+        if ($wajibKategori) {
+            $aturan = ['kategori' => ['required', Rule::enum(KategoriPengaduan::class)]] + $aturan;
+        }
+
+        return array_merge($aturan, $khusus);
     }
 
     /**
@@ -64,6 +76,8 @@ final class PengaduanMasuk
     public static function pesanValidasi(array $khusus = []): array
     {
         return array_merge([
+            'kategori.required' => 'Pilih kategori pengaduan lebih dulu.',
+            'kategori.enum' => 'Kategori pengaduan tidak dikenal.',
             'persetujuan.accepted' => 'Anda harus menyetujui pernyataan kebenaran data sebelum mengirim aduan.',
             'nama_lengkap.min' => 'Nama lengkap minimal 3 karakter.',
             'nrm.min' => 'Nomor rekam media minimal 4 karakter.',

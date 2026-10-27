@@ -160,4 +160,69 @@ class DetailPengaduanAdminTest extends TestCase
     {
         $this->get(route('admin.pengaduan.show', 'ADUAN-TIDAK-ADA-99'))->assertNotFound();
     }
+
+    public function test_humas_menetapkan_kategori_dan_mencatat_riwayat(): void
+    {
+        $pengaduan = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-KATEGORI-01',
+            'kategori' => null,
+        ]);
+
+        $this->post(route('admin.pengaduan.kategori', $pengaduan->kode_tiket), [
+            'kategori' => KategoriPengaduan::Medis->value,
+        ])
+            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertSessionHas('sukses');
+
+        $pengaduan->refresh();
+
+        $this->assertSame(KategoriPengaduan::Medis, $pengaduan->kategori);
+
+        // Perubahan kategori tidak memindahkan tahap, jadi dari dan ke sama.
+        // Penanda is_kategori yang membedakannya dari disposisi biasa.
+        $catatan = $pengaduan->riwayatStatus()->reorder('id', 'desc')->first();
+
+        $this->assertTrue($catatan->is_kategori);
+        $this->assertSame(StatusPengaduan::Diproses, $catatan->dari);
+        $this->assertSame(StatusPengaduan::Diproses, $catatan->ke);
+        $this->assertStringContainsString('Pelayanan Medis', $catatan->catatan);
+        $this->assertNotNull($catatan->admin_id);
+    }
+
+    public function test_kategori_tidak_dikenal_ditolak(): void
+    {
+        $pengaduan = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-KATEGORI-02',
+            'kategori' => null,
+        ]);
+
+        $this->from(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->post(route('admin.pengaduan.kategori', $pengaduan->kode_tiket), [
+                'kategori' => 'lainnya',
+            ])
+            ->assertSessionHasErrors('kategori');
+
+        $this->assertNull($pengaduan->fresh()->kategori);
+        $this->assertSame(0, $pengaduan->riwayatStatus()->where('is_kategori', true)->count());
+    }
+
+    public function test_halaman_detail_menampilkan_kategori_belum_ditentukan(): void
+    {
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-KATEGORI-03',
+            'kategori' => null,
+        ]);
+
+        $tampilan = $this->get(route('admin.pengaduan.show', 'ADUAN-KATEGORI-03'))
+            ->assertOk()
+            ->assertSee('Kategori Pengaduan')
+            ->assertSee('Belum ditentukan')
+            ->assertSee('Belum Ditentukan')
+            ->getContent();
+
+        $this->assertStringContainsString(
+            'action="'.route('admin.pengaduan.kategori', 'ADUAN-KATEGORI-03').'"',
+            $tampilan
+        );
+    }
 }

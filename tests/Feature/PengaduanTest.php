@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\KategoriPengaduan;
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
@@ -25,7 +24,6 @@ class PengaduanTest extends TestCase
     private function form(array $ubah = []): array
     {
         return array_merge([
-            'kategori' => 'fasilitas',
             'nama_lengkap' => 'Budi Santoso',
             'nrm' => '12-34-56-78',
             'no_wa' => '081234567890',
@@ -52,7 +50,9 @@ class PengaduanTest extends TestCase
         $this->get(route('pengaduan.create'))
             ->assertOk()
             ->assertSee('Sampaikan Pengaduan Layanan Secara Terbuka')
-            ->assertSee('Pilihan Kategori Masalah');
+            ->assertSee('Identitas Pelapor')
+            ->assertDontSee('Pilihan Kategori Masalah')
+            ->assertDontSee('name="kategori"', false);
     }
 
     public function test_pengaduan_dapat_disimpan(): void
@@ -62,7 +62,7 @@ class PengaduanTest extends TestCase
 
         $this->assertDatabaseCount('pengaduan', 1);
         $pengaduan = Pengaduan::first();
-        $this->assertSame(KategoriPengaduan::Fasilitas, $pengaduan->kategori);
+        $this->assertNull($pengaduan->kategori);
         $this->assertStringStartsWith('ADUAN-', $pengaduan->kode_tiket);
         $this->assertSame(StatusPengaduan::Diterima, $pengaduan->status);
         $this->assertNull($pengaduan->selesai_at);
@@ -151,17 +151,35 @@ class PengaduanTest extends TestCase
     {
         $this->post(route('pengaduan.store'), [])
             ->assertSessionHasErrors([
-                'kategori', 'nama_lengkap', 'nrm', 'no_wa', 'email', 'alamat',
+                'nama_lengkap', 'nrm', 'no_wa', 'email', 'alamat',
                 'waktu_kejadian', 'unit', 'subjek', 'deskripsi', 'persetujuan',
             ]);
     }
 
-    public function test_kategori_harus_sesuai_enum(): void
+    /**
+     * Kategori yang diselipkan ke POST tidak boleh ikut tersimpan.
+     *
+     * Penentuan kategori ada di tangan humas. Kalau nilai dari luar form
+     * lolos ke model, pelapor bisa menentukan sendiri alur penanganannya
+     * hanya dengan mengirim field tambahan.
+     */
+    public function test_kategori_kiriman_luar_tidak_ikut_tersimpan(): void
     {
-        $this->post(route('pengaduan.store'), $this->form(['kategori' => 'lainnya']))
-            ->assertSessionHasErrors('kategori');
+        $this->post(route('pengaduan.store'), $this->form(['kategori' => 'medis']))
+            ->assertRedirect();
 
-        $this->assertDatabaseCount('pengaduan', 0);
+        $this->assertNull(Pengaduan::first()->kategori);
+    }
+
+    public function test_tiket_tanpa_kategori_tetap_bisa_dilacak(): void
+    {
+        $this->post(route('pengaduan.store'), $this->form());
+
+        $this->verifikasi(Pengaduan::first());
+
+        $this->get(route('pengaduan.lacak'))
+            ->assertOk()
+            ->assertSee('Belum Ditentukan');
     }
 
     public function test_nomor_whatsapp_harus_format_telepon(): void

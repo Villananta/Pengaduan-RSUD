@@ -94,7 +94,7 @@
                 </tr>
                 <tr>
                     <td class="label">Kategori</td>
-                    <td>{{ $tiket->kategori->label() }}</td>
+                    <td>{{ $tiket->labelKategori() }}</td>
                 </tr>
                 <tr>
                     <td class="label">Nama Pelapor</td>

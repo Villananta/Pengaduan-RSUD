@@ -18,7 +18,7 @@ Pengaduan baru telah dicatat di sistem:
 | **No. WhatsApp** | {{ $pengaduan->no_wa }} |
 | **Email** | {{ $pengaduan->email }} |
 | **Alamat** | {{ $pengaduan->alamat }} |
-| **Kategori** | {{ $pengaduan->kategori->label() }} |
+| **Kategori** | {{ $pengaduan->labelKategori() }} |
 | **Unit Terkait** | {{ $pengaduan->unit }} |
 | **Subjek** | {{ $pengaduan->subjek }} |
 | **Waktu Kejadian** | {{ $pengaduan->waktu_kejadian->format('d/m/Y H:i') }} |

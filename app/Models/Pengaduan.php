@@ -140,6 +140,24 @@ class Pengaduan extends Model
         return $this->masterUnit?->namaLengkap() ?? $this->unit;
     }
 
+    /**
+     * Label kategori siap tampil.
+     *
+     * Tiket dari portal publik masuk tanpa kategori karena humas yang
+     * menentukannya belakangan. Teks pengganti ini dipakai di daftar,
+     * halaman lacak, email, dan ekspor supaya tidak ada tampilan kosong.
+     */
+    public function labelKategori(): string
+    {
+        return $this->kategori?->label() ?? 'Belum Ditentukan';
+    }
+
+    /** Judul panjang kategori untuk kartu kronologi di halaman detail. */
+    public function judulKategori(): string
+    {
+        return $this->kategori?->judul() ?? 'Belum Ditentukan';
+    }
+
     // Jejak audit perubahan tahap pengaduan.
     public function riwayatStatus(): HasMany
     {
@@ -226,6 +244,37 @@ class Pengaduan extends Model
                 .'.',
             'admin_id' => $adminId,
             'is_keparahan' => true,
+        ]);
+    }
+
+    /**
+     * Tetapkan kategori tiket dan catat perubahannya.
+     *
+     * Pelapor tidak lagi memilih kategori, jadi method ini yang menjadi satu
+     * satunya pintu penetapan setelah tiket masuk. Baris riwayat memakai
+     * tahap asal dan tujuan yang sama karena status tidak berubah; penanda
+     * is_kategori yang membedakannya dari disposisi biasa.
+     */
+    public function aturKategori(?KategoriPengaduan $kategori, ?int $adminId = null): void
+    {
+        if ($kategori === $this->kategori) {
+            return;
+        }
+
+        $sebelumnya = $this->kategori;
+        $this->kategori = $kategori;
+        $this->save();
+
+        $this->riwayatStatus()->create([
+            'dari' => $this->status,
+            'ke' => $this->status,
+            'catatan' => 'Kategori diubah dari '
+                .($sebelumnya?->label() ?? 'Belum Ditentukan')
+                .' ke '
+                .($kategori?->label() ?? 'Belum Ditentukan')
+                .'.',
+            'admin_id' => $adminId,
+            'is_kategori' => true,
         ]);
     }
 

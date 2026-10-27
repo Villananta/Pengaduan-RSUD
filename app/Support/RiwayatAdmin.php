@@ -165,10 +165,15 @@ final class RiwayatAdmin
     public function baris(RiwayatStatusPengaduan $item): array
     {
         $pengaduan = $item->pengaduan;
+        $adalahKategori = $item->perubahanKategori();
         $adalahKeparahan = $item->perubahanKeparahan();
         $adalahKasusBerat = $item->perubahanKasusBerat();
 
-        if ($adalahKeparahan) {
+        if ($adalahKategori) {
+            $jenis = 'Kategori';
+            $labelJenis = 'bg-brand-100 text-brand-800';
+            $ikonJenis = 'category';
+        } elseif ($adalahKeparahan) {
             $jenis = 'Tingkat Keparahan';
             $labelJenis = 'bg-tertiary-container text-on-tertiary-container';
             $ikonJenis = 'flag';
@@ -222,6 +227,7 @@ final class RiwayatAdmin
             'pengaduan_unik' => RiwayatStatusPengaduan::query()->distinct('pengaduan_id')->count('pengaduan_id'),
             'perubahan_tahap' => RiwayatStatusPengaduan::query()
                 ->where('is_keparahan', false)
+                ->where('is_kategori', false)
                 ->whereNotIn('catatan', [Pengaduan::CATATAN_KASUS_BERAT_AKTIF, Pengaduan::CATATAN_KASUS_BERAT_LEPAS])
                 ->count(),
             'kasus_berat' => RiwayatStatusPengaduan::query()

@@ -127,7 +127,7 @@
                         </div>
 
                         <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold">
-                            {{ $tiket->kategori->judul() }}
+                            {{ $tiket->judulKategori() }}
                         </span>
                     </div>
 

@@ -52,39 +52,10 @@
                 <form action="{{ route('pengaduan.store') }}" method="POST" enctype="multipart/form-data" id="form-aduan" class="flex flex-col gap-8 rounded-2xl bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     @csrf
 
-                    <!-- Step 1: Pilihan Kategori -->
-                    <div class="flex flex-col gap-3">
-                        <div class="flex items-center gap-2">
-                            <span class="{{ $stepBadge }}">1</span>
-                            <h3 class="text-base font-semibold text-ink">Pilihan Kategori Masalah</h3>
-                        </div>
-                        <p class="text-[13px] text-ink-muted">Tentukan ruang lingkup persoalan yang Anda alami untuk alur penanganan tepat sasaran.</p>
-
-                        <div class="relative pt-1">
-                            <select id="kategori" name="kategori" class="{{ $input }} appearance-none pr-10" required>
-                                <option value="" disabled @selected(! old('kategori'))>Pilih Kategori Masalah...</option>
-                                @foreach ($kategori as $kat)
-                                    <option value="{{ $kat->value }}" @selected(old('kategori') === $kat->value)>{{ $kat->label() }}</option>
-                                @endforeach
-                            </select>
-                            <svg class="pointer-events-none absolute right-3 top-1/2 h-2 w-3 -translate-y-1/2 text-placeholder" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="m1 1 5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </div>
-                        <p id="kategori-deskripsi" class="text-[13px] leading-[18px] text-ink-muted">
-                            @foreach ($kategori as $kat)
-                                <span class="hidden" data-kategori-deskripsi="{{ $kat->value }}">{{ $kat->deskripsi() }}</span>
-                            @endforeach
-                        </p>
-                        @error('kategori')
-                            <p class="{{ $errorClass }}">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Step 2: Identitas Pelapor -->
+                    <!-- Step 1: Identitas Pelapor -->
                     <div class="flex flex-col gap-4">
                         <div class="flex items-center gap-2">
-                            <span class="{{ $stepBadge }}">2</span>
+                            <span class="{{ $stepBadge }}">1</span>
                             <h3 class="text-base font-semibold text-ink">Identitas Pelapor</h3>
                         </div>
 
@@ -135,10 +106,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 3: Detail Kejadian -->
+                    <!-- Step 2: Detail Kejadian -->
                     <div class="flex flex-col gap-4">
                         <div class="flex items-center gap-2">
-                            <span class="{{ $stepBadge }}">3</span>
+                            <span class="{{ $stepBadge }}">2</span>
                             <h3 class="text-base font-semibold text-ink">Detail Kejadian</h3>
                         </div>
 
@@ -179,11 +150,11 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Unggah Lampiran -->
+                    <!-- Step 3: Unggah Lampiran -->
                     <div class="flex flex-col gap-3">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                <span class="{{ $stepBadge }}">4</span>
+                                <span class="{{ $stepBadge }}">3</span>
                                 <h3 class="text-base font-semibold text-ink">Unggah Lampiran Pendukung</h3>
                             </div>
                             <p class="text-[11px] font-medium tracking-[0.33px] text-ink-muted">Opsional</p>
@@ -206,7 +177,7 @@
                         @error('lampiran.*')<p class="{{ $errorClass }}">{{ $message }}</p>@enderror
                     </div>
 
-                    <!-- Step 5: Persetujuan dan Aksi -->
+                    <!-- Step 4: Persetujuan dan Aksi -->
                     <div class="flex flex-col gap-6 pt-4">
                         <label for="persetujuan" class="flex items-start gap-3">
                             <input id="persetujuan" type="checkbox" name="persetujuan" value="1" class="mt-1 h-[13px] w-[13px] shrink-0 rounded-sm accent-brand-800" {{ old('persetujuan') ? 'checked' : '' }} required>
@@ -238,26 +209,10 @@
 
 @endsection
 
-<!-- Deskripsi kategori dan pratinjau lampiran ditangani di sisi klien. -->
+<!-- Pratinjau lampiran ditangani di sisi klien. -->
 @push('scripts')
 
 <script>
-    const selectKategori = document.getElementById('kategori');
-    const wrapDeskripsi = document.getElementById('kategori-deskripsi');
-
-    if (selectKategori && wrapDeskripsi) {
-        const deskripsi = wrapDeskripsi.querySelectorAll('[data-kategori-deskripsi]');
-
-        function refreshDeskripsi() {
-            deskripsi.forEach(function (item) {
-                item.classList.toggle('hidden', item.dataset.kategoriDeskripsi !== selectKategori.value);
-            });
-        }
-
-        selectKategori.addEventListener('change', refreshDeskripsi);
-        refreshDeskripsi();
-    }
-
     const inputFile = document.getElementById('lampiran');
     const preview = document.getElementById('lampiran-preview');
     const zone = document.querySelector('.upload-zone');

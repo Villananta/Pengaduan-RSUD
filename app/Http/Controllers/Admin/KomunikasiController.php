@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\KategoriPengaduan;
 use App\Enums\TingkatKeparahan;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaduan;
@@ -172,6 +173,31 @@ class KomunikasiController extends Controller
         $pengaduan->aturTingkatKeparahan($tingkat, auth()->id());
 
         return $this->kembali($pengaduan, 'Tingkat keparahan ditetapkan: '.$tingkat->label().'.');
+    }
+
+    /**
+     * Tetapkan kategori tiket.
+     *
+     * Pelapor tidak lagi memilih kategori di portal, jadi humas yang
+     * memutuskan setelah membaca kronologi. Perubahannya ikut dicatat di
+     * riwayat supaya keputusan itu bisa ditelusuri.
+     */
+    public function kategori(Request $request, string $kode): RedirectResponse
+    {
+        $pengaduan = $this->cariTiket($kode);
+
+        $validated = $request->validate([
+            'kategori' => ['required', Rule::enum(KategoriPengaduan::class)],
+        ], [
+            'kategori.required' => 'Pilih kategori pengaduan lebih dulu.',
+            'kategori.enum' => 'Kategori pengaduan tidak dikenal.',
+        ]);
+
+        $kategori = KategoriPengaduan::from($validated['kategori']);
+
+        $pengaduan->aturKategori($kategori, auth()->id());
+
+        return $this->kembali($pengaduan, 'Kategori pengaduan ditetapkan: '.$kategori->label().'.');
     }
 
     /**

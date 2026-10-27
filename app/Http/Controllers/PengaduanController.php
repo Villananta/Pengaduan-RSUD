@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
@@ -27,7 +26,6 @@ class PengaduanController extends Controller
     {
         return view('pengaduan.create', [
             'metrik' => StatistikPengaduan::metrik(),
-            'kategori' => KategoriPengaduan::cases(),
             'units' => config('pengaduan.units'),
         ]);
     }
