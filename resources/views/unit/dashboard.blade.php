@@ -387,7 +387,7 @@
                                         class="px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm flex items-center gap-space-xs shrink-0 hover:bg-secondary/90 transition-colors"
                                     >
                                         <x-symbol nama="visibility" class="text-[16px]" />
-                                        Lanjutkan Telaah
+                                        Buka Detail
                                     </a>
                                 </div>
                             </article>

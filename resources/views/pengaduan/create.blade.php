@@ -77,7 +77,7 @@
                                         <path d="M12 11v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                         <circle cx="12" cy="7.5" r=".1" fill="currentColor"/>
                                     </svg>
-                                    NRM dapat dilihat pada kartu berobat atau SIM-RS setelah 30 hari.
+                                    NRM wajib diisi oleh pelapor.
                                 </p>
                                 @error('nrm')<p class="{{ $errorClass }}">{{ $message }}</p>@enderror
                             </div>
