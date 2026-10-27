@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\PeranPengguna;
 use App\Models\Pengaduan;
+use App\Models\User;
 use App\Notifications\PengaduanEscalasiNudge;
 use App\Notifications\PengaduanEscalasiSla;
 use App\Notifications\PengaduanSlaLewat;
@@ -11,16 +13,33 @@ use App\Support\Sla;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 #[Signature('pengaduan:cek-sla {--force : Jalankan tanpa konfirmasi} {--kirim-notifikasi : Kirim notifikasi ke PIC unit} {--eskalasi : Cek dan kirim eskalasi untuk nudge diabaikan & SLA lewat}')]
 #[Description('Cek SLA pengaduan dan kirim notifikasi nudge/escalation ke unit')]
 class CekSlaPengaduan extends Command
 {
+    /**
+     * Jeda pengingat "SLA lewat" untuk tiket yang sama.
+     *
+     * Pengingat ini dulu ikut jadwal harian, sehingga tiket yang sudah lama
+     * lewat mengirim baris baru ke lonceng PIC setiap pagi. Tiga hari dipilih
+     * supaya tiket tetap terlihat mendesak tanpa membanjiri notifikasi.
+     */
+    private const HARI_ULANG_PENGINGAT_SLA = 3;
+
     public function handle(): int
     {
         $kirimNotifikasi = $this->option('kirim-notifikasi');
         $cekEskalasi = $this->option('eskalasi');
+
+        // Eskalasi sengaja diarahkan ke admin humas, bukan ke PIC unit. Hanya
+        // ada dua peran akun di aplikasi ini dan kolom pic pada master unit
+        // cuma berisi nama, jadi tidak ada akun atasan unit yang bisa dituju.
+        $adminHumas = User::query()
+            ->where('peran', PeranPengguna::Admin)
+            ->get();
 
         if (! $kirimNotifikasi && ! $this->option('force')) {
             if (! $this->confirm('Perintah ini akan memeriksa SLA semua tiket aktif. Lanjutkan?')) {
@@ -48,10 +67,15 @@ class CekSlaPengaduan extends Command
         $lewatCount = 0;
         $notifMendekati = 0;
         $notifLewat = 0;
+        $notifLewatDitahan = 0;
         $eskalasiNudgeCount = 0;
         $eskalasiSlaCount = 0;
         $notifEskalasiNudge = 0;
         $notifEskalasiSla = 0;
+
+        if ($cekEskalasi && $adminHumas->isEmpty()) {
+            $this->warn('Tidak ada akun admin humas, eskalasi tidak akan dikirim.');
+        }
 
         foreach ($pengaduanAktif as $pengaduan) {
             $unit = $pengaduan->masterUnit;
@@ -86,7 +110,9 @@ class CekSlaPengaduan extends Command
                 $lewatHari = Sla::hariKerjaLewat($pengaduan->created_at);
                 $lewatCount++;
 
-                if ($kirimNotifikasi) {
+                if ($kirimNotifikasi && $this->sudahDiingatkanSlaLewat($pengaduan)) {
+                    $notifLewatDitahan++;
+                } elseif ($kirimNotifikasi) {
                     Notification::send($unit->pengguna, new PengaduanSlaLewat($pengaduan, $unit, $lewatHari));
                     $notifLewat++;
                 }
@@ -114,10 +140,10 @@ class CekSlaPengaduan extends Command
                             ->where('created_at', '>=', $nudgeTerakhir->created_at)
                             ->exists();
 
-                        if (! $sudahEskalasi && $kirimNotifikasi) {
+                        if (! $sudahEskalasi && $kirimNotifikasi && $adminHumas->isNotEmpty()) {
                             $catatanNudge = str_replace('Nudge manual ke unit: ', '', $nudgeTerakhir->catatan);
 
-                            Notification::send($unit->pengguna, new PengaduanEscalasiNudge(
+                            Notification::send($adminHumas, new PengaduanEscalasiNudge(
                                 $pengaduan,
                                 $unit,
                                 $jamSejakNudge,
@@ -129,11 +155,11 @@ class CekSlaPengaduan extends Command
                             $pengaduan->riwayatStatus()->create([
                                 'dari' => $pengaduan->status,
                                 'ke' => $pengaduan->status,
-                                'catatan' => 'Eskalasi nudge diabaikan > 24 jam ('.$jamSejakNudge.' jam). Diedukasikan ke atasan unit.',
+                                'catatan' => 'Eskalasi nudge diabaikan > 24 jam ('.$jamSejakNudge.' jam). Diteruskan ke admin humas.',
                                 'admin_id' => null,
                             ]);
 
-                            $this->line("  🚨 Eskalasi NUDGE: {$pengaduan->kode_tiket} | {$unit->namaLengkap()} | Nudge diabaikan {$jamSejakNudge} jam");
+                            $this->line("  🚨 Eskalasi NUDGE: {$pengaduan->kode_tiket} | {$unit->namaLengkap()} | Nudge diabaikan {$jamSejakNudge} jam (diteruskan ke admin humas)");
                         }
                     }
                 }
@@ -154,8 +180,8 @@ class CekSlaPengaduan extends Command
                     if ($harusEskalasi && ($sudahEskalasiSla === null || $sudahEskalasiSla->created_at->lt(now()->subDays(5)))) {
                         $eskalasiSlaCount++;
 
-                        if ($kirimNotifikasi) {
-                            Notification::send($unit->pengguna, new PengaduanEscalasiSla(
+                        if ($kirimNotifikasi && $adminHumas->isNotEmpty()) {
+                            Notification::send($adminHumas, new PengaduanEscalasiSla(
                                 $pengaduan,
                                 $unit,
                                 $lewatHari
@@ -166,11 +192,11 @@ class CekSlaPengaduan extends Command
                             $pengaduan->riwayatStatus()->create([
                                 'dari' => $pengaduan->status,
                                 'ke' => $pengaduan->status,
-                                'catatan' => 'Eskalasi SLA lewat batas ('.$lewatHari.' hari lewat). Diedukasikan ke atasan unit.',
+                                'catatan' => 'Eskalasi SLA lewat batas ('.$lewatHari.' hari lewat). Diteruskan ke admin humas.',
                                 'admin_id' => null,
                             ]);
 
-                            $this->line("  🚨 Eskalasi SLA: {$pengaduan->kode_tiket} | {$unit->namaLengkap()} | Lewat {$lewatHari} hari (diedukasikan)");
+                            $this->line("  🚨 Eskalasi SLA: {$pengaduan->kode_tiket} | {$unit->namaLengkap()} | Lewat {$lewatHari} hari (diteruskan ke admin humas)");
                         }
                     }
                 }
@@ -186,6 +212,7 @@ class CekSlaPengaduan extends Command
                 ['Tiket lewat batas investigasi', $lewatCount],
                 ['Notifikasi mendekati terkirim', $notifMendekati],
                 ['Notifikasi lewat batas terkirim', $notifLewat],
+                ['Notifikasi lewat batas ditahan (jeda 3 hari)', $notifLewatDitahan],
                 ['Eskalasi nudge diabaikan > 24 jam', $eskalasiNudgeCount],
                 ['Notifikasi eskalasi nudge terkirim', $notifEskalasiNudge],
                 ['Eskalasi SLA lewat (kelipatan 5 hari)', $eskalasiSlaCount],
@@ -194,5 +221,21 @@ class CekSlaPengaduan extends Command
         );
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Apakah pengingat "SLA lewat" untuk tiket ini masih dalam jeda.
+     *
+     * Penandanya diambil dari baris notifications yang sudah tersimpan, bukan
+     * dari riwayat status. Dengan begitu pengingat tetap terhitung meskipun
+     * penerimanya berganti atau notifikasi lamanya sudah ditandai dibaca.
+     */
+    private function sudahDiingatkanSlaLewat(Pengaduan $pengaduan): bool
+    {
+        return DB::table('notifications')
+            ->where('data->type', 'pengaduan_sla_lewat')
+            ->where('data->pengaduan_id', $pengaduan->id)
+            ->where('created_at', '>', now()->subDays(self::HARI_ULANG_PENGINGAT_SLA))
+            ->exists();
     }
 }

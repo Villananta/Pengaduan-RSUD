@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\User;
+use App\Notifications\PengaduanNudgeUnit;
+use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -40,5 +45,32 @@ class PenjadwalanRetensiTest extends TestCase
 
         $this->assertDatabaseMissing('pengaduan', ['kode_tiket' => 'ADUAN-TUA-01']);
         $this->assertDatabaseHas('pengaduan', ['kode_tiket' => 'ADUAN-BARU-01']);
+    }
+
+    public function test_retensi_menghapus_notifikasi_dari_tiket_yang_dihapus(): void
+    {
+        $this->seed(MasterUnitSeeder::class);
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $pic = User::factory()->picUnit($unit)->create();
+
+        $tua = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-TUA-02',
+            'master_unit_id' => $unit->id,
+            'created_at' => now()->subDays(config('pengaduan.retensi_hari') + 10),
+        ]);
+        $baru = Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-BARU-02',
+            'master_unit_id' => $unit->id,
+        ]);
+
+        $pic->notify(new PengaduanNudgeUnit($tua, $unit, 'Tiket lama'));
+        $pic->notify(new PengaduanNudgeUnit($baru, $unit, 'Tiket baru'));
+
+        $this->artisan('pengaduan:bersihkan --force')->assertSuccessful();
+
+        // Notifikasi menyimpan potongan data tiket, jadi baris milik tiket yang
+        // dihapus harus ikut hilang sementara milik tiket lain tetap utuh.
+        $this->assertSame(0, DB::table('notifications')->where('data->pengaduan_id', $tua->id)->count());
+        $this->assertSame(1, DB::table('notifications')->where('data->pengaduan_id', $baru->id)->count());
     }
 }

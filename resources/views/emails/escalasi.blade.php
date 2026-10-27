@@ -7,9 +7,9 @@
     ? '🔴 ESKALASI: Nudge Diabaikan > 24 Jam' 
     : '🔴 ESKALASI KRITIS: SLA Lewat Batas' }}
 
-Halo **{{ $unit->pic ?? 'Atasan Unit' }}**,
+Halo **Admin Humas**,
 
-**Tiket berikut diedukasikan ke Anda karena tidak ada tindak lanjut dari PIC unit dalam waktu yang ditentukan.**
+**Tiket berikut diteruskan ke Anda karena tidak ada tindak lanjut dari PIC unit dalam waktu yang ditentukan.**
 
 ---
 
@@ -50,7 +50,7 @@ Halo **{{ $unit->pic ?? 'Atasan Unit' }}**,
 
 ## Detail SLA
 - **Hari ke-:** {{ \App\Support\Sla::hariKe($pengaduan->created_at) }}
-- **Sisa/Jumlah Hari:** {{ $jenisEscalasi === 'nudge_abaikan' ? $durasiJam.' jam sejak nudge' : $lewatHari.' hari lewat batas' }}
+- **Sisa/Jumlah Hari:** {{ $jenisEscalasi === 'nudge_abaikan' ? $durasiJam.' jam sejak nudge' : ($lewatHari ?? ($durasiJam / 24)).' hari lewat batas' }}
 - **Zona SLA:** {{ $pengaduan->zonaSla()->label() }}
 
 ---
@@ -62,7 +62,7 @@ Segera lakukan **salah satu** dari berikut:
 2. **Koordinasi dengan PIC unit** untuk memastikan tiket dikerjakan
 3. **Perbarui status tiket** sesuai kemajuan penanganan
 
-[**BUKA TIKET DI KONSOL UNIT**]({{ route('unit.disposisi.show', ['unit' => $unit->kode, 'kode' => $pengaduan->kode_tiket]) }})
+[**BUKA TIKET DI KONSOL ADMIN**]({{ $tautan }})
 
 ---
 

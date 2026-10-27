@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Pengaduan;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -60,12 +61,13 @@ class BersihkanPengaduan extends Command
 
         $terhapus = 0;
         $berkas = 0;
+        $notifikasi = 0;
         $disk = Storage::disk(config('pengaduan.disk_lampiran'));
 
         Pengaduan::query()
             ->where('created_at', '<', $batas)
             ->with('pesan')
-            ->chunkById(100, function ($pengaduans) use (&$terhapus, &$berkas, $disk): void {
+            ->chunkById(100, function ($pengaduans) use (&$terhapus, &$berkas, &$notifikasi, $disk): void {
                 foreach ($pengaduans as $pengaduan) {
                     foreach ($pengaduan->daftarLampiran() as $path) {
                         $disk->delete($path);
@@ -79,12 +81,19 @@ class BersihkanPengaduan extends Command
                         }
                     }
 
+                    // Notifikasi database menyimpan potongan data tiket, jadi
+                    // barisnya ikut dihapus. Tanpa ini isi pengaduan yang sudah
+                    // lewat retensi masih bisa dibaca dari lonceng pengguna.
+                    $notifikasi += DB::table('notifications')
+                        ->where('data->pengaduan_id', $pengaduan->id)
+                        ->delete();
+
                     $pengaduan->delete();
                     $terhapus++;
                 }
             });
 
-        $this->info("Selesai. {$terhapus} pengaduan dan {$berkas} berkas lampiran dihapus.");
+        $this->info("Selesai. {$terhapus} pengaduan, {$notifikasi} notifikasi, dan {$berkas} berkas lampiran dihapus.");
 
         return self::SUCCESS;
     }

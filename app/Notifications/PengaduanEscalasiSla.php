@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Mail\EscalasiMail;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Support\TautanNotifikasi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -39,6 +40,7 @@ class PengaduanEscalasiSla extends Notification implements ShouldQueue
             $this->unit,
             'sla_lewat',
             $this->lewatHari * 24, // konversi hari ke jam
+            TautanNotifikasi::untuk($notifiable, $this->pengaduan),
         ))->to($notifiable->routeNotificationFor('mail', $this));
     }
 
@@ -47,12 +49,12 @@ class PengaduanEscalasiSla extends Notification implements ShouldQueue
         return [
             'type' => 'pengaduan_eskalasi_sla',
             'title' => 'ESKALASI KRITIS: SLA Lewat Batas',
-            'message' => "Tiket {$this->pengaduan->kode_tiket} diunit {$this->unit->namaLengkap()} sudah lewat {$this->lewatHari} hari kerja batas investigasi. Diedukasikan ke atasan.",
+            'message' => "Tiket {$this->pengaduan->kode_tiket} diunit {$this->unit->namaLengkap()} sudah lewat {$this->lewatHari} hari kerja batas investigasi. Diteruskan ke admin humas.",
             'kode_tiket' => $this->pengaduan->kode_tiket,
             'unit_id' => $this->unit->id,
             'lewat_hari' => $this->lewatHari,
             'jenis_eskalasi' => 'sla_lewat',
-            'url' => route('unit.disposisi.show', ['unit' => $this->unit->kode, 'kode' => $this->pengaduan->kode_tiket]),
+            'url' => TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             'pengaduan_id' => $this->pengaduan->id,
         ];
     }

@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Mail\EscalasiMail;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Support\TautanNotifikasi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -40,6 +41,7 @@ class PengaduanEscalasiNudge extends Notification implements ShouldQueue
             $this->unit,
             'nudge_abaikan',
             $this->durasiJam,
+            TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             $this->catatanNudge,
         ))->to($notifiable->routeNotificationFor('mail', $this));
     }
@@ -49,12 +51,12 @@ class PengaduanEscalasiNudge extends Notification implements ShouldQueue
         return [
             'type' => 'pengaduan_eskalasi_nudge',
             'title' => 'ESKALASI: Nudge Diabaikan > 24 Jam',
-            'message' => "Tiket {$this->pengaduan->kode_tiket} diunit {$this->unit->namaLengkap()} tidak direspons {$this->durasiJam} jam setelah nudge admin. Diedukasikan ke atasan.",
+            'message' => "Tiket {$this->pengaduan->kode_tiket} diunit {$this->unit->namaLengkap()} tidak direspons {$this->durasiJam} jam setelah nudge admin. Diteruskan ke admin humas.",
             'kode_tiket' => $this->pengaduan->kode_tiket,
             'unit_id' => $this->unit->id,
             'durasi_jam' => $this->durasiJam,
             'jenis_eskalasi' => 'nudge_abaikan',
-            'url' => route('unit.disposisi.show', ['unit' => $this->unit->kode, 'kode' => $this->pengaduan->kode_tiket]),
+            'url' => TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             'pengaduan_id' => $this->pengaduan->id,
         ];
     }

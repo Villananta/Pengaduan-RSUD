@@ -16,5 +16,7 @@ Artisan::command('inspire', function () {
 Schedule::command('pengaduan:bersihkan --force')->dailyAt('02:00');
 
 // Cek SLA setiap hari pukul 07:00 pagi (sebelum jam kerja) dan kirim notifikasi
-// ke PIC unit yang tiketnya mendekati atau lewat batas investigasi.
-Schedule::command('pengaduan:cek-sla --kirim-notifikasi')->dailyAt('07:00');
+// ke PIC unit yang tiketnya mendekati atau lewat batas investigasi. --eskalasi
+// ikut dijalankan di sini karena tanpa itu jalur eskalasi tidak pernah tersentuh
+// jadwal: nudge yang diabaikan dan SLA yang lewat hanya tercatat di konsol admin.
+Schedule::command('pengaduan:cek-sla --kirim-notifikasi --eskalasi')->dailyAt('07:00');

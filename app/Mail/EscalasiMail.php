@@ -20,6 +20,7 @@ class EscalasiMail extends Mailable implements ShouldQueue
         public readonly MasterUnit $unit,
         public readonly string $jenisEscalasi, // 'nudge_abaikan' | 'sla_lewat'
         public readonly int $durasiJam, // berapa jam sudah lewat
+        public readonly string $tautan, // konsol sesuai peran penerima
         public readonly ?string $catatanNudge = null,
     ) {}
 
@@ -48,6 +49,7 @@ class EscalasiMail extends Mailable implements ShouldQueue
                 'unit' => $this->unit,
                 'jenisEscalasi' => $this->jenisEscalasi,
                 'durasiJam' => $this->durasiJam,
+                'tautan' => $this->tautan,
                 'catatanNudge' => $this->catatanNudge,
             ],
         );
