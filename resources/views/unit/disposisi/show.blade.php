@@ -14,6 +14,10 @@
         $instruksi = $detail->instruksiDisposisi();
         $tuntas = $tiket->status->selesai();
 
+        // Log unit sudah disaring di support: percakapan pelapor dan
+        // perubahan keparahan memang bukan urusan unit.
+        $kegiatanUnit = $detail->kegiatanUnit();
+
         // Tombol di panel kanan: dua yang pertama sudah punya halaman tujuan,
         // sisanya masih ditampilkan mati, bukan disembunyikan. Petugas unit
         // perlu tahu bahwa ekspor Excel, eskalasi, dan TTD digital masih
@@ -209,153 +213,202 @@
                 </article>
                 <!-- End of Kartu 1 -->
 
-                <!-- Chat Koordinasi Humas: jawaban unit dan catatan humas duduk
-                     di satu kanal, supaya unit tidak mengetik di dua tempat. -->
-                <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-md">
-                    <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
-                        <span class="flex items-center gap-1 font-semibold text-on-surface">
-                            <x-symbol nama="forum" class="text-[16px] text-secondary" />
+                <!-- Kartu Percakapan: jawaban unit, catatan humas, dan log
+                     kegiatan duduk dalam satu kartu bertab supaya halaman
+                     tidak memanjang saat riwayat tiketnya panjang. -->
+                <article class="bg-surface-container-lowest rounded-lg shadow-sm flex flex-col overflow-hidden">
+
+                    <!-- Tab Kanal: koordinasi humas dan log kegiatan tiket. -->
+                    <div class="flex items-center bg-surface-container-low p-space-xs gap-space-sm">
+                        <button
+                            type="button"
+                            data-tab="koordinasi"
+                            class="flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 bg-surface-container-lowest text-on-surface shadow-sm"
+                        >
+                            <x-symbol nama="forum" class="text-[18px] text-secondary" />
                             Koordinasi dengan Humas
-                        </span>
-                        <span class="text-secondary font-bold">{{ count($detail->koordinasi) }} Pesan</span>
-                    </div>
 
-                    <div class="flex flex-col gap-space-sm max-h-[360px] overflow-y-auto pr-1">
-                        @forelse ($detail->koordinasi as $pesan)
+                            @if (count($detail->koordinasi) > 0)
+                                <span class="w-2 h-2 rounded-full bg-secondary" aria-hidden="true"></span>
+                            @endif
+                        </button>
 
-                            {{-- Jawaban unit digambar di sisi kanan, catatan humas di
-                                 kiri, supaya arah percakapan terbaca tanpa label berulang. --}}
-                            <div @class([
-                                'flex flex-col max-w-[85%]',
-                                'items-end self-end' => $pesan['dariUnit'],
-                                'items-start self-start' => ! $pesan['dariUnit'],
-                            ])>
-                                <span @class([
-                                    'font-label-sm text-label-sm text-on-surface-variant mb-0.5',
-                                    'mr-1' => $pesan['dariUnit'],
-                                    'ml-1' => ! $pesan['dariUnit'],
-                                ])>
-                                    {{ $pesan['dariUnit'] ? 'PIC Unit' : 'Admin Humas' }} &bull; {{ $pesan['waktu'] }}
-                                </span>
-
-                                <div @class([
-                                    'p-space-sm rounded-lg font-body-sm text-body-sm',
-                                    'rounded-tr-xs bg-secondary text-on-secondary' => $pesan['dariUnit'],
-                                    'rounded-tl-xs bg-tertiary-container text-on-tertiary-container' => ! $pesan['dariUnit'],
-                                ])>
-                                    {{ $pesan['isi'] }}
-
-                                    @if (count($pesan['lampiran']) > 0)
-                                        <div class="mt-3 flex flex-col gap-2">
-
-                                            @foreach ($pesan['lampiran'] as $berkas)
-
-                                                @if ($berkas['gambar'])
-                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener">
-                                                        <img src="{{ $berkas['url'] }}" alt="Lampiran {{ $berkas['nama'] }}" class="w-full max-w-[240px] rounded-lg">
-                                                    </a>
-                                                @else
-                                                    <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-on-surface">
-                                                        <x-symbol nama="attach_file" class="text-[14px]" />
-                                                        {{ $berkas['nama'] }}
-                                                    </a>
-                                                @endif
-
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-body-sm text-on-surface-variant">
-                                Belum ada percakapan antara humas dan unit pada tiket ini.
-                            </p>
-                        @endforelse
-                    </div>
-
-                    @if ($tuntas)
-                        <div
-                            role="status"
-                            class="w-full bg-surface-container text-on-surface-variant rounded-lg px-space-sm py-space-sm text-body-sm leading-relaxed"
+                        <button
+                            type="button"
+                            data-tab="log"
+                            class="flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-semibold text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5"
                         >
-                            Tiket ini sudah berstatus <strong>{{ $tiket->status->label() }}</strong>,
-                            sehingga formulir jawaban unit ditutup. Bila ada sanggahan baru,
-                            hubungi humas agar tiket dibuka kembali.
+                            <x-symbol nama="history" class="text-[18px]" />
+                            Log Kegiatan
+                        </button>
+                    </div>
+                    <!-- End of Tab Kanal -->
+
+                    <!-- Tab Koordinasi: jawaban unit dan catatan humas di satu kanal. -->
+                    <div class="p-space-md flex flex-col gap-space-md" data-panel="koordinasi">
+                        <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
+                            <span class="flex items-center gap-1 font-semibold text-on-surface">
+                                <x-symbol nama="forum" class="text-[16px] text-secondary" />
+                                Koordinasi dengan Humas
+                            </span>
+                            <span class="text-secondary font-bold">{{ count($detail->koordinasi) }} Pesan</span>
                         </div>
-                    @else
-                        <form
-                            method="POST"
-                            action="{{ route('unit.disposisi.kirim', ['unit' => $unit, 'kode' => $kode]) }}"
-                            enctype="multipart/form-data"
-                            class="flex flex-col gap-space-sm"
-                        >
-                            @csrf
 
-                            <div class="flex flex-col gap-space-xs">
-                                <label for="isiPesan" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
-                                    Tulis Pesan untuk Humas
-                                </label>
+                        <div class="flex flex-col gap-space-sm max-h-[360px] overflow-y-auto pr-1">
+                            @forelse ($detail->koordinasi as $pesan)
 
-                                <textarea
-                                    id="isiPesan"
-                                    name="isi"
-                                    rows="3"
-                                    maxlength="2000"
-                                    placeholder="Tuliskan hasil telaah unit, tindakan yang sudah diambil, atau pertanyaan ke humas..."
-                                    class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
-                                >{{ old('isi') }}</textarea>
+                                {{-- Jawaban unit digambar di sisi kanan, catatan humas di
+                                     kiri, supaya arah percakapan terbaca tanpa label berulang. --}}
+                                <div @class([
+                                    'flex flex-col max-w-[85%]',
+                                    'items-end self-end' => $pesan['dariUnit'],
+                                    'items-start self-start' => ! $pesan['dariUnit'],
+                                ])>
+                                    <span @class([
+                                        'font-label-sm text-label-sm text-on-surface-variant mb-0.5',
+                                        'mr-1' => $pesan['dariUnit'],
+                                        'ml-1' => ! $pesan['dariUnit'],
+                                    ])>
+                                        {{ $pesan['dariUnit'] ? 'PIC Unit' : 'Admin Humas' }} &bull; {{ $pesan['waktu'] }}
+                                    </span>
 
-                                @error('isi')
+                                    <div @class([
+                                        'p-space-sm rounded-lg font-body-sm text-body-sm',
+                                        'rounded-tr-xs bg-secondary text-on-secondary' => $pesan['dariUnit'],
+                                        'rounded-tl-xs bg-tertiary-container text-on-tertiary-container' => ! $pesan['dariUnit'],
+                                    ])>
+                                        {{ $pesan['isi'] }}
+
+                                        @if (count($pesan['lampiran']) > 0)
+                                            <div class="mt-3 flex flex-col gap-2">
+
+                                                @foreach ($pesan['lampiran'] as $berkas)
+
+                                                    @if ($berkas['gambar'])
+                                                        <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener">
+                                                            <img src="{{ $berkas['url'] }}" alt="Lampiran {{ $berkas['nama'] }}" class="w-full max-w-[240px] rounded-lg">
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ $berkas['url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-white/70 px-3 py-2 text-[11px] font-semibold text-on-surface">
+                                                            <x-symbol nama="attach_file" class="text-[14px]" />
+                                                            {{ $berkas['nama'] }}
+                                                        </a>
+                                                    @endif
+
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-body-sm text-on-surface-variant">
+                                    Belum ada percakapan antara humas dan unit pada tiket ini.
+                                </p>
+                            @endforelse
+                        </div>
+
+                        @if ($tuntas)
+                            <div
+                                role="status"
+                                class="w-full bg-surface-container text-on-surface-variant rounded-lg px-space-sm py-space-sm text-body-sm leading-relaxed"
+                            >
+                                Tiket ini sudah berstatus <strong>{{ $tiket->status->label() }}</strong>,
+                                sehingga formulir jawaban unit ditutup. Bila ada sanggahan baru,
+                                hubungi humas agar tiket dibuka kembali.
+                            </div>
+                        @else
+                            <form
+                                method="POST"
+                                action="{{ route('unit.disposisi.kirim', ['unit' => $unit, 'kode' => $kode]) }}"
+                                enctype="multipart/form-data"
+                                class="flex flex-col gap-space-sm"
+                            >
+                                @csrf
+
+                                <div class="flex flex-col gap-space-xs">
+                                    <label for="isiPesan" class="font-label-sm text-label-sm uppercase font-bold text-on-surface-variant">
+                                        Tulis Pesan untuk Humas
+                                    </label>
+
+                                    <textarea
+                                        id="isiPesan"
+                                        name="isi"
+                                        rows="3"
+                                        maxlength="2000"
+                                        placeholder="Tuliskan hasil telaah unit, tindakan yang sudah diambil, atau pertanyaan ke humas..."
+                                        class="w-full p-space-md rounded-lg bg-surface font-body-md text-body-md text-on-surface outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline border border-outline-variant/40"
+                                    >{{ old('isi') }}</textarea>
+
+                                    @error('isi')
+                                        <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-between gap-space-md">
+                                    {{-- Label "Lampiran" diganti nama berkas lewat elemen di sebelahnya,
+                                         persis seperti form balasan admin konsol humas. --}}
+                                    <label class="flex items-center gap-2 px-space-md py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold cursor-pointer">
+                                        <x-symbol nama="attach_file" class="text-[16px]" />
+                                        <span>Lampiran</span>
+                                        <input
+                                            type="file"
+                                            name="lampiran[]"
+                                            accept=".jpg,.jpeg,.png,.pdf"
+                                            multiple
+                                            class="sr-only"
+                                            onchange="this.previousElementSibling.textContent = this.files.length ? this.files[0].name + (this.files.length > 1 ? ' + ' + (this.files.length - 1) + ' berkas lain' : '') : 'Lampiran'"
+                                        >
+                                    </label>
+
+                                    <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                        Maksimal 5 berkas JPG, PNG, atau PDF, masing-masing 4 MB.
+                                    </span>
+                                </div>
+
+                                @error('lampiran')
                                     <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
                                 @enderror
-                            </div>
 
-                            <div class="flex flex-wrap items-center justify-between gap-space-md">
-                                {{-- Label "Lampiran" diganti nama berkas lewat elemen di sebelahnya,
-                                     persis seperti form balasan admin konsol humas. --}}
-                                <label class="flex items-center gap-2 px-space-md py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold cursor-pointer">
-                                    <x-symbol nama="attach_file" class="text-[16px]" />
-                                    <span>Lampiran</span>
-                                    <input
-                                        type="file"
-                                        name="lampiran[]"
-                                        accept=".jpg,.jpeg,.png,.pdf"
-                                        multiple
-                                        class="sr-only"
-                                        onchange="this.previousElementSibling.textContent = this.files.length ? this.files[0].name + (this.files.length > 1 ? ' + ' + (this.files.length - 1) + ' berkas lain' : '') : 'Lampiran'"
+                                @error('lampiran.*')
+                                    <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
+                                @enderror
+
+                                <div class="flex flex-wrap items-center justify-between gap-space-md">
+                                    <span class="font-label-sm text-label-sm text-on-surface-variant">
+                                        Setiap pesan unit menandai tiket menunggu racikan humas.
+                                    </span>
+
+                                    <button
+                                        type="submit"
+                                        class="py-3 px-space-xl rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                                     >
-                                </label>
+                                        <x-symbol nama="send" class="text-[18px]" />
+                                        Kirim Pesan
+                                    </button>
+                                </div>
+                            </form>
+                        @endif
+                    </div>
+                    <!-- End of Tab Koordinasi -->
 
-                                <span class="font-label-sm text-label-sm text-on-surface-variant">
-                                    Maksimal 5 berkas JPG, PNG, atau PDF, masing-masing 4 MB.
-                                </span>
-                            </div>
+                    <!-- Tab Log Kegiatan: versi tersaring untuk unit, tanpa
+                         percakapan pelapor dan tanpa perubahan keparahan. -->
+                    <div class="hidden p-space-md flex flex-col gap-space-md" data-panel="log">
+                        <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
+                            <span class="flex items-center gap-1 font-semibold text-on-surface">
+                                <x-symbol nama="history" class="text-[16px] text-secondary" />
+                                Log Kegiatan Tiket
+                            </span>
+                            <span class="text-secondary font-bold">{{ count($kegiatanUnit) }} Kejadian</span>
+                        </div>
 
-                            @error('lampiran')
-                                <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
-                            @enderror
-
-                            @error('lampiran.*')
-                                <span class="font-label-sm text-label-sm text-error">{{ $message }}</span>
-                            @enderror
-
-                            <div class="flex flex-wrap items-center justify-between gap-space-md">
-                                <span class="font-label-sm text-label-sm text-on-surface-variant">
-                                    Setiap pesan unit menandai tiket menunggu racikan humas.
-                                </span>
-
-                                <button
-                                    type="submit"
-                                    class="py-3 px-space-xl rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-                                >
-                                    <x-symbol nama="send" class="text-[18px]" />
-                                    Kirim Pesan
-                                </button>
-                            </div>
-                        </form>
-                    @endif
+                        <div class="max-h-[480px] overflow-y-auto pr-1">
+                            <x-log-kegiatan :kegiatan="$kegiatanUnit" />
+                        </div>
+                    </div>
+                    <!-- End of Tab Log Kegiatan -->
                 </article>
-                <!-- End of Chat Koordinasi Humas -->
+                <!-- End of Kartu Percakapan -->
 
                 <!-- Panel Tindakan Mati: pekerjaan yang belum dibangun. -->
                 <article class="bg-surface-container-lowest rounded-lg shadow-sm p-space-md flex flex-col gap-space-sm">
@@ -409,3 +462,5 @@
         <!-- End of Kolom Kerja -->
     </div>
 @endsection
+
+<x-script-tab-kartu />

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\DisposisiUnit;
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
+use App\Enums\TingkatKeparahan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
@@ -490,5 +491,62 @@ class DisposisiUnitTest extends TestCase
         }
 
         $this->post($url, ['isi' => 'Jawaban ke-21'])->assertStatus(429);
+    }
+
+    public function test_log_unit_menyembunyikan_percakapan_pelapor_dan_perubahan_keparahan(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id, 'kategori' => null]);
+
+        $tiket->riwayatStatus()->create([
+            'dari' => StatusPengaduan::Diterima,
+            'ke' => StatusPengaduan::Diproses,
+            'catatan' => 'Mohon telusuri stok obat.',
+        ]);
+
+        $tiket->aturTingkatKeparahan(TingkatKeparahan::Berat);
+
+        $tiket->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_PELAPOR,
+            'peran' => 'pelapor',
+            'isi' => 'Pesan pelapor yang tidak boleh dibaca unit.',
+        ]);
+
+        $tiket->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_PELAPOR,
+            'peran' => 'admin',
+            'isi' => 'Balasan humas yang tidak boleh dibaca unit.',
+        ]);
+
+        $tiket->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_UNIT,
+            'peran' => 'admin',
+            'isi' => 'Arahan humas yang memang untuk unit.',
+        ]);
+
+        $jenis = array_column(
+            DetailPengaduan::dariKode($tiket->kode_tiket, $farmasi)->kegiatanUnit(),
+            'jenis',
+        );
+
+        $this->assertContains('Tiket Masuk', $jenis);
+        $this->assertContains('Pindah Tahap', $jenis);
+        $this->assertContains('Arahan ke Unit', $jenis);
+        $this->assertNotContains('Pesan Pelapor', $jenis);
+        $this->assertNotContains('Balasan Humas', $jenis);
+        $this->assertNotContains('Keparahan', $jenis);
+
+        // Halaman unit membaca daftar tersaring yang sama: lognya tampil,
+        // tapi isi percakapan pelapor tidak ikut bocor ke layar unit.
+        $this->get(route('unit.disposisi.show', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]))
+            ->assertOk()
+            ->assertSee('Log Kegiatan')
+            ->assertSee('Tiket pengaduan dibuat')
+            ->assertSee('Arahan humas yang memang untuk unit.')
+            ->assertDontSee('Pesan pelapor yang tidak boleh dibaca unit.')
+            ->assertDontSee('Balasan humas yang tidak boleh dibaca unit.')
+            ->assertDontSee('Tingkat keparahan diperbarui');
     }
 }

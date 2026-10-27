@@ -7,6 +7,7 @@ use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use App\Support\DetailPengaduan;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
@@ -268,5 +269,72 @@ class DetailPengaduanAdminTest extends TestCase
         // menangkap janji SLA yang berubah diam-diam ke pelapor.
         $this->assertSame(Sla::hariKerja(), $pengaduan->totalHariKerjaSla());
         $this->assertTrue($pengaduan->targetSla()->equalTo($targetAwal));
+    }
+
+    public function test_log_kegiatan_menggabungkan_riwayat_dan_pesan_secara_kronologis(): void
+    {
+        $this->travelTo('2026-01-05 08:00:00');
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-LOG-01',
+            'kategori' => null,
+        ]);
+
+        $this->travelTo('2026-01-05 08:15:00');
+        $tiket->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_PELAPOR,
+            'peran' => 'pelapor',
+            'isi' => 'Mohon dicek kembali obatnya.',
+        ]);
+
+        $this->travelTo('2026-01-05 08:30:00');
+        $tiket->riwayatStatus()->create([
+            'dari' => StatusPengaduan::Diterima,
+            'ke' => StatusPengaduan::Diproses,
+            'catatan' => 'Diteruskan ke farmasi.',
+        ]);
+
+        $this->travelTo('2026-01-05 08:45:00');
+        $tiket->pesan()->create([
+            'kanal' => PesanPengaduan::KANAL_UNIT,
+            'peran' => 'admin',
+            'isi' => 'Mohon telusuri stok obat.',
+        ]);
+
+        $kegiatan = DetailPengaduan::dariKode('ADUAN-LOG-01')->kegiatan;
+
+        // Urutan mengikuti waktu kejadian, bukan urutan tabel: pesan pelapor
+        // yang masuk di antara dua perpindahan tahap tetap muncul di tengah.
+        $this->assertSame(
+            ['Tiket pengaduan dibuat', 'Pelapor mengirim pesan', 'Tahap: Diproses', 'Humas mengirim pesan ke unit'],
+            array_column($kegiatan, 'judul'),
+        );
+    }
+
+    public function test_halaman_detail_menampilkan_tab_log_kegiatan(): void
+    {
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-LOG-02',
+            'kategori' => null,
+        ]);
+
+        $tiket->riwayatStatus()->create([
+            'dari' => StatusPengaduan::Diterima,
+            'ke' => StatusPengaduan::Diproses,
+            'catatan' => 'Diteruskan ke farmasi.',
+        ]);
+
+        $this->get(route('admin.pengaduan.show', 'ADUAN-LOG-02'))
+            ->assertOk()
+            ->assertSee('Log Kegiatan')
+            ->assertSee('Kejadian')
+            ->assertSee('Tiket pengaduan dibuat')
+            ->assertSee('Tahap: Diproses')
+            ->assertSee('Diteruskan ke farmasi.')
+            ->assertSee('data-tab="log"', false)
+            ->assertSee('data-panel="log"', false)
+            // Skrip tab dipasang lewat komponen bersama; tanpa ini tombol
+            // tab hanya jadi hiasan karena panelnya tidak pernah bertukar.
+            ->assertSee("querySelectorAll('[data-tab]')", false);
     }
 }

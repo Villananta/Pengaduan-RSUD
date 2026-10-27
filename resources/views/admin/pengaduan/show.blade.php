@@ -434,11 +434,12 @@
             </div>
             <!-- End of Kolom Kanan -->
 
-            <!-- Kartu 4: percakapan pelapor dan kanal koordinasi unit, dibuat
-                 selebar body supaya jadi tempat utama mengetik balasan -->
+            <!-- Kartu 4: percakapan pelapor, kanal koordinasi unit, dan log
+                 kegiatan tiket dibuat selebar body supaya jadi tempat utama
+                 mengetik balasan -->
             <article class="lg:col-span-12 bg-surface-container-lowest rounded-lg shadow-sm flex flex-col overflow-hidden">
 
-                <!-- Tab Kanal: penanda kanal aktif dan judul dua kanal di bawahnya. -->
+                <!-- Tab Kanal: penanda kanal aktif dan judul tiga kanal di bawahnya. -->
                 <div class="flex items-center bg-surface-container-low p-space-xs gap-space-sm">
                     <button
                         type="button"
@@ -460,6 +461,15 @@
                     >
                         <x-symbol nama="sync_alt" class="text-[18px]" />
                         Koordinasi Unit
+                    </button>
+
+                    <button
+                        type="button"
+                        data-tab="log"
+                        class="flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-semibold text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5"
+                    >
+                        <x-symbol nama="history" class="text-[18px]" />
+                        Log Kegiatan
                     </button>
                 </div>
                 <!-- End of Tab Kanal -->
@@ -744,6 +754,22 @@
                     @endif
                 </div>
                 <!-- End of Tab 2 -->
+
+                <!-- Tab 3: log kronologis seluruh kegiatan tiket -->
+                <div class="hidden p-space-md flex flex-col gap-space-md" data-panel="log">
+                    <div class="flex items-center justify-between gap-space-sm pb-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-low p-space-sm rounded-lg">
+                        <span class="flex items-center gap-1 font-semibold text-on-surface">
+                            <x-symbol nama="history" class="text-[16px] text-secondary" />
+                            Log Kegiatan Tiket
+                        </span>
+                        <span class="text-secondary font-bold">{{ count($detail->kegiatan) }} Kejadian</span>
+                    </div>
+
+                    <div class="max-h-[480px] overflow-y-auto pr-1">
+                        <x-log-kegiatan :kegiatan="$detail->kegiatan" />
+                    </div>
+                </div>
+                <!-- End of Tab 3 -->
             </article>
             <!-- End of Kartu 4 -->
 
@@ -797,30 +823,4 @@
     </div>
 @endsection
 
-@push('scripts')
-    {{-- Perpindahan tab pada kartu percakapan. --}}
-    <script>
-        (function () {
-            const tombol = document.querySelectorAll('[data-tab]');
-            const panel = document.querySelectorAll('[data-panel]');
-
-            tombol.forEach(function (tombolTab) {
-                tombolTab.addEventListener('click', function () {
-                    const aktif = tombolTab.dataset.tab;
-
-                    tombol.forEach(function (lain) {
-                        const dipilih = lain === tombolTab;
-
-                        lain.className = dipilih
-                            ? 'flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-bold flex items-center justify-center gap-1.5 bg-surface-container-lowest text-on-surface shadow-sm'
-                            : 'flex-1 py-3 px-space-md rounded-lg font-title-sm text-title-sm font-semibold text-on-surface-variant hover:text-on-surface flex items-center justify-center gap-1.5';
-                    });
-
-                    panel.forEach(function (isi) {
-                        isi.classList.toggle('hidden', isi.dataset.panel !== aktif);
-                    });
-                });
-            });
-        })();
-    </script>
-@endpush
+<x-script-tab-kartu />

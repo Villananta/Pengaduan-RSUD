@@ -9,6 +9,7 @@ use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Models\RiwayatStatusPengaduan;
 use App\Services\TahapService;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -35,6 +36,7 @@ final class DetailPengaduan
      * @param  array<int, array<string, mixed>>  $percakapan  Pesan kanal pelapor dengan humas.
      * @param  array<int, array<string, mixed>>  $koordinasi  Pesan kanal koordinasi humas dan unit.
      * @param  array<int, array<string, mixed>>  $audit  Jejak perpindahan tahap.
+     * @param  array<int, array<string, mixed>>  $kegiatan  Log kronologis seluruh aktivitas tiket.
      * @param  Collection<int, MasterUnit>  $pilihanUnit  Unit yang boleh dipilih pada form disposisi.
      */
     public function __construct(
@@ -47,6 +49,7 @@ final class DetailPengaduan
         public readonly array $percakapan,
         public readonly array $koordinasi,
         public readonly array $audit,
+        public readonly array $kegiatan,
         public readonly Collection $pilihanUnit,
     ) {}
 
@@ -92,6 +95,7 @@ final class DetailPengaduan
             percakapan: self::percakapan($pengaduan),
             koordinasi: self::koordinasi($pengaduan),
             audit: self::audit($pengaduan),
+            kegiatan: self::kegiatan($pengaduan),
             // Unit nonaktif tidak ditawarkan lagi karena admin sudah sengaja
             // mematikannya dari halaman master unit. Menawarkannya di sini membuat
             // sakelar aktif di master data tidak punya efek apa pun.
@@ -418,5 +422,263 @@ final class DetailPengaduan
                 ];
             })
             ->all();
+    }
+
+    /**
+     * Log kegiatan kronologis satu tiket.
+     *
+     * Sumbernya dua tabel yang sudah ada: riwayat status untuk keputusan
+     * humas dan pesan pengaduan untuk percakapan kedua kanal. Digabung di
+     * sini supaya template tidak perlu menyortir dua daftar berbeda, dan
+     * supaya halaman humas serta halaman unit membaca urutan yang sama.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function kegiatan(Pengaduan $pengaduan): array
+    {
+        $gabungan = [];
+
+        foreach ($pengaduan->riwayatStatus->values() as $urutan => $baris) {
+            $gabungan[] = [
+                'kunci' => self::kunciUrut($baris->created_at, 0, $urutan),
+                'baris' => self::kejadianRiwayat($baris),
+            ];
+        }
+
+        foreach ($pengaduan->pesan->values() as $urutan => $pesan) {
+            // Sapaan pembuka ditulis otomatis tepat saat tiket dibuat, jadi
+            // barisnya hanya akan mengulang kejadian "tiket masuk" di atas.
+            if ($pesan->peran === 'pembuka') {
+                continue;
+            }
+
+            $gabungan[] = [
+                'kunci' => self::kunciUrut($pesan->created_at, 1, $urutan),
+                'baris' => self::kejadianPesan($pengaduan, $pesan),
+            ];
+        }
+
+        usort($gabungan, fn (array $a, array $b): int => $a['kunci'] <=> $b['kunci']);
+
+        return array_map(fn (array $item): array => $item['baris'], $gabungan);
+    }
+
+    /**
+     * Log kegiatan versi halaman unit.
+     *
+     * Unit hanya perlu aktivitas yang menyangkut pekerjaannya. Percakapan
+     * pelapor dengan humas dan perubahan tingkat keparahan sengaja dibuang:
+     * keduanya urusan internal humas dan tidak pernah tampil di layar unit.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function kegiatanUnit(): array
+    {
+        return array_values(array_filter(
+            $this->kegiatan,
+            fn (array $baris): bool => $baris['untukUnit'],
+        ));
+    }
+
+    /**
+     * Satu baris riwayat status dalam bentuk log kegiatan.
+     *
+     * Urutan pemeriksaan penting: baris kategori, keparahan, dan kasus berat
+     * semuanya memakai tahap asal dan tujuan yang sama, jadi penandanya harus
+     * dibaca lebih dulu sebelum baris itu disebut disposisi biasa.
+     *
+     * @return array<string, mixed>
+     */
+    private static function kejadianRiwayat(RiwayatStatusPengaduan $baris): array
+    {
+        $aktor = $baris->admin?->name ?? 'Sistem Pengaduan';
+        $catatan = $baris->catatan;
+
+        if ($baris->perubahanKeparahan()) {
+            return self::kejadian($baris->created_at, [
+                'jenis' => 'Keparahan',
+                'judul' => 'Tingkat keparahan diperbarui',
+                'isi' => $catatan,
+                'aktor' => $aktor,
+                'ikon' => 'flag',
+                'nada' => 'bg-tertiary-container text-on-tertiary-container',
+                'untukUnit' => false,
+            ]);
+        }
+
+        if ($baris->perubahanKategori()) {
+            return self::kejadian($baris->created_at, [
+                'jenis' => 'Kategori',
+                'judul' => 'Kategori tiket diperbarui',
+                'isi' => $catatan,
+                'aktor' => $aktor,
+                'ikon' => 'category',
+                'nada' => 'bg-brand-100 text-brand-800',
+            ]);
+        }
+
+        if ($baris->perubahanKasusBerat()) {
+            $ditandai = $catatan === Pengaduan::CATATAN_KASUS_BERAT_AKTIF;
+
+            return self::kejadian($baris->created_at, [
+                'jenis' => 'Kasus Berat',
+                'judul' => $ditandai ? 'Tiket ditandai sebagai kasus berat' : 'Penandaan kasus berat dilepas',
+                'isi' => $ditandai
+                    ? 'Tenggat tiket bertambah karena penanganannya butuh perhatian khusus.'
+                    : 'Tiket kembali memakai tenggat kerja biasa.',
+                'aktor' => $aktor,
+                'ikon' => 'crisis_alert',
+                'nada' => $ditandai
+                    ? 'bg-error-container text-on-error-container'
+                    : 'bg-surface-container-highest text-on-surface',
+            ]);
+        }
+
+        if ($baris->is_nudge || str_starts_with((string) $catatan, 'Nudge manual ke unit:')) {
+            return self::kejadian($baris->created_at, [
+                'jenis' => 'Nudge',
+                'judul' => 'Humas mengingatkan unit',
+                // Prefiksnya hanya penanda jenis baris, jadi tidak diulang
+                // lagi di badan log yang sudah punya judul sendiri.
+                'isi' => str((string) $catatan)->after('Nudge manual ke unit: ')->value(),
+                'aktor' => $aktor,
+                'ikon' => 'notifications_active',
+                'nada' => 'bg-gold-100 text-gold-800',
+            ]);
+        }
+
+        if (str_starts_with((string) $catatan, 'Eskalasi ')) {
+            return self::kejadian($baris->created_at, [
+                'jenis' => 'Eskalasi',
+                'judul' => 'Peringatan SLA otomatis',
+                'isi' => $catatan,
+                'aktor' => $aktor,
+                'ikon' => 'notification_important',
+                'nada' => 'bg-error-container text-on-error-container',
+            ]);
+        }
+
+        if ($baris->dariAwal()) {
+            return self::kejadian($baris->created_at, [
+                'jenis' => 'Tiket Masuk',
+                'judul' => 'Tiket pengaduan dibuat',
+                'isi' => 'Pengaduan masuk melalui portal publik dan tercatat pada tahap '.$baris->ke->label().'.',
+                'aktor' => $aktor,
+                'ikon' => 'inbox',
+                'nada' => 'bg-primary text-on-primary',
+            ]);
+        }
+
+        if ($baris->dari === $baris->ke) {
+            return self::kejadian($baris->created_at, [
+                'jenis' => 'Disposisi',
+                'judul' => 'Catatan penanganan humas',
+                'isi' => $catatan ?? 'Penanganan tiket diperbarui oleh humas.',
+                'aktor' => $aktor,
+                'ikon' => 'swap_horiz',
+                'nada' => 'bg-secondary-container text-on-secondary-container',
+            ]);
+        }
+
+        return self::kejadian($baris->created_at, [
+            'jenis' => 'Pindah Tahap',
+            'judul' => 'Tahap: '.$baris->ke->label(),
+            'isi' => filled($catatan)
+                ? $catatan
+                : 'Tahap pengaduan dipindahkan dari '.$baris->dari->label().' ke '.$baris->ke->label().'.',
+            'aktor' => $aktor,
+            'ikon' => 'swap_vert',
+            'nada' => 'bg-secondary-container text-on-secondary-container',
+        ]);
+    }
+
+    /**
+     * Satu pesan percakapan dalam bentuk log kegiatan.
+     *
+     * Isi pesan dipotong karena log dibaca sebagai ringkasan; teks lengkapnya
+     * tetap tersedia di tab percakapan masing-masing.
+     *
+     * @return array<string, mixed>
+     */
+    private static function kejadianPesan(Pengaduan $pengaduan, PesanPengaduan $pesan): array
+    {
+        $ringkas = str($pesan->isi)->squish()->limit(180)->value();
+        $lampiran = count($pesan->daftarLampiran());
+
+        if ($pesan->dariUnit()) {
+            return self::kejadian($pesan->created_at, [
+                'jenis' => 'Jawaban Unit',
+                'judul' => 'PIC unit menjawab',
+                'isi' => $ringkas,
+                'aktor' => 'PIC Unit',
+                'ikon' => 'reply',
+                'nada' => 'bg-secondary-container text-on-secondary-container',
+                'lampiran' => $lampiran,
+            ]);
+        }
+
+        if ($pesan->jalurUnit()) {
+            return self::kejadian($pesan->created_at, [
+                'jenis' => 'Arahan ke Unit',
+                'judul' => 'Humas mengirim pesan ke unit',
+                'isi' => $ringkas,
+                'aktor' => 'Admin Humas',
+                'ikon' => 'campaign',
+                'nada' => 'bg-tertiary-container text-on-tertiary-container',
+                'lampiran' => $lampiran,
+            ]);
+        }
+
+        if ($pesan->dariHumas()) {
+            return self::kejadian($pesan->created_at, [
+                'jenis' => 'Balasan Humas',
+                'judul' => 'Humas membalas pelapor',
+                'isi' => $ringkas,
+                'aktor' => 'Admin Humas',
+                'ikon' => 'support_agent',
+                'nada' => 'bg-primary text-on-primary',
+                'untukUnit' => false,
+                'lampiran' => $lampiran,
+            ]);
+        }
+
+        return self::kejadian($pesan->created_at, [
+            'jenis' => 'Pesan Pelapor',
+            'judul' => 'Pelapor mengirim pesan',
+            'isi' => $ringkas,
+            'aktor' => $pengaduan->nama_lengkap,
+            'ikon' => 'waving_hand',
+            'nada' => 'bg-surface-container-highest text-on-surface',
+            'untukUnit' => false,
+            'lampiran' => $lampiran,
+        ]);
+    }
+
+    /**
+     * Bentuk seragam satu baris log kegiatan.
+     *
+     * @param  array<string, mixed>  $isi
+     * @return array<string, mixed>
+     */
+    private static function kejadian(CarbonInterface $waktu, array $isi): array
+    {
+        return array_merge([
+            'waktu' => $waktu->translatedFormat('d M Y, H:i').' WIB',
+            'lampiran' => 0,
+            // Kegiatan bercatatan humas dianggap terlihat unit; pengecualian
+            // keparahan dan percakapan pelapor ditulis eksplisit di atas.
+            'untukUnit' => true,
+        ], $isi);
+    }
+
+    /**
+     * Kunci urut kronologis untuk menggabungkan dua sumber kejadian.
+     *
+     * Detik dipakai sebagai basis, kelompok memisahkan riwayat dari pesan,
+     * dan urutan baris menjaga hasil tetap sama saat waktunya kebetulan sama.
+     */
+    private static function kunciUrut(CarbonInterface $waktu, int $kelompok, int $urutan): int
+    {
+        return $waktu->getTimestamp() * 1_000_000 + $kelompok * 100_000 + $urutan;
     }
 }
