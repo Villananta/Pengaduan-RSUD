@@ -170,6 +170,11 @@ sudah ada. Aturan di bawah disusun dari kebiasaan nyata di `app/`, `routes/`,
 - `@section`/`@yield` dan `@stack`/`@push` diberi komentar singkat kalau
   fungsinya tidak langsung jelas dari namanya.
 - `@stack('scripts')` tetap diletakkan sebelum penutup `</body>`.
+- Dropdown dan panel lipat memakai `<details>`/`<summary>`. JavaScript hanya
+  menyegarkan isi dan menyelaraskan `aria-expanded`; tombol aksi tetap berada
+  di dalam `<form method="POST">` supaya berfungsi tanpa skrip.
+- Angka lencana, titik nudge, dan status lain yang tampil diambil dari respons
+  server (`total_belum_dibaca`, `ada_nudge`), bukan dihitung ulang di browser.
 - Class CSS panjang ditulis lengkap di template. Jangan menambah helper baru
   hanya demi memendekkan daftar class.
 
@@ -233,7 +238,10 @@ sudah ada. Aturan di bawah disusun dari kebiasaan nyata di `app/`, `routes/`,
   `App\Support\*` atau controller.
 - Membuat tautan palsu `href="#"` untuk fitur yang belum ada. Gunakan `span`
   dengan `cursor-not-allowed` atau tombol nonaktif, karena ada test yang
-  memeriksa hal ini.
+  memeriksa hal ini. Method PHP juga tidak boleh mengembalikan `'#'` sebagai
+  URL pengganti; kembalikan `null` dan biarkan template menonaktifkan tautan.
+- Menulis peran pengguna sebagai string lepas (`'admin'`, `'unit'`). Pakai
+  nilai enum (`PeranPengguna::Admin->value`).
 - Mengubah `kode_tiket` agar bisa diisi massal (`$fillable`). Kode tiket
   dibuat di dalam sistem.
 - Menulis angka SLA, nama unit, atau batas waktu secara lepas di luar

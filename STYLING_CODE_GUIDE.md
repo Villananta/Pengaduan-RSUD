@@ -4,7 +4,7 @@ Dokumen ini merupakan konsolidasi lengkap dari semua pola styling dan konvensi k
 
 Versi ringkas untuk pekerjaan sehari-hari ada di `STYLE.md`. Kalau keduanya berbeda, yang berlaku adalah kode yang ada di repository; perbarui dokumen ini setelah polanya berubah.
 
-Stack yang menjadi acuan: Laravel 13, PHP 8.4, Tailwind CSS 4 (`@theme` di `resources/css/app.css`), Blade + vanilla JS, dan PHPUnit.
+Stack yang menjadi acuan: Laravel 13.38, PHP 8.5 (composer mewajibkan `^8.4`), Tailwind CSS 4 (`@theme` di `resources/css/app.css`), Blade + vanilla JS, dan PHPUnit 12.
 
 ## Daftar Isi
 
@@ -221,6 +221,23 @@ Gunakan kelas `font-*` dan `text-*` semantik yang sudah terdaftar di `@theme`, *
 
 **Perbedaan:** Topbar single bar `h-20`, navigasi pill mint, footer 4 kolom, widget aksesibilitas & TTS.
 
+### 3.3 Layout Konsol Unit (`unit/layout.blade.php`)
+
+Bentuknya mengikuti konsol admin, tetapi warna dan penanda kondisinya milik
+unit: lonceng notifikasi, titik nudge, dan bilah status unit. Yang perlu dijaga:
+
+- Notifikasi unit selalu dibaca dari **akun petugas**, bukan dari `MasterUnit`.
+  Parameter `{unit}` di URL hanya menjaga konteks halaman. Karena itu data
+  lonceng dikirim controller sebagai `NotifikasiUnit`, bukan dihitung di Blade.
+- Status "ada nudge" dan "jumlah belum dibaca" datang dari respons server
+  (`ada_nudge`, `total_belum_dibaca`), bukan dari tebakan JavaScript.
+- Polling memakai `next_since` dari respons sebelumnya. Jangan menghitung
+  jendela waktu sendiri di browser; server sudah mengonversi ISO8601 ke zona
+  aplikasi.
+- Halaman unit tidak boleh memuat tautan ke konsol admin. Kalau sebuah aksi
+  belum punya halaman unit, tampilkan `span` nonaktif, bukan tautan yang
+  berakhir 403.
+
 ---
 
 ## 4. Komponen UI
@@ -434,6 +451,89 @@ supaya diff tetap kecil.
 </div>
 ```
 
+### 4.7 Dropdown Notifikasi (`<details>`)
+
+Lonceng notifikasi di kedua konsol memakai `<details>`/`<summary>`, bukan
+`div` yang dibuka lewat JavaScript. Dengan begitu dropdown tetap bisa dibuka
+kalau skrip gagal dimuat, dan JavaScript hanya bertugas menyegarkan isi serta
+menyelaraskan atribut aksesibilitas.
+
+```blade
+<div class="relative" id="admin-notifikasi-wrapper">
+    <details id="admin-detail-notifikasi" class="static">
+        <summary
+            id="admin-btn-notifikasi"
+            data-daftar-url="{{ route('admin.notifikasi.daftar') }}"
+            aria-label="Notifikasi"
+            aria-expanded="false"
+            aria-haspopup="true"
+            class="relative p-space-xs cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+        >
+            <x-symbol nama="notifications" class="text-[24px]" />
+
+            @if ($jumlahNotifAdmin > 0)
+                <span
+                    id="admin-badge-notifikasi"
+                    class="absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center"
+                    aria-label="{{ $jumlahNotifAdmin }} notifikasi belum dibaca"
+                >{{ $jumlahNotifAdmin > 9 ? '9+' : $jumlahNotifAdmin }}</span>
+            @endif
+        </summary>
+
+        <div class="absolute right-0 top-full mt-2 w-96 max-h-[420px] overflow-y-auto bg-white rounded-lg shadow-lg border border-outline-variant z-[60]" role="menu">
+            {{-- Tombol ini tetap <form> supaya "tandai semua" berfungsi
+                 tanpa JavaScript; skrip hanya menambahkan jalur AJAX. --}}
+            <form method="POST" action="{{ route('admin.notifikasi.baca-semua') }}" class="inline">
+                @csrf
+                <button type="submit">Tandai semua dibaca</button>
+            </form>
+
+            @forelse ($notifikasiAdmin as $notif)
+                <x-item-notifikasi :notif="$notif" />
+            @empty
+                <div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>
+            @endforelse
+        </div>
+    </details>
+</div>
+```
+
+**Aturan yang mengikat pola ini:**
+
+- `class="static"` pada `<details>` supaya `absolute` di dalamnya menempel ke
+  pembungkus `relative`, bukan ke `<details>` itu sendiri.
+- `list-none` dan `[&::-webkit-details-marker]:hidden` menghapus panah bawaan
+  `<summary>`; jangan menggantinya dengan `div` yang butuh `onclick`.
+- `aria-expanded` diubah di listener `toggle`, bukan di `onclick` summary.
+- Item notifikasi dirender server lewat komponen `x-item-notifikasi` **dan**
+  dibangun ulang oleh JavaScript dengan markup yang sama. Kalau salah satu
+  sisi berubah, `data-notif-id`/`data-notif-type` di sisi lain ikut patah.
+- "Tandai semua dibaca" tetap berupa `<form method="POST">` dengan `@csrf`.
+  Skrip boleh mencegat submit, tetapi tanpa skrip tombolnya harus tetap jalan.
+- `role="menu"` pada wadah dan `role="menuitem" tabindex="0"` pada item.
+  Enter/Space membuka item, Escape menutup dropdown, klik di luar menutup.
+- Angka lencana dipotong menjadi `9+`; nilai penuhnya tetap disimpan di
+  `aria-label`.
+- Kalau notifikasi tidak punya `url`, render `div`, bukan `<a href="#">`.
+- `$jumlahNotifAdmin` dan `$notifikasiAdmin` dikirim controller atau support
+  class, bukan dihitung lewat query di dalam layout. Contoh di atas hanya
+  menunjukkan bentuk markup-nya.
+
+### 4.8 Status Turunan Server
+
+Keadaan yang dipakai untuk menandai UI (jumlah belum dibaca, ada nudge,
+`next_since`, status eskalasi) selalu berasal dari respons server. Template
+dan JavaScript tidak menghitung ulang dari data yang kebetulan sudah tampil.
+
+- Endpoint daftar/baca mengembalikan `total_belum_dibaca` dan `ada_nudge`
+  setiap kali, walau aksinya hanya menandai satu notifikasi.
+- Setelah aksi berhasil, badge dan titik nudge diperbarui dari angka respons,
+  bukan dari `+1`/`-1` lokal.
+- Notifikasi yang menandai "perlu follow up" hanya tipe `pengaduan_nudge_unit`.
+  Tipe lain tidak boleh menyalakan titik nudge.
+- Data notifikasi yang dikirim ke browser sudah berupa array siap tampil
+  (`title`, `message`, `url`, `kode_tiket`), bukan model Eloquent.
+
 ---
 
 ## 5. Ikon (Material Symbols)
@@ -442,7 +542,7 @@ supaya diff tetap kecil.
 - Komponen `x-symbol` di `resources/views/components/symbol.blade.php`:
 
 ```blade
-@props(['nama', 'class' => 'text-[20px']])
+@props(['nama', 'class' => 'text-[20px]'])
 
 <span {{ $attributes->merge(['class' => 'material-symbols-outlined '.$class]) }} aria-hidden="true">{{ $nama }}</span>
 ```
@@ -741,6 +841,12 @@ Menu disimpan di array PHP di awal file:
 - Fungsi kecil, nama deskriptif
 - Komentar singkat di atas blok logika kompleks
 - **Tidak** memuat library eksternal - hanya vanilla JS
+- Interaksi buka/tutup memakai `<details>`; skrip hanya menyelaraskan
+  `aria-expanded`, memuat isi, dan menangani Escape/klik di luar
+- Setiap teks dari server yang disisipkan lewat `innerHTML` wajib melewati
+  `escapeHtml()`; jangan menempel `notif.title` mentah ke template string
+- Item yang dapat diklik diberi `role="menuitem"` dan `tabindex="0"`, lalu
+  dengar `keydown` untuk Enter/Space. Jangan mengandalkan klik tetikus saja
 
 ```blade
 @push('scripts')
@@ -866,6 +972,8 @@ vendor/bin/pint
 - [ ] Kode tiket tidak di-$fillable
 - [ ] Rate limiting & validasi ada
 - [ ] Script halaman ada di `@push('scripts')`, bukan di tengah HTML
+- [ ] Dropdown memakai `<details>`/`<summary>` dan tetap berguna tanpa JavaScript
+- [ ] Badge, titik nudge, dan hitungan lain diambil dari respons server
 - [ ] Test halaman admin memakai helper `masukSebagaiAdmin()` / `masukSebagaiPicUntuk()`
 - [ ] Test lulus (`php artisan test --compact`)
 - [ ] Pint bersih (`vendor/bin/pint --dirty --format agent`)
@@ -897,6 +1005,10 @@ vendor/bin/pint
 | **Ubah angka SLA di config/pengaduan.php** | Sumber kebenaran tunggal |
 | **Query langsung di Blade** | Separation of concerns |
 | **Tautan palsu `href="#"` untuk fitur belum ada** | Test memeriksa hal ini; pakai `span.cursor-not-allowed` atau `button disabled` |
+| **Mengembalikan `'#'` dari method PHP saat URL gagal dibentuk** | Sama dengan tautan palsu; kembalikan `null` dan biarkan template menonaktifkan tautannya |
+| **Menghitung jumlah/badge notifikasi di JavaScript** | Server sudah mengirim `total_belum_dibaca`; hitungan lokal akan melenceng setelah aksi lain |
+| **Menulis peran sebagai string lepas (`'admin'`, `'unit'`)** | Pakai `PeranPengguna::Admin->value` supaya nilai berubah di satu tempat |
+| **Menaruh query notifikasi di layout** | Layout hanya merender data; query ada di controller atau `App\Support\*` |
 | **Jadikan `kode_tiket` mass assignable** | Keamanan: kode dibuat sistem |
 | **Tulis angka SLA, nama unit secara lepas** | Hanya di `config/pengaduan.php` dan `App\Support\Sla` |
 | **Pakai `declare(strict_types=1)`** | Project tidak memakainya |
@@ -926,4 +1038,4 @@ vendor/bin/pint
 
 ---
 
-*Dokumen ini dikonsolidasi dari `STYLING_GUIDE.md`, `STYLE_GUIDE.md`, `STYLE.md`, dan analisis kodebase. Terakhir dicocokkan dengan kode: 27 Oktober 2026.*
+*Dokumen ini dikonsolidasi dari `STYLING_GUIDE.md`, `STYLE_GUIDE.md`, `STYLE.md`, dan analisis kodebase. Terakhir dicocokkan dengan kode: 28 Oktober 2026.*
