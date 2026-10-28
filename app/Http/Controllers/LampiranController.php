@@ -2,17 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LampiranController extends Controller
 {
     private const SESI_TERVERIFIKASI = 'tiket_terverifikasi';
 
-    public function pengaduan(Request $request, string $kode, string $file)
+    /**
+     * Jenis berkas yang aman dirender langsung oleh browser.
+     *
+     * Sisanya dipaksa unduh. Validasi unggahan memang hanya menerima
+     * JPG/PNG/PDF, tetapi berkas bisa masuk lewat seeder atau salinan manual
+     * yang tidak melewati validasi itu.
+     */
+    private const EKSTENSI_TAMPIL = ['jpg', 'jpeg', 'png', 'pdf'];
+
+    public function pengaduan(Request $request, string $kode, string $file): StreamedResponse
     {
         $pengaduan = Pengaduan::where('kode_tiket', strtoupper($kode))->firstOrFail();
 
@@ -34,33 +44,17 @@ class LampiranController extends Controller
         return $this->tampilkanBerkas($pathDitemukan);
     }
 
-    public function pesan(Request $request, PesanPengaduan $pesan, string $file)
+    public function pesan(Request $request, PesanPengaduan $pesan, string $file): StreamedResponse
     {
         $pengaduan = $pesan->pengaduan;
 
         $this->otorisasiPengaduan($request, $pengaduan);
 
-        // Pastikan pesan boleh diakses oleh pelapor jika berasal dari jalur pelapor
-        // Namun admin dan unit tetap bisa mengakses sesuai otorisasi pengaduan
-        $user = $request->user();
-        if (! $user) {
-            // Pelapor hanya boleh melihat pesan di jalur pelapor
-            if (! $pesan->jalurPelapor()) {
-                abort(404);
-            }
-        } else {
-            // Jika unit, pastikan pesan ini terkait dengan unit yang berhak
-            if ($user->berperanUnit()) {
-                $unit = $pengaduan->masterUnit;
-                if (! $unit || ! $user->terdaftarDiUnit($unit)) {
-                    abort(403);
-                }
-                // Unit hanya bisa melihat pesan jika sudah diteruskan humas
-                if ($pengaduan->status->value === \App\Enums\StatusPengaduan::Diterima->value) {
-                    abort(404);
-                }
-            }
-            // Admin boleh melihat semua pesan terkait pengaduannya
+        // Pelapor yang membuka lewat sesi atau token hanya boleh membaca
+        // pesan di jalur pelapor. Hak akses admin dan unit sudah diperiksa
+        // otorisasiPengaduan(), jadi tidak perlu diulang di sini.
+        if (! $request->user() && ! $pesan->jalurPelapor()) {
+            abort(404);
         }
 
         $pathDitemukan = null;
@@ -93,9 +87,10 @@ class LampiranController extends Controller
                     abort(403);
                 }
                 // Hanya tiket yang sudah diteruskan humas yang bisa diakses unit
-                if ($pengaduan->status->value === \App\Enums\StatusPengaduan::Diterima->value) {
+                if ($pengaduan->status->value === StatusPengaduan::Diterima->value) {
                     abort(404);
                 }
+
                 return;
             }
 
@@ -119,7 +114,14 @@ class LampiranController extends Controller
         abort(403);
     }
 
-    private function tampilkanBerkas(string $path)
+    /**
+     * Kirim berkas apa adanya, tanpa membiarkan browser menebak tipenya.
+     *
+     * nosniff dipasang untuk semua berkas. CSP sandbox hanya untuk yang
+     * bukan PDF, karena penampil PDF bawaan browser bisa ikut terblokir
+     * kalau aturan itu dipasang di sana.
+     */
+    private function tampilkanBerkas(string $path): StreamedResponse
     {
         $disk = Storage::disk(config('pengaduan.disk_lampiran'));
 
@@ -127,16 +129,31 @@ class LampiranController extends Controller
             abort(404);
         }
 
+        $ekstensi = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $bolehTampil = in_array($ekstensi, self::EKSTENSI_TAMPIL, true);
+
         try {
             $mimeType = $disk->mimeType($path);
         } catch (\Throwable $e) {
             $mimeType = 'application/octet-stream';
         }
 
+        // Tipe yang tidak dikenal juga dipaksa unduh: lebih baik pengguna
+        // mengunduh berkas daripada browser memutuskan sendiri cara
+        // menampilkannya di origin aplikasi.
+        if (! $bolehTampil) {
+            $mimeType = 'application/octet-stream';
+        }
+
         $headers = [
             'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="'.basename($path).'"',
+            'Content-Disposition' => ($bolehTampil ? 'inline' : 'attachment').'; filename="'.basename($path).'"',
+            'X-Content-Type-Options' => 'nosniff',
         ];
+
+        if ($ekstensi !== 'pdf') {
+            $headers['Content-Security-Policy'] = "default-src 'none'; sandbox";
+        }
 
         $stream = $disk->readStream($path);
         if ($stream === false) {
