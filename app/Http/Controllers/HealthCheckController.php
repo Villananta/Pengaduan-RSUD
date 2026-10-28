@@ -6,92 +6,102 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Str;
 
+/**
+ * Probe kesehatan aplikasi untuk load balancer dan monitoring.
+ *
+ * Response sengaja hanya memuat status per dependency. Endpoint ini publik,
+ * jadi pesan exception yang biasa memuat host, port, atau nama database
+ * dicatat ke log lewat report(), bukan dikirim ke pemanggil. Versi framework
+ * dan nama environment juga tidak ikut karena keduanya memudahkan penyerang
+ * memetakan target.
+ */
 class HealthCheckController extends Controller
 {
     /**
-     * Health check endpoint untuk load balancer / monitoring.
-     *
-     * Response:
-     * - 200: healthy (semua dependency OK)
-     * - 503: unhealthy (database/redis/cache gagal)
+     * Laporan lengkap: 200 kalau semua dependency hidup, 503 kalau salah satu
+     * yang wajib tidak bisa dipakai.
      */
     public function index(): JsonResponse
     {
         $checks = [];
-        $overall = 'healthy';
+        $sehat = true;
 
-        // 1. Database connectivity
+        // Basis data: satu-satunya dependency yang dilalui semua alur.
         try {
-            DB::connection()->getPdo();
-            $checks['database'] = ['status' => 'ok', 'latency_ms' => $this->measureLatency(fn () => DB::select('SELECT 1'))];
+            $checks['database'] = [
+                'status' => 'ok',
+                'latency_ms' => $this->ukurLatensi(fn () => DB::select('SELECT 1')),
+            ];
         } catch (\Throwable $e) {
-            $checks['database'] = ['status' => 'failed', 'error' => $e->getMessage()];
-            $overall = 'unhealthy';
+            report($e);
+            $checks['database'] = ['status' => 'failed'];
+            $sehat = false;
         }
 
-        // 2. Cache (Redis/Database)
+        // Cache: menulis lalu membaca satu kunci sudah cukup membuktikan
+        // driver yang sedang dipakai benar-benar bisa disentuh.
         try {
-            $cacheKey = 'health_check_'.Str::random(8);
-            $latency = $this->measureLatency(function () use ($cacheKey) {
-                Cache::put($cacheKey, 'ok', 10);
-                Cache::get($cacheKey);
-                Cache::forget($cacheKey);
-            });
-            $checks['cache'] = ['status' => 'ok', 'latency_ms' => $latency];
+            $kunci = 'health_check_'.Str::random(8);
+            $checks['cache'] = [
+                'status' => 'ok',
+                'latency_ms' => $this->ukurLatensi(function () use ($kunci) {
+                    Cache::put($kunci, 'ok', 10);
+                    Cache::get($kunci);
+                    Cache::forget($kunci);
+                }),
+            ];
         } catch (\Throwable $e) {
-            $checks['cache'] = ['status' => 'failed', 'error' => $e->getMessage()];
-            $overall = 'unhealthy';
+            report($e);
+            $checks['cache'] = ['status' => 'failed'];
+            $sehat = false;
         }
 
-        // 3. Redis (jika dikonfigurasi)
-        try {
-            if (class_exists(Redis::class)) {
-                $latency = $this->measureLatency(fn () => Redis::ping());
-                $checks['redis'] = ['status' => 'ok', 'latency_ms' => $latency];
-            } else {
-                $checks['redis'] = ['status' => 'skipped', 'reason' => 'not_configured'];
+        // Redis hanya relevan kalau ada driver inti yang memakainya.
+        // Sebelumnya blok ini selalu jalan dan selalu gagal di mesin tanpa
+        // ekstensi phpredis, padahal aplikasi sama sekali tidak menyentuhnya.
+        if ($this->redisDipakai()) {
+            try {
+                $checks['redis'] = [
+                    'status' => 'ok',
+                    'latency_ms' => $this->ukurLatensi(fn () => Redis::ping()),
+                ];
+            } catch (\Throwable $e) {
+                report($e);
+                $checks['redis'] = ['status' => 'failed'];
+                $sehat = false;
             }
-        } catch (\Throwable $e) {
-            $checks['redis'] = ['status' => 'failed', 'error' => $e->getMessage()];
-            // Redis failure tidak selalu unhealthy (bisa pakai database cache)
-            // Tapi set degraded
-            if ($overall === 'healthy') {
-                $overall = 'degraded';
-            }
+        } else {
+            $checks['redis'] = ['status' => 'skipped', 'reason' => 'not_used'];
         }
 
-        // 4. Storage writable
+        // Storage: view cache dan log ditulis di sini, jadi direktori yang
+        // tidak bisa ditulisi akan menggagalkan aplikasi tanpa error jelas.
         try {
-            $testFile = storage_path('health_check_'.Str::random(8).'.tmp');
-            file_put_contents($testFile, 'ok');
-            unlink($testFile);
+            $berkasUji = storage_path('health_check_'.Str::random(8).'.tmp');
+            file_put_contents($berkasUji, 'ok');
+            unlink($berkasUji);
             $checks['storage'] = ['status' => 'ok'];
         } catch (\Throwable $e) {
-            $checks['storage'] = ['status' => 'failed', 'error' => $e->getMessage()];
-            $overall = 'unhealthy';
+            report($e);
+            $checks['storage'] = ['status' => 'failed'];
+            $sehat = false;
         }
 
-        // 4. Queue worker check (opsional - cek apakah queue worker hidup via Redis)
-        // Skip untuk sekarang, bisa ditambah nanti
-
-        $response = [
-            'status' => $overall,
+        return response()->json([
+            'status' => $sehat ? 'healthy' : 'unhealthy',
             'timestamp' => now()->toIso8601String(),
-            'version' => app()->version(),
-            'environment' => app()->environment(),
             'checks' => $checks,
-        ];
-
-        $statusCode = $overall === 'healthy' ? 200 : ($overall === 'degraded' ? 200 : 503);
-
-        return response()->json($response, $statusCode);
+        ], $sehat ? 200 : 503);
     }
 
     /**
-     * Simple liveness probe (untuk Kubernetes livenessProbe).
+     * Liveness probe (Kubernetes livenessProbe).
      *
-     * Selalu return 200 kalau aplikasi boot dengan benar.
+     * Selalu 200 selama aplikasi berhasil boot; dependency diperiksa di
+     * endpoint lain supaya proses tidak di-restart hanya karena database
+     * sedang lambat.
      */
     public function live(): JsonResponse
     {
@@ -102,14 +112,14 @@ class HealthCheckController extends Controller
     }
 
     /**
-     * Readiness probe (untuk Kubernetes readinessProbe).
+     * Readiness probe (Kubernetes readinessProbe).
      *
-     * Return 200 kalau siap serve traffic, 503 kalau tidak.
+     * Hanya menyentuh database dan cache karena keduanya harus siap sebelum
+     * trafik dialihkan ke instance ini.
      */
     public function ready(): JsonResponse
     {
         try {
-            // Quick checks only
             DB::connection()->getPdo();
             Cache::get('health_check_ready');
 
@@ -118,19 +128,38 @@ class HealthCheckController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ]);
         } catch (\Throwable $e) {
+            // Sama seperti index(): alasan sebenarnya masuk log, response
+            // hanya memberi tahu bahwa instance belum siap.
+            report($e);
+
             return response()->json([
                 'status' => 'not_ready',
-                'error' => $e->getMessage(),
                 'timestamp' => now()->toIso8601String(),
             ], 503);
         }
     }
 
-    private function measureLatency(callable $callback): float
+    /**
+     * Redis dianggap bagian dari sistem hanya kalau cache, antrean, sesi,
+     * atau broadcast memakai driver redis.
+     */
+    private function redisDipakai(): bool
     {
-        $start = microtime(true);
+        $driver = [
+            config('cache.default'),
+            config('queue.default'),
+            config('session.driver'),
+            config('broadcasting.default'),
+        ];
+
+        return in_array('redis', $driver, true);
+    }
+
+    private function ukurLatensi(callable $callback): float
+    {
+        $awal = microtime(true);
         $callback();
 
-        return round((microtime(true) - $start) * 1000, 2);
+        return round((microtime(true) - $awal) * 1000, 2);
     }
 }

@@ -39,10 +39,18 @@ Route::get('/lampiran/pesan/{pesan}/{file}', [LampiranController::class, 'pesan'
     ->name('lampiran.pesan');
 
 // Health check endpoints (untuk load balancer, Kubernetes, monitoring)
-// Tidak memerlukan auth, rate limit longgar (hanya monitoring internal)
-Route::get('/health', [HealthCheckController::class, 'index'])->name('health');
-Route::get('/health/live', [HealthCheckController::class, 'live'])->name('health.live');
-Route::get('/health/ready', [HealthCheckController::class, 'ready'])->name('health.ready');
+// Tidak memerlukan auth karena probe dipanggil dari luar sesi. Batas lajunya
+// longgar dan memakai satu kunci bersama; response-nya sendiri tidak memuat
+// data internal, jadi aman dibiarkan terbuka.
+Route::get('/health', [HealthCheckController::class, 'index'])
+    ->middleware('throttle:120,1,'.ThrottleKeys::HEALTH)
+    ->name('health');
+Route::get('/health/live', [HealthCheckController::class, 'live'])
+    ->middleware('throttle:120,1,'.ThrottleKeys::HEALTH)
+    ->name('health.live');
+Route::get('/health/ready', [HealthCheckController::class, 'ready'])
+    ->middleware('throttle:120,1,'.ThrottleKeys::HEALTH)
+    ->name('health.ready');
 
 // Batas percobaan agar kode tiket tidak bisa ditebak brute force dan
 // endpoint publik tidak bisa dipakai untuk spam.

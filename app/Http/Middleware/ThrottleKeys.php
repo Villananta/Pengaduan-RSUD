@@ -75,6 +75,11 @@ final class ThrottleKeys
     // Publik: aktivasi undangan PIC
     public const AKTIVASI_UNDANGAN = 'aktivasi-undangan';
 
+    // Health check. Satu kunci dipakai ketiga probe karena orchestrator yang
+    // sama memanggil liveness dan readiness bergantian; jatah terpisah justru
+    // membuat satu probe menghabiskan kuota probe lain.
+    public const HEALTH = 'health';
+
     // Unit
     public const UNIT_JAWABAN = 'unit-jawaban';
 
