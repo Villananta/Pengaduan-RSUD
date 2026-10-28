@@ -25,7 +25,9 @@ class DatabaseSeeder extends Seeder
         // tautan undangan.
         $this->call(AkunPicSeeder::class);
 
-        $this->call(PengaduanDemoSeeder::class);
+        // Hanya seeder dummy yang dipanggil supaya total tiket contoh tetap
+        // 150. PengaduanDemoSeeder masih bisa dijalankan manual lewat
+        // --class bila butuh lima tiket yang kronologinya ditulis tangan.
         $this->call(PengaduanDummySeeder::class);
 
         // Akun admin humas dibuat satu kali saja supaya `db:seed` berulang
