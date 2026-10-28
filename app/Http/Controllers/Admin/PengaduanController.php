@@ -213,15 +213,6 @@ class PengaduanController extends Controller
     }
 
     /**
-     * Tiket yang dibuka formulir harus benar-benar ada; kalau tidak, kode
-     * yang diketik admin tidak boleh sampai tersimpan sebagai balasan.
-     */
-    private function cariTiket(string $kode): Pengaduan
-    {
-        return Pengaduan::where('kode_tiket', $kode)->firstOrFail();
-    }
-
-    /**
      * Kembali ke panel tiket dengan pesan hasil.
      *
      * Semua tindakan pada halaman detail berakhir di halaman yang sama,
