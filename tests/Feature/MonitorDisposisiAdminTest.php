@@ -249,6 +249,43 @@ class MonitorDisposisiAdminTest extends TestCase
     }
 
     /**
+     * Kolom arsip memuat semua tiket yang pernah ditutup, jadi halamannya
+     * dibatasi. Angka totalnya tetap jujur, kartu yang dirender berhenti di
+     * batas muat, dan sisanya punya jalan keluar ke daftar pengaduan.
+     */
+    public function test_kolom_arsip_dibatasi_dan_sisanya_ditautkan_ke_daftar(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        Pengaduan::factory()
+            ->count(105)
+            ->selesai(now()->subDays(2))
+            ->create([
+                'master_unit_id' => $unit->id,
+                'unit' => $unit->nama,
+            ]);
+
+        // Tiket yang baru ditutup harus tetap terlihat walau kolomnya penuh,
+        // karena urutan arsip dibaca dari yang paling baru.
+        Pengaduan::factory()->selesai()->create([
+            'kode_tiket' => 'ADUAN-ARSIP-BARU',
+            'master_unit_id' => $unit->id,
+            'unit' => $unit->nama,
+        ]);
+
+        $kolom = collect(MonitorDisposisi::dariRequest()->papan)->firstWhere('kunci', 'jawaban_unit');
+
+        $this->assertSame(106, $kolom['total']);
+        $this->assertCount(100, $kolom['tiket']);
+        $this->assertSame(6, $kolom['sisaDiLuar']);
+        $this->assertSame('ADUAN-ARSIP-BARU', $kolom['tiket'][0]['kode']);
+        $this->assertSame(
+            route('admin.pengaduan.index', ['investigasi' => StatusInvestigasi::JawabanUnit->value]),
+            $kolom['tautanSisa'],
+        );
+    }
+
+    /**
      * Isi satu kolom papan disposisi, diukur dari judulnya.
      *
      * Dipakai untuk memastikan sebuah tiket tidak bocor ke kolom yang

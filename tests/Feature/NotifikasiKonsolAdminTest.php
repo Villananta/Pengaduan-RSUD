@@ -55,6 +55,24 @@ class NotifikasiKonsolAdminTest extends TestCase
             ->assertSee('campaign', false);
     }
 
+    public function test_lencana_lonceng_menampilkan_jumlah_notifikasi_belum_dibaca(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $admin = $this->masukSebagaiAdmin();
+        $pengaduan = Pengaduan::factory()->create(['master_unit_id' => $farmasi->id]);
+
+        $admin->notify(new PengaduanNudgeUnit($pengaduan, $farmasi, 'Pesan pertama'));
+        $admin->notify(new PengaduanNudgeUnit($pengaduan, $farmasi, 'Pesan kedua'));
+
+        // Angka lencana disiapkan App\Support\NotifikasiAdmin lewat view
+        // composer pada layout; tanpa composer, layout tidak punya angka
+        // untuk ditampilkan.
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('id="admin-badge-notifikasi"', false)
+            ->assertSee('2 notifikasi belum dibaca');
+    }
+
     public function test_tandai_dibaca_menolak_daftar_kosong(): void
     {
         $this->masukSebagaiAdmin();

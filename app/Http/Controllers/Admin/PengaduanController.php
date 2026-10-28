@@ -128,7 +128,10 @@ class PengaduanController extends Controller
     {
         $validated = $request->validate([
             'aksi' => ['required', 'string', 'in:disposisi,kasus_berat'],
-            'kode_tiket' => ['required', 'array', 'min:1'],
+            // Batas ini mengikuti ukuran halaman terbesar pada daftar
+            // pengaduan. Tanpa batas, satu kiriman bisa memuat ribuan kode
+            // tiket dan setiap tiket mengirim notifikasi sendiri-sendiri.
+            'kode_tiket' => ['required', 'array', 'min:1', 'max:100'],
             'kode_tiket.*' => ['string', 'exists:pengaduan,kode_tiket'],
             'unit' => ['required_if:aksi,disposisi', 'string', 'exists:master_units,kode'],
             'catatan' => ['nullable', 'string', 'max:500'],
@@ -139,6 +142,7 @@ class PengaduanController extends Controller
             'kode_tiket.required' => 'Pilih minimal satu tiket.',
             'kode_tiket.array' => 'Format pilihan tiket tidak valid.',
             'kode_tiket.min' => 'Pilih minimal satu tiket.',
+            'kode_tiket.max' => 'Maksimal 100 tiket sekali proses. Persempit dulu pilihan dengan filter.',
             'kode_tiket.*.exists' => 'Salah satu kode tiket tidak ditemukan.',
             'unit.required_if' => 'Pilih unit tujuan untuk disposisi.',
             'unit.exists' => 'Unit tujuan tidak ditemukan.',
@@ -170,6 +174,7 @@ class PengaduanController extends Controller
                         $pengaduan,
                         $unit,
                         $validated['catatan'] ?? null,
+                        $request->user()?->id,
                     );
                 } elseif ($aksi === 'kasus_berat') {
                     if ($pengaduan->status->selesai()) {
@@ -179,6 +184,7 @@ class PengaduanController extends Controller
                     KasusBeratService::tandaiKasusBerat(
                         $pengaduan,
                         $request->boolean('aktif'),
+                        $request->user()?->id,
                     );
                 }
 
@@ -200,7 +206,10 @@ class PengaduanController extends Controller
             $pesan .= ' Gagal: '.implode('; ', $gagal);
         }
 
-        return back()->with('sukses', $pesan);
+        // Semua tiket bisa gagal sekaligus. Kalau pesannya tetap dikirim
+        // lewat kunci "sukses", layar memakai warna hijau dan admin mengira
+        // aksinya berhasil; kunci "gagal" dipakai supaya sesuai kenyataan.
+        return back()->with($berhasil === 0 ? 'gagal' : 'sukses', $pesan);
     }
 
     /**

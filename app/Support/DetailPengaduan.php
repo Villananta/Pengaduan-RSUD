@@ -138,8 +138,8 @@ final class DetailPengaduan
     /**
      * Alasan tiket belum bisa ditutup dari panel tahap, atau null kalau bisa.
      *
-     * Disalin dari App\Support\TindakLanjutPengaduan supaya keterangan di
-     * layar dan aturan di server memakai satu sumber yang sama.
+     * Diteruskan ke TahapService supaya keterangan di layar dan aturan di
+     * server memakai satu sumber yang sama.
      */
     public function alasanTutup(): ?string
     {

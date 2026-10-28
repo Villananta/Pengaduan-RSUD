@@ -8,13 +8,16 @@ use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Models\User;
+use App\Notifications\PengaduanKasusBerat;
+use App\Services\TahapService;
 use App\Support\DetailPengaduan;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
-use App\Support\TindakLanjutPengaduan;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -210,7 +213,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         $this->assertSame(
             [StatusPengaduan::Diproses],
-            TindakLanjutPengaduan::tujuanTersedia($pengaduan)
+            TahapService::tujuanTersedia($pengaduan)
         );
 
         // Penyebutan tahap lain masih muncul di stepper, jadi yang diperiksa
@@ -250,7 +253,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         $this->assertSame(
             [StatusPengaduan::Selesai, StatusPengaduan::Revisi],
-            TindakLanjutPengaduan::tujuanTersedia($pengaduan)
+            TahapService::tujuanTersedia($pengaduan)
         );
 
         $this->assertStringContainsString('value="selesai"', $tampilan);
@@ -288,7 +291,7 @@ class TindakLanjutPengaduanAdminTest extends TestCase
             ->assertSee('Selesaikan')
             ->getContent();
 
-        $this->assertSame([StatusPengaduan::Selesai], TindakLanjutPengaduan::tujuanTersedia($pengaduan));
+        $this->assertSame([StatusPengaduan::Selesai], TahapService::tujuanTersedia($pengaduan));
         $this->assertStringContainsString('value="selesai"', $tampilan);
         $this->assertStringNotContainsString('value="revisi"', $tampilan);
     }
@@ -385,6 +388,55 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertFalse($pengaduan->kasus_berat);
         $this->assertNull($pengaduan->kasus_berat_at);
         $this->assertSame(Sla::hariKerja(), $pengaduan->totalHariKerjaSla());
+    }
+
+    public function test_melepas_penandaan_kasus_berat_tidak_mengirim_notifikasi(): void
+    {
+        Notification::fake();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-BERAT-04');
+        $pengaduan->tandaiKasusBerat(true);
+
+        $this->post(route('admin.pengaduan.kasus-berat', $pengaduan->kode_tiket), ['aktif' => 0])
+            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        // Pelepasan penandaan hanya koreksi humas; jejaknya sudah ada di
+        // riwayat status, jadi tidak perlu kabar ke lonceng mana pun.
+        Notification::assertNothingSent();
+    }
+
+    public function test_menandai_kasus_berat_mengabari_admin_lain_tanpa_diri_sendiri(): void
+    {
+        Notification::fake();
+
+        $adminLain = User::factory()->admin()->create();
+        $pengaduan = $this->tiketDiproses('ADUAN-BERAT-05');
+
+        $this->post(route('admin.pengaduan.kasus-berat', $pengaduan->kode_tiket), ['aktif' => 1])
+            ->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
+
+        Notification::assertSentTo($adminLain, PengaduanKasusBerat::class);
+        Notification::assertNotSentTo(auth()->user(), PengaduanKasusBerat::class);
+    }
+
+    public function test_tautan_lampiran_pesan_tidak_pernah_berupa_pagar_kosong(): void
+    {
+        $pengaduan = $this->tiketDiproses('ADUAN-LAMPIRAN-01');
+
+        $pesan = $pengaduan->pesan()->create([
+            'peran' => 'admin',
+            'isi' => 'Lampiran bukti penerimaan obat.',
+            'lampiran' => ['lampiran/bukti.jpg'],
+        ]);
+
+        // Induk pengaduan sengaja dilepas supaya jalur cadangan yang dulu
+        // mengembalikan '#' ikut teruji.
+        $pesan->setRelation('pengaduan', null);
+
+        $this->assertSame(
+            route('lampiran.pesan', ['pesan' => $pesan->id, 'file' => 'bukti.jpg']),
+            $pesan->urlLampiran('lampiran/bukti.jpg'),
+        );
     }
 
     public function test_halaman_detail_tidak_lagi_menampilkan_panel_kasus_berat(): void

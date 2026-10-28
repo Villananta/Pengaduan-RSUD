@@ -64,13 +64,14 @@
                     </div>
                 </div>
 
+                {{-- Lonceng notifikasi. Datanya disiapkan App\Support\NotifikasiAdmin
+                     lewat view composer pada layout ini supaya template tidak
+                     menyusun query sendiri; dua query tetap dipakai karena
+                     lencana butuh total sebenarnya sedangkan dropdown cukup
+                     memuat yang terbaru. --}}
                 @php
-                    // Dua query disengaja: angka lencana butuh total yang
-                    // sebenarnya, sedangkan isi dropdown cukup 15 terbaru.
-                    $jumlahNotifAdmin = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
-                    $notifikasiAdmin = auth()->check()
-                        ? auth()->user()->unreadNotifications()->latest()->limit(15)->get()
-                        : collect();
+                    $jumlahNotifAdmin = $notifikasiAdmin?->jumlahNotifikasiBelumDibaca() ?? 0;
+                    $daftarNotifAdmin = $notifikasiAdmin?->notifikasiTerbaru() ?? collect();
                 @endphp
 
                 <div class="relative" id="admin-notifikasi-wrapper">
@@ -116,11 +117,11 @@
                                 </form>
                             </div>
                             <div id="admin-daftar-notifikasi" class="max-h-[360px] overflow-y-auto">
-                                @if ($notifikasiAdmin->isEmpty())
+                                @if ($daftarNotifAdmin->isEmpty())
                                     <div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>
                                 @else
                                     <div class="divide-y divide-outline-variant">
-                                        @foreach ($notifikasiAdmin as $notif)
+                                        @foreach ($daftarNotifAdmin as $notif)
                                             <x-item-notifikasi :notif="$notif" />
                                         @endforeach
                                     </div>

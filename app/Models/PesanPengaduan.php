@@ -145,21 +145,24 @@ class PesanPengaduan extends Model
     public function urlLampiran(string $path): string
     {
         $disk = config('pengaduan.disk_lampiran');
-        $pengaduan = $this->pengaduan;
 
-        if (! $pengaduan) {
-            try {
-                return Storage::disk($disk)->url($path);
-            } catch (\Throwable $e) {
-                return '#';
-            }
+        // Model yang belum tersimpan tidak punya id, jadi rute lampiran
+        // belum bisa dibentuk dan URL disk dipakai apa adanya.
+        if ($this->id === null) {
+            return Storage::disk($disk)->url($path);
         }
 
-        if ($disk === 'public' || $disk === 'local') {
-            return route('lampiran.pesan', [
-                'pesan' => $this->id,
-                'file' => basename($path),
-            ]);
+        // Disk publik dan lokal tetap dilayani rute ini supaya pemeriksaan
+        // hak akses di LampiranController ikut berjalan; URL langsung dari
+        // disk akan melewatinya. Pesan yang induknya tidak terbaca juga
+        // diarahkan ke sini, bukan ke '#'.
+        $ruteLampiran = route('lampiran.pesan', [
+            'pesan' => $this->id,
+            'file' => basename($path),
+        ]);
+
+        if ($this->pengaduan === null || $disk === 'public' || $disk === 'local') {
+            return $ruteLampiran;
         }
 
         try {
@@ -168,10 +171,7 @@ class PesanPengaduan extends Model
                 now()->addMinutes(60)
             );
         } catch (\Throwable $e) {
-            return route('lampiran.pesan', [
-                'pesan' => $this->id,
-                'file' => basename($path),
-            ]);
+            return $ruteLampiran;
         }
     }
 

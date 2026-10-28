@@ -47,6 +47,29 @@
 
     <div class="w-full px-margin py-space-md flex flex-col gap-space-lg">
 
+        {{-- Hasil aksi massal. Sebelumnya pesannya dikirim tetapi tidak
+             pernah dirender di halaman ini, jadi admin tidak tahu tiket mana
+             yang berhasil dan mana yang ditolak. --}}
+        @if (session('sukses'))
+            <div
+                role="status"
+                class="w-full bg-secondary-container text-on-secondary-container rounded-lg px-space-md py-space-sm flex items-start gap-space-sm"
+            >
+                <x-symbol nama="check_circle" class="text-[20px] shrink-0" />
+                <span class="text-body-sm">{{ session('sukses') }}</span>
+            </div>
+        @endif
+
+        @if (session('gagal'))
+            <div
+                role="alert"
+                class="w-full bg-error-container text-on-error-container rounded-lg px-space-md py-space-sm flex items-start gap-space-sm"
+            >
+                <x-symbol nama="error" class="text-[20px] shrink-0" />
+                <span class="text-body-sm">{{ session('gagal') }}</span>
+            </div>
+        @endif
+
         <!-- Strip Konteks: posisi halaman, aturan status, dan metrik cepat. -->
         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md">
             <div class="flex flex-col">

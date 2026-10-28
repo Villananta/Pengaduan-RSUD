@@ -140,7 +140,7 @@ class KomunikasiController extends Controller
 
         $aktif = $request->boolean('aktif');
 
-        KasusBeratService::tandaiKasusBerat($pengaduan, $aktif);
+        KasusBeratService::tandaiKasusBerat($pengaduan, $aktif, $request->user()?->id);
 
         return $this->kembali(
             $pengaduan,

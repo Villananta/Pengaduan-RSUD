@@ -179,6 +179,18 @@
                                     </span>
                                 </button>
                             @endif
+
+                            {{-- Tiket di atas batas muat tidak ikut dirender, jadi
+                                 pintunya adalah daftar pengaduan dengan filter
+                                 yang sama. --}}
+                            @if ($kolom['sisaDiLuar'] > 0)
+                                <a
+                                    href="{{ $kolom['tautanSisa'] }}"
+                                    class="text-center py-1 rounded-sm hover:bg-surface-container transition-colors font-body-sm text-body-sm text-secondary font-semibold"
+                                >
+                                    + {{ number_format($kolom['sisaDiLuar'], 0, ',', '.') }} tiket lainnya di Daftar Pengaduan
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @endforeach

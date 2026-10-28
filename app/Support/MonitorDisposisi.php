@@ -39,6 +39,16 @@ final class MonitorDisposisi
     private const KARTU_PER_KOLOM = 4;
 
     /**
+     * Batas tiket yang dimuat untuk satu kolom.
+     *
+     * Kolom "Jawaban di Humas" memuat semua tiket yang pernah ditutup, jadi
+     * jumlahnya terus bertambah dan suatu saat tidak lagi masuk akal untuk
+     * dirender sekaligus. Sisa di atas batas ini dibuka lewat daftar
+     * pengaduan dengan filter yang sama, bukan ditumpuk di papan.
+     */
+    private const MAKS_KARTU = 100;
+
+    /**
      * @param  array<int, array<string, mixed>>  $papan  Kolom kanban status disposisi unit.
      */
     public function __construct(
@@ -121,6 +131,11 @@ final class MonitorDisposisi
                 'syarat' => fn (): Builder => $unitBelumMenjawab(
                     $dasar()->aktif()->where('status', StatusPengaduan::Diterima->value)
                 ),
+                'filter' => [
+                    'status' => StatusPengaduan::Diterima->value,
+                    'investigasi' => StatusInvestigasi::SedangInvestigasi->value,
+                ],
+                'urutan' => fn (Builder $q): Builder => $q->orderBy('created_at'),
             ],
             [
                 'kunci' => 'sedang_investigasi',
@@ -137,6 +152,14 @@ final class MonitorDisposisi
                         StatusPengaduan::Revisi->value,
                     ])
                 ),
+                // Tab investigasi pada daftar tidak bisa memuat dua status
+                // sekaligus, jadi tautan sisanya memakai tab yang sama dan
+                // ikut menampilkan tiket Diterima. Isinya sedikit lebih luas
+                // daripada kolom ini, bukan daftar tiket yang berbeda.
+                'filter' => [
+                    'investigasi' => StatusInvestigasi::SedangInvestigasi->value,
+                ],
+                'urutan' => fn (Builder $q): Builder => $q->orderBy('created_at'),
             ],
             [
                 'kunci' => 'menunggu_racikan',
@@ -148,6 +171,10 @@ final class MonitorDisposisi
                 'nadaJudul' => 'text-tertiary',
                 'nadaAngka' => 'bg-tertiary-fixed-dim text-on-tertiary-fixed',
                 'syarat' => fn (): Builder => $unitMenjawab($dasar()->aktif()),
+                'filter' => [
+                    'investigasi' => StatusInvestigasi::MenungguRacikan->value,
+                ],
+                'urutan' => fn (Builder $q): Builder => $q->orderBy('created_at'),
             ],
             [
                 'kunci' => 'jawaban_unit',
@@ -159,22 +186,52 @@ final class MonitorDisposisi
                 'nadaJudul' => 'text-on-surface',
                 'nadaAngka' => 'bg-primary-container text-on-primary',
                 'syarat' => fn (): Builder => $dasar()->selesai(),
+                'filter' => [
+                    'investigasi' => StatusInvestigasi::JawabanUnit->value,
+                ],
+                // Arsip dibaca dari yang paling baru ditutup. Kalau dibiarkan
+                // urut lama-ke-baru, batas muat akan menyisakan tiket lama
+                // dan menyembunyikan yang baru saja selesai.
+                'urutan' => fn (Builder $q): Builder => $q
+                    ->orderByDesc('selesai_at')
+                    ->orderByDesc('created_at'),
             ],
         ];
 
         return collect($kolom)
             ->map(function (array $data) {
-                $daftar = ($data['syarat'])()
-                    ->orderBy('created_at')
+                $syarat = $data['syarat'];
+                $urutan = $data['urutan'];
+
+                unset($data['syarat'], $data['urutan']);
+
+                // Satu baris lebih dari batas dipakai sebagai penanda bahwa
+                // masih ada sisa, sehingga count() terpisah baru dijalankan
+                // saat kolomnya benar-benar panjang.
+                $daftar = $urutan($syarat())
+                    ->limit(self::MAKS_KARTU + 1)
                     ->get();
 
-                unset($data['syarat']);
+                $adaSisa = $daftar->count() > self::MAKS_KARTU;
+                $daftar = $daftar->take(self::MAKS_KARTU);
+                $total = $adaSisa ? $syarat()->count() : $daftar->count();
+
+                // Sisa di atas batas muat tidak mungkin dibuka di tempat,
+                // jadi kolomnya menautkan daftar pengaduan dengan filter
+                // yang sama supaya tiketnya tetap bisa dijangkau.
+                $tautanSisa = $adaSisa
+                    ? route('admin.pengaduan.index', $data['filter'])
+                    : null;
+
+                unset($data['filter']);
 
                 return [
                     ...$data,
-                    'total' => $daftar->count(),
+                    'total' => $total,
                     'sisa' => max(0, $daftar->count() - self::KARTU_PER_KOLOM),
                     'batas' => self::KARTU_PER_KOLOM,
+                    'tautanSisa' => $tautanSisa,
+                    'sisaDiLuar' => $total - $daftar->count(),
                     'tiket' => $daftar
                         ->map(fn (Pengaduan $pengaduan): array => self::kartuTiket($pengaduan))
                         ->all(),
