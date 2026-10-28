@@ -6,6 +6,7 @@ use App\Mail\PengaduanBalasanAdminMail;
 use App\Models\Pengaduan;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 
@@ -20,6 +21,13 @@ class PengaduanBalasanAdmin extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
+        // Pelapor tidak punya akun, jadi notifikasi dikirim lewat alamat
+        // email tiket. Kanal database tidak mendukung penerima on-demand
+        // dan akan gagal kalau tetap disertakan.
+        if ($notifiable instanceof AnonymousNotifiable) {
+            return ['mail'];
+        }
+
         $channels = ['database'];
 
         if (! empty($notifiable->email)) {

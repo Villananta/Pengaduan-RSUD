@@ -41,12 +41,9 @@ class PenguncianRuteUnitTest extends TestCase
         ['GET', 'unit.disposisi.export.pdf', []],
         ['GET', 'unit.arsip.export.excel', []],
         ['GET', 'unit.arsip.export.pdf', []],
-        ['GET', 'unit.notifikasi.daftar', []],
         ['POST', 'unit.notifikasi.tandai-dibaca', []],
         ['POST', 'unit.notifikasi.tandai-semua-dibaca', []],
         ['GET', 'unit.notifikasi.realtime', []],
-        ['POST', 'unit.notifikasi.realtime.baca', []],
-        ['POST', 'unit.notifikasi.realtime.baca-semua', []],
     ];
 
     protected function setUp(): void

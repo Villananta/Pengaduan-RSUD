@@ -39,10 +39,13 @@ class PengaduanDibuat extends Notification implements ShouldQueue
 
     public function toArray(object $notifiable): array
     {
+        // Penerima notifikasi ini selalu admin humas, bukan pelapor, jadi
+        // pesannya berbicara sebagai pengingat tugas dan bukan instruksi
+        // menyimpan kode tiket.
         return [
             'type' => 'pengaduan_dibuat',
-            'title' => 'Pengaduan Baru Dibuat',
-            'message' => "Pengaduan {$this->kodeTiket} telah berhasil dicatat. Simpan kode ini untuk melacak perkembangan.",
+            'title' => 'Pengaduan Baru Masuk',
+            'message' => "Pengaduan {$this->kodeTiket} baru masuk dan menunggu telaah admin humas.",
             'kode_tiket' => $this->kodeTiket,
             'url' => TautanNotifikasi::untuk($notifiable, $this->pengaduan),
             'pengaduan_id' => $this->pengaduan->id,

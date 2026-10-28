@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Unit;
 
 use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
-use App\Models\User;
+use App\Support\NotifikasiPengguna;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\DatabaseNotification;
 
 /**
  * Lonceng notifikasi pada konsol unit.
@@ -28,27 +27,24 @@ class NotificationController extends Controller
      */
     public function tandaiDibaca(Request $request, ?MasterUnit $unit = null): JsonResponse
     {
-        $notificationIds = $request->input('notification_ids', []);
+        $validated = $request->validate([
+            'notification_ids' => ['required', 'array', 'min:1'],
+            'notification_ids.*' => ['string'],
+        ], [
+            'notification_ids.required' => 'Tidak ada notifikasi yang dipilih.',
+            'notification_ids.array' => 'Daftar notifikasi tidak terbaca.',
+            'notification_ids.min' => 'Tidak ada notifikasi yang dipilih.',
+        ]);
 
-        if (empty($notificationIds)) {
-            return response()->json([
-                'sukses' => false,
-                'pesan' => 'Tidak ada notifikasi yang dipilih.',
-            ], 422);
-        }
-
-        $updated = DatabaseNotification::query()
-            ->where('notifiable_type', User::class)
-            ->where('notifiable_id', $request->user()->id)
-            ->whereIn('id', $notificationIds)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $pengguna = $request->user();
+        $updated = NotifikasiPengguna::tandaiDibaca($pengguna, $validated['notification_ids']);
 
         return response()->json([
             'sukses' => true,
             'pesan' => $updated.' notifikasi ditandai sudah dibaca.',
             'dibaca' => $updated,
-            'total_belum_dibaca' => $request->user()->unreadNotifications()->count(),
+            'total_belum_dibaca' => NotifikasiPengguna::jumlahBelumDibaca($pengguna),
+            'ada_nudge' => NotifikasiPengguna::adaNudgeBelumDibaca($pengguna),
         ]);
     }
 
@@ -61,7 +57,7 @@ class NotificationController extends Controller
      */
     public function tandaiSemuaDibaca(Request $request, ?MasterUnit $unit = null): JsonResponse|RedirectResponse
     {
-        $updated = $request->user()->unreadNotifications()->update(['read_at' => now()]);
+        $updated = NotifikasiPengguna::tandaiSemuaDibaca($request->user());
 
         if (! $request->expectsJson()) {
             return back()->with('sukses', 'Semua notifikasi ('.$updated.') ditandai sudah dibaca.');
@@ -71,40 +67,8 @@ class NotificationController extends Controller
             'sukses' => true,
             'pesan' => 'Semua notifikasi ('.$updated.') ditandai sudah dibaca.',
             'dibaca' => $updated,
-        ]);
-    }
-
-    /**
-     * Ambil daftar notifikasi untuk dropdown (AJAX).
-     */
-    public function daftar(?MasterUnit $unit, Request $request): JsonResponse
-    {
-        $tipe = $request->query('tipe');
-        $limit = $request->integer('limit', 10);
-
-        $query = $request->user()->unreadNotifications();
-
-        if ($tipe !== null) {
-            $query->where('data->type', $tipe);
-        }
-
-        $notifikasi = $query->latest()->limit($limit)->get()->map(function (DatabaseNotification $n) {
-            return [
-                'id' => $n->id,
-                'type' => $n->data['type'] ?? 'unknown',
-                'title' => $n->data['title'] ?? 'Notifikasi',
-                'message' => $n->data['message'] ?? '',
-                'kode_tiket' => $n->data['kode_tiket'] ?? null,
-                'url' => $n->data['url'] ?? null,
-                'waktu' => $n->created_at->translatedFormat('d M Y, H:i'),
-                'waktu_relatif' => $n->created_at->diffForHumans(),
-            ];
-        });
-
-        return response()->json([
-            'sukses' => true,
-            'notifikasi' => $notifikasi,
-            'total_belum_dibaca' => $request->user()->unreadNotifications()->count(),
+            'total_belum_dibaca' => 0,
+            'ada_nudge' => false,
         ]);
     }
 }

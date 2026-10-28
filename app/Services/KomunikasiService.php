@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Models\User;
+use App\Notifications\PengaduanBalasanAdmin;
 use App\Notifications\PengaduanNudgeUnit;
 use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
@@ -31,6 +32,14 @@ final class KomunikasiService
             'isi' => $isi,
             'lampiran' => PesanPengaduan::simpanBerkas($berkas),
         ]);
+
+        // Pelapor tidak punya akun, jadi balasan dikirim ke alamat email
+        // yang tercatat pada tiket. Tanpa ini class PengaduanBalasanAdmin
+        // tidak pernah terpakai dan pelapor tidak tahu ada jawaban baru.
+        if (! empty($pengaduan->email)) {
+            Notification::route('mail', $pengaduan->email)
+                ->notify(new PengaduanBalasanAdmin($pengaduan, $isi));
+        }
 
         $pengaduan->loadMissing('masterUnit');
     }

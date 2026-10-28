@@ -249,10 +249,6 @@ Route::prefix('unit')->name('unit.')
         Route::get('/', [UnitDashboardController::class, 'beranda'])->name('beranda');
 
         // Notifikasi untuk PIC tanpa unit (akun belum ditautkan)
-        Route::get('/notifikasi/daftar', [UnitNotificationController::class, 'daftar'])
-            ->defaults('unit', null)
-            ->middleware('throttle:120,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME)
-            ->name('notifikasi.daftar.user');
         Route::post('/notifikasi/baca', [UnitNotificationController::class, 'tandaiDibaca'])
             ->defaults('unit', null)
             ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA)
@@ -304,19 +300,10 @@ Route::prefix('unit')->name('unit.')
             Route::post('/{unit}/notifikasi/baca-semua', [UnitNotificationController::class, 'tandaiSemuaDibaca'])
                 ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_NOTIFIKASI_BACA_SEMUA)
                 ->name('notifikasi.tandai-semua-dibaca');
-            Route::get('/{unit}/notifikasi/daftar', [UnitNotificationController::class, 'daftar'])
-                ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_DAFTAR)
-                ->name('notifikasi.daftar');
 
             // Real-time notifikasi (polling)
             Route::get('/{unit}/notifikasi/realtime', [UnitRealTimeNotificationController::class, 'index'])
                 ->middleware('throttle:120,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME)
                 ->name('notifikasi.realtime');
-            Route::post('/{unit}/notifikasi/realtime/baca', [UnitRealTimeNotificationController::class, 'tandaiDibaca'])
-                ->middleware('throttle:60,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME_BACA)
-                ->name('notifikasi.realtime.baca');
-            Route::post('/{unit}/notifikasi/realtime/baca-semua', [UnitRealTimeNotificationController::class, 'tandaiSemuaDibaca'])
-                ->middleware('throttle:30,1,'.ThrottleKeys::UNIT_NOTIFIKASI_REALTIME_BACA_SEMUA)
-                ->name('notifikasi.realtime.baca-semua');
         });
     });

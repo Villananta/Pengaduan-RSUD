@@ -30,10 +30,10 @@ class NotifikasiKonsolUnitTest extends TestCase
         $pengaduan = Pengaduan::factory()->create(['master_unit_id' => $farmasi->id]);
         $picB->notify(new PengaduanNudgeUnit($pengaduan, $farmasi, 'Cek segera'));
 
-        $response = $this->get(route('unit.notifikasi.daftar', $farmasi));
+        $response = $this->get(route('unit.notifikasi.realtime', $farmasi));
         $response->assertOk()
             ->assertJson(['sukses' => true])
-            ->assertJsonCount(0, 'notifikasi');
+            ->assertJsonCount(0, 'notifications');
     }
 
     public function test_realtime_hanya_mengembalikan_notifikasi_akun_yang_masuk(): void
@@ -177,5 +177,72 @@ class NotifikasiKonsolUnitTest extends TestCase
             ->assertJsonPath('total_belum_dibaca', 1);
 
         $this->assertNull($milikB->fresh()->read_at);
+    }
+
+    public function test_polling_dan_tandai_dibaca_membawa_status_nudge(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $pic = $this->masukSebagaiPicUntuk($farmasi);
+        $pengaduan = Pengaduan::factory()->create(['master_unit_id' => $farmasi->id]);
+
+        $pic->notify(new PengaduanNudgeUnit($pengaduan, $farmasi, 'Cek segera'));
+
+        $this->get(route('unit.notifikasi.realtime', $farmasi))
+            ->assertOk()
+            ->assertJsonPath('ada_nudge', true);
+
+        $this->postJson(route('unit.notifikasi.tandai-dibaca', $farmasi), [
+            'notification_ids' => [$pic->notifications()->firstOrFail()->id],
+        ])
+            ->assertOk()
+            ->assertJsonPath('ada_nudge', false)
+            ->assertJsonPath('total_belum_dibaca', 0);
+    }
+
+    public function test_titik_nudge_tetap_tampil_saat_lencana_juga_ada(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $pic = $this->masukSebagaiPicUntuk($farmasi);
+        $pengaduan = Pengaduan::factory()->create(['master_unit_id' => $farmasi->id]);
+
+        $pic->notify(new PengaduanNudgeUnit($pengaduan, $farmasi, 'Cek segera'));
+
+        // Nudge selalu dihitung sebagai notifikasi belum dibaca, jadi syarat
+        // lama yang menuntut lencana kosong membuat titik ini tidak pernah ada.
+        $this->get(route('unit.disposisi.index', $farmasi))
+            ->assertOk()
+            ->assertSee('titik-nudge', false);
+    }
+
+    public function test_tandai_dibaca_menolak_daftar_kosong(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $this->masukSebagaiPicUntuk($farmasi);
+
+        $this->postJson(route('unit.notifikasi.tandai-dibaca', $farmasi), [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('notification_ids');
+    }
+
+    public function test_tandai_dibaca_menolak_id_yang_bukan_array(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $this->masukSebagaiPicUntuk($farmasi);
+
+        $this->postJson(route('unit.notifikasi.tandai-dibaca', $farmasi), [
+            'notification_ids' => 'bukan-array',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('notification_ids');
+    }
+
+    public function test_polling_menolak_limit_di_luar_batas(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $this->masukSebagaiPicUntuk($farmasi);
+
+        $this->getJson(route('unit.notifikasi.realtime', ['unit' => $farmasi, 'limit' => 500]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('limit');
     }
 }

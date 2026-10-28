@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Unit;
 use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
 use App\Models\User;
+use App\Support\NotifikasiPengguna;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -94,57 +95,11 @@ class RealTimeNotificationController extends Controller
         return response()->json([
             'sukses' => true,
             'notifications' => $notifications,
-            'total_belum_dibaca' => DatabaseNotification::query()
-                ->where('notifiable_type', User::class)
-                ->where('notifiable_id', $request->user()->id)
-                ->whereNull('read_at')
-                ->count(),
+            'total_belum_dibaca' => NotifikasiPengguna::jumlahBelumDibaca($request->user()),
+            'ada_nudge' => NotifikasiPengguna::adaNudgeBelumDibaca($request->user()),
             'server_time' => $serverTime->toISOString(),
             'next_since' => $nextSince,
             'has_more' => $hasMore,
-        ]);
-    }
-
-    /**
-     * Tandai notifikasi terpilih sebagai sudah dibaca.
-     */
-    public function tandaiDibaca(MasterUnit $unit, Request $request): JsonResponse
-    {
-        $ids = $request->input('notification_ids', []);
-
-        if (empty($ids)) {
-            return response()->json([
-                'sukses' => false,
-                'pesan' => 'Tidak ada notifikasi yang dipilih.',
-            ], 422);
-        }
-
-        $updated = DatabaseNotification::query()
-            ->where('notifiable_type', User::class)
-            ->where('notifiable_id', $request->user()->id)
-            ->whereIn('id', $ids)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
-
-        return response()->json([
-            'sukses' => true,
-            'pesan' => $updated.' notifikasi ditandai sudah dibaca.',
-            'dibaca' => $updated,
-            'total_belum_dibaca' => $request->user()->unreadNotifications()->count(),
-        ]);
-    }
-
-    /**
-     * Tandai semua notifikasi milik petugas sebagai sudah dibaca.
-     */
-    public function tandaiSemuaDibaca(MasterUnit $unit, Request $request): JsonResponse
-    {
-        $updated = $request->user()->unreadNotifications()->update(['read_at' => now()]);
-
-        return response()->json([
-            'sukses' => true,
-            'pesan' => 'Semua notifikasi ('.$updated.') ditandai sudah dibaca.',
-            'dibaca' => $updated,
         ]);
     }
 }

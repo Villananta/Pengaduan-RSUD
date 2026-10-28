@@ -64,54 +64,70 @@
                     </div>
                 </div>
 
-                <div class="relative" id="admin-notifikasi-wrapper">
-                    <button
-                        type="button"
-                        id="admin-btn-notifikasi"
-                        data-daftar-url="{{ route('admin.notifikasi.daftar') }}"
-                        data-baca-url="{{ route('admin.notifikasi.baca') }}"
-                        data-baca-semua-url="{{ route('admin.notifikasi.baca-semua') }}"
-                        aria-label="Notifikasi"
-                        aria-expanded="false"
-                        class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors"
-                    >
-                        <x-symbol nama="notifications" class="text-[24px]" />
-                        @php
-                            $jumlahNotifAdmin = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
-                        @endphp
-                        @if ($jumlahNotifAdmin > 0)
-                            <span
-                                id="admin-badge-notifikasi"
-                                class="absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center"
-                                aria-label="{{ $jumlahNotifAdmin }} notifikasi belum dibaca"
-                            >
-                                {{ $jumlahNotifAdmin > 9 ? '9+' : $jumlahNotifAdmin }}
-                            </span>
-                        @endif
-                    </button>
+                @php
+                    // Dua query disengaja: angka lencana butuh total yang
+                    // sebenarnya, sedangkan isi dropdown cukup 15 terbaru.
+                    $jumlahNotifAdmin = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
+                    $notifikasiAdmin = auth()->check()
+                        ? auth()->user()->unreadNotifications()->latest()->limit(15)->get()
+                        : collect();
+                @endphp
 
-                    <div
-                        id="admin-dropdown-notifikasi"
-                        class="hidden absolute right-0 top-full mt-2 w-96 max-h-[420px] overflow-y-auto bg-white rounded-lg shadow-lg border border-outline-variant z-[60]"
-                        role="menu"
-                        aria-orientation="vertical"
-                    >
-                        <div class="p-3 border-b border-outline-variant flex items-center justify-between">
-                            <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Notifikasi</h3>
-                            <form method="POST" action="{{ route('admin.notifikasi.baca-semua') }}" id="admin-form-tandai-semua" class="inline">
-                                @csrf
-                                <button
-                                    type="submit"
-                                    class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
+                <div class="relative" id="admin-notifikasi-wrapper">
+                    <details id="admin-detail-notifikasi" class="static">
+                        <summary
+                            id="admin-btn-notifikasi"
+                            data-daftar-url="{{ route('admin.notifikasi.daftar') }}"
+                            data-baca-url="{{ route('admin.notifikasi.baca') }}"
+                            data-baca-semua-url="{{ route('admin.notifikasi.baca-semua') }}"
+                            aria-label="Notifikasi"
+                            aria-expanded="false"
+                            aria-haspopup="true"
+                            class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+                        >
+                            <x-symbol nama="notifications" class="text-[24px]" />
+                            @if ($jumlahNotifAdmin > 0)
+                                <span
+                                    id="admin-badge-notifikasi"
+                                    class="absolute -top-0.5 -right-0.5 w-5 h-5 min-w-5 rounded-full bg-error text-on-error text-[10px] font-bold flex items-center justify-center"
+                                    aria-label="{{ $jumlahNotifAdmin }} notifikasi belum dibaca"
                                 >
-                                    Tandai semua dibaca
-                                </button>
-                            </form>
+                                    {{ $jumlahNotifAdmin > 9 ? '9+' : $jumlahNotifAdmin }}
+                                </span>
+                            @endif
+                        </summary>
+
+                        <div
+                            id="admin-dropdown-notifikasi"
+                            class="absolute right-0 top-full mt-2 w-96 max-h-[420px] overflow-y-auto bg-white rounded-lg shadow-lg border border-outline-variant z-[60]"
+                            role="menu"
+                            aria-orientation="vertical"
+                        >
+                            <div class="p-3 border-b border-outline-variant flex items-center justify-between">
+                                <h3 class="font-title-sm text-title-sm font-bold text-on-surface">Notifikasi</h3>
+                                <form method="POST" action="{{ route('admin.notifikasi.baca-semua') }}" id="admin-form-tandai-semua" class="inline">
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="text-label-sm text-primary hover:text-primary/80 font-semibold transition-colors"
+                                    >
+                                        Tandai semua dibaca
+                                    </button>
+                                </form>
+                            </div>
+                            <div id="admin-daftar-notifikasi" class="max-h-[360px] overflow-y-auto">
+                                @if ($notifikasiAdmin->isEmpty())
+                                    <div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>
+                                @else
+                                    <div class="divide-y divide-outline-variant">
+                                        @foreach ($notifikasiAdmin as $notif)
+                                            <x-item-notifikasi :notif="$notif" />
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
                         </div>
-                        <div id="admin-daftar-notifikasi" class="max-h-[360px] overflow-y-auto">
-                            <div class="p-4 text-center text-on-surface-variant text-body-sm">Memuat...</div>
-                        </div>
-                    </div>
+                    </details>
                 </div>
 
                 <div class="flex items-center gap-space-sm pl-space-xs border-l border-outline-variant">
@@ -211,11 +227,12 @@
             const wrapper = document.getElementById('admin-notifikasi-wrapper');
             const btn = document.getElementById('admin-btn-notifikasi');
             const dropdown = document.getElementById('admin-dropdown-notifikasi');
+            const detail = document.getElementById('admin-detail-notifikasi');
             const daftar = document.getElementById('admin-daftar-notifikasi');
             const formBacaSemua = document.getElementById('admin-form-tandai-semua');
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
 
-            if (!btn || !dropdown) {
+            if (!btn || !dropdown || !detail) {
                 return;
             }
 
@@ -263,18 +280,49 @@
 
                         daftar.innerHTML = '<div class="divide-y divide-outline-variant"></div>';
                         const container = daftar.querySelector('.divide-y');
+                        const iconMap = {
+                            'pengaduan_nudge_unit': 'notifications_active',
+                            'pengaduan_sla_mendekati': 'timelapse',
+                            'pengaduan_sla_lewat': 'warning',
+                            'pengaduan_jawaban_unit': 'reply',
+                            'pengaduan_disposisi': 'forward_to_inbox',
+                            'pengaduan_tahap_berubah': 'swap_vert',
+                            'pengaduan_kasus_berat': 'warning',
+                            'pengaduan_eskalasi_sla': 'notification_important',
+                            'pengaduan_eskalasi_nudge': 'campaign',
+                            default: 'notifications',
+                        };
+
                         data.notifications.forEach(notif => {
-                            const item = document.createElement('div');
-                            item.className = 'p-3 hover:bg-surface-container-low transition-colors cursor-pointer admin-notif-item';
+                            const item = document.createElement(notif.url ? 'a' : 'div');
+                            item.className = 'block p-3 hover:bg-surface-container-low transition-colors cursor-pointer admin-notif-item';
+                            if (notif.url) item.href = notif.url;
                             item.dataset.notifId = notif.id;
                             item.dataset.notifUrl = notif.url || '';
+                            item.dataset.notifType = notif.type;
+                            item.role = 'menuitem';
+                            item.tabIndex = 0;
+
+                            const icon = iconMap[notif.type] || iconMap.default;
+                            const kodeTiket = notif.kode_tiket ? `
+                                <div class="mt-1.5">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-100 text-brand-800 font-mono font-body-xs text-body-xs font-bold">
+                                        <span class="material-symbols-outlined text-[10px]" aria-hidden="true">confirmation_number</span>
+                                        ${escapeHtml(notif.kode_tiket)}
+                                    </span>
+                                </div>
+                            ` : '';
+
                             item.innerHTML = `
                                 <div class="flex gap-2">
-                                    <span class="mt-0.5 text-primary"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160Zm320-300Zm0 420q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80ZM320-280h320v-280q0-66-47-113t-113-47q-66 0-113 47t-47 113v280Z"/></svg></span>
+                                    <span class="mt-0.5 text-primary"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">${icon}</span></span>
                                     <div class="min-w-0 flex-1">
-                                        <p class="font-label-md text-label-md font-semibold text-on-surface">${escapeHtml(notif.title)}</p>
-                                        <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">${escapeHtml(notif.message)}</p>
-                                        <p class="font-label-sm text-label-sm text-on-surface-variant mt-1">${escapeHtml(notif.created_at)}</p>
+                                        <div class="flex items-start justify-between gap-2">
+                                            <p class="font-label-md text-label-md font-semibold text-on-surface">${escapeHtml(notif.title)}</p>
+                                            <span class="text-[11px] text-on-surface-variant whitespace-nowrap shrink-0">${escapeHtml(notif.created_at)}</span>
+                                        </div>
+                                        <p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-0.5">${escapeHtml(notif.message)}</p>
+                                        ${kodeTiket}
                                     </div>
                                 </div>
                             `;
@@ -286,23 +334,48 @@
                     });
             }
 
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                dropdown.classList.toggle('hidden');
-                if (!dropdown.classList.contains('hidden')) {
+            // <details> membuka dan menutup dropdownnya sendiri. Listener ini
+            // hanya menyelaraskan aria dan menyegarkan isi saat dibuka.
+            detail.addEventListener('toggle', function () {
+                btn.setAttribute('aria-expanded', detail.open ? 'true' : 'false');
+
+                if (detail.open) {
                     muatNotifikasi();
                 }
             });
 
             document.addEventListener('click', function (e) {
                 if (wrapper && !wrapper.contains(e.target)) {
-                    dropdown.classList.add('hidden');
+                    detail.open = false;
                 }
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    detail.open = false;
+                }
+            });
+
+            // Item hasil muat ulang dibuat sebagai elemen yang bisa difokus;
+            // Enter dan Space harus memperlakukannya seperti klik.
+            daftar.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+
+                const item = e.target.closest('.admin-notif-item');
+                if (!item) return;
+
+                e.preventDefault();
+                item.click();
             });
 
             daftar.addEventListener('click', function (e) {
                 const item = e.target.closest('.admin-notif-item');
                 if (!item) return;
+
+                // Tautan pada item ditahan dulu supaya permintaan
+                // tandai-baca sempat berangkat sebelum halaman berpindah.
+                e.preventDefault();
+
                 const id = item.dataset.notifId;
                 const url = item.dataset.notifUrl;
                 const bacaUrl = btn.dataset.bacaUrl;
@@ -341,15 +414,13 @@
                     }).then(() => {
                         perbaruiBadge(0);
                         if (daftar) daftar.innerHTML = '<div class="p-4 text-center text-on-surface-variant text-body-sm">Tidak ada notifikasi baru</div>';
+                        detail.open = false;
                     }).catch(() => formBacaSemua.submit());
                 });
             }
 
-            // Lencana yang dirender server menandakan ada yang belum dibaca;
-            // isi dropdown-nya lebih awal supaya klik pertama tidak menunggu.
-            if (document.getElementById('admin-badge-notifikasi')) {
-                muatNotifikasi();
-            }
+            // Isi awal dropdown sudah dirender server, jadi tidak perlu
+            // permintaan tambahan saat halaman selesai dimuat.
         })();
     </script>
     {{-- Script khusus halaman, misalnya perpindahan tab pada detail tiket. --}}

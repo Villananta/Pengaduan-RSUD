@@ -83,14 +83,8 @@ final class ThrottleKeys
 
     public const UNIT_NOTIFIKASI_BACA_SEMUA = 'unit-notifikasi-baca-semua';
 
-    public const UNIT_NOTIFIKASI_DAFTAR = 'unit-notifikasi-daftar';
-
     // Unit: real-time notifikasi (polling)
     public const UNIT_NOTIFIKASI_REALTIME = 'unit-notifikasi-realtime';
-
-    public const UNIT_NOTIFIKASI_REALTIME_BACA = 'unit-notifikasi-realtime-baca';
-
-    public const UNIT_NOTIFIKASI_REALTIME_BACA_SEMUA = 'unit-notifikasi-realtime-baca-semua';
 
     // Unit: ekspor
     public const UNIT_EKSPOR_EXCEL = 'unit-export-excel';

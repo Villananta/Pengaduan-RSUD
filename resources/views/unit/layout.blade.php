@@ -226,6 +226,28 @@
             badge.textContent = total > 9 ? '9+' : total;
             badge.setAttribute('aria-label', total + ' notifikasi belum dibaca');
         };
+
+        // Titik follow up punya status sendiri dari server. Poll hanya
+        // membawa notifikasi yang baru masuk, jadi daftar itu tidak bisa
+        // dipakai untuk tahu apakah nudge lama masih belum dibaca.
+        window.perbaruiTitikNudge = function (adaNudge) {
+            const btn = document.getElementById('btn-notifikasi');
+            if (!btn) return;
+
+            let titik = btn.querySelector('.titik-nudge');
+
+            if (!adaNudge) {
+                titik?.remove();
+                return;
+            }
+
+            if (!titik) {
+                titik = document.createElement('span');
+                titik.className = 'titik-nudge absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-warning ring-2 ring-white';
+                titik.setAttribute('aria-label', 'Ada follow up (nudge) dari admin humas');
+                btn.appendChild(titik);
+            }
+        };
     </script>
 
     {{-- Script Notifikasi Unit (Global) --}}
@@ -234,37 +256,52 @@
             const btn = document.getElementById('btn-notifikasi');
             const dropdown = document.getElementById('dropdown-notifikasi');
             const wrapper = document.getElementById('notifikasi-wrapper');
+            const detail = document.getElementById('detail-notifikasi');
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
-            if (!btn || !dropdown) return;
+            if (!btn || !dropdown || !detail) return;
 
-            // Buka atau tutup dropdown
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                const isOpen = dropdown.classList.toggle('hidden');
-                btn.setAttribute('aria-expanded', !isOpen);
+            // <details> membuka dan menutup dropdownnya sendiri. Di sini
+            // hanya status aria yang diselaraskan supaya pembaca layar
+            // tidak mengumumkan keadaan yang sudah basi.
+            detail.addEventListener('toggle', function () {
+                btn.setAttribute('aria-expanded', detail.open ? 'true' : 'false');
             });
 
             // Tutup dropdown klik di luar
             document.addEventListener('click', function (e) {
                 if (!wrapper.contains(e.target)) {
-                    dropdown.classList.add('hidden');
-                    btn.setAttribute('aria-expanded', 'false');
+                    detail.open = false;
                 }
             });
 
             // Tutup dropdown tekan Escape
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Escape') {
-                    dropdown.classList.add('hidden');
-                    btn.setAttribute('aria-expanded', 'false');
+                    detail.open = false;
                 }
+            });
+
+            // Item notifikasi bisa difokus dengan Tab; Enter dan Space
+            // harus memperlakukannya seperti klik biasa.
+            dropdown.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+
+                const item = e.target.closest('.notif-item');
+                if (!item) return;
+
+                e.preventDefault();
+                item.click();
             });
 
             // Klik satu notifikasi: tandai sudah dibaca, lalu buka tiketnya.
             dropdown.addEventListener('click', function (e) {
                 const item = e.target.closest('.notif-item');
                 if (!item) return;
+
+                // Tautan pada item ditahan dulu agar permintaan tandai-baca
+                // tidak ikut batal saat browser berpindah halaman.
+                e.preventDefault();
 
                 const markReadUrl = btn.dataset.markReadUrl;
                 if (!markReadUrl) return;
@@ -285,6 +322,7 @@
                         // dari angka di layar, supaya lencana tetap benar
                         // ketika notifikasi juga dibaca di tab lain.
                         window.perbaruiLencanaNotifikasi(data.total_belum_dibaca ?? 0);
+                        window.perbaruiTitikNudge(data.ada_nudge ?? false);
                         window.statusNotifikasi.sudahDibaca.add(item.dataset.notifId);
 
                         // Hilangkan barisnya dari daftar (animasi singkat)
@@ -329,9 +367,8 @@
                             // Respons poll yang sudah berangkat tidak boleh
                             // mengisi lagi daftar yang baru saja dikosongkan.
                             window.statusNotifikasi.generasi += 1;
-                            btn.querySelectorAll('.bg-warning').forEach(el => el.remove());
-                            dropdown.classList.add('hidden');
-                            btn.setAttribute('aria-expanded', 'false');
+                            window.perbaruiTitikNudge(false);
+                            detail.open = false;
                         })
                         .catch(error => console.warn('Gagal menandai semua notifikasi:', error));
                 });
@@ -393,6 +430,7 @@
                         lastPoll = data.next_since || data.server_time;
 
                         window.perbaruiLencanaNotifikasi(data.total_belum_dibaca ?? 0);
+                        window.perbaruiTitikNudge(data.ada_nudge ?? false);
 
                         let ditambahkan = 0;
 
@@ -420,15 +458,6 @@
                                 wadah.prepend(createNotificationElement(notif));
                                 ditambahkan++;
                             }
-
-                            // Titik follow up bila ada nudge yang belum dibuka
-                            const hasNudge = data.notifications.some(n => n.type === 'pengaduan_nudge_unit');
-                            if (hasNudge && !btn.querySelector('.bg-warning')) {
-                                const nudgeDot = document.createElement('span');
-                                nudgeDot.className = 'absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-warning ring-2 ring-white';
-                                nudgeDot.setAttribute('aria-label', 'Ada follow up (nudge) dari admin humas');
-                                btn.appendChild(nudgeDot);
-                            }
                         }
 
                         // Masih ada sisa di luar batas satu poll: lanjutkan
@@ -454,12 +483,18 @@
                         'pengaduan_disposisi': 'forward_to_inbox',
                         'pengaduan_tahap_berubah': 'swap_vert',
                         'pengaduan_kasus_berat': 'warning',
+                        'pengaduan_eskalasi_sla': 'notification_important',
+                        'pengaduan_eskalasi_nudge': 'campaign',
                         default: 'notifications',
                     };
                     const icon = iconMap[notif.type] || iconMap.default;
 
-                    const item = document.createElement('div');
-                    item.className = 'p-3 hover:bg-surface-container-low transition-colors cursor-pointer notif-item';
+                    // Notifikasi bertautan dibuat sebagai <a> supaya Enter
+                    // dan klik kanan (buka tab baru) bekerja seperti tautan
+                    // biasa; yang tanpa tautan tetap <div> yang bisa difokus.
+                    const item = document.createElement(notif.url ? 'a' : 'div');
+                    item.className = 'block p-3 hover:bg-surface-container-low transition-colors cursor-pointer notif-item';
+                    if (notif.url) item.href = notif.url;
                     item.dataset.notifId = notif.id;
                     item.dataset.notifUrl = notif.url || '';
                     item.dataset.notifType = notif.type;

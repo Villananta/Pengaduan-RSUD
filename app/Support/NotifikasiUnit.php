@@ -31,14 +31,12 @@ final class NotifikasiUnit
     /** Jumlah notifikasi belum dibaca milik petugas. */
     public function jumlahNotifikasiBelumDibaca(): int
     {
-        return $this->petugas->unreadNotifications()->count();
+        return NotifikasiPengguna::jumlahBelumDibaca($this->petugas);
     }
 
     /** True bila ada follow-up manual dari admin humas yang belum dibuka. */
     public function adaNudgeBelumDibaca(): bool
     {
-        return $this->petugas->unreadNotifications()
-            ->where('data->type', 'pengaduan_nudge_unit')
-            ->exists();
+        return NotifikasiPengguna::adaNudgeBelumDibaca($this->petugas);
     }
 }
