@@ -260,6 +260,39 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertStringContainsString('Instalasi Bedah Terpadu', $halamanKosong);
     }
 
+    public function test_penugasan_unit_dirangkum_dari_tiket_aktif_bukan_status_terakhir(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        // Kolom disposisi sengaja disetel ke status tiket lain. Kalau tabel
+        // masih membacanya, angka di bawah tidak akan pernah muncul.
+        $unit->update(['disposisi' => DisposisiUnit::MenungguInfoTambahan]);
+
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-PENUGASAN-01',
+            'master_unit_id' => $unit->id,
+        ]);
+
+        $terjawab = Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+            'kode_tiket' => 'ADUAN-PENUGASAN-02',
+            'master_unit_id' => $unit->id,
+        ]);
+        $terjawab->pesan()->create(['peran' => 'unit', 'isi' => 'Hasil pemeriksaan sudah dikirim.']);
+
+        $daftar = DaftarUnit::dariRequest(request());
+        $penugasan = $daftar->penugasan($daftar->unit->firstWhere('id', $unit->id));
+
+        $this->assertSame(1, $penugasan['investigasi']);
+        $this->assertSame(1, $penugasan['racikan']);
+        $this->assertFalse($penugasan['terputus']);
+
+        $this->get(route('admin.unit.index'))
+            ->assertOk()
+            ->assertSee('1 tiket investigasi')
+            ->assertSee('1 menunggu racikan')
+            ->assertDontSee(DisposisiUnit::MenungguInfoTambahan->label());
+    }
+
     public function test_kepatuhan_sla_unit_mengikuti_data_pengaduan(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();

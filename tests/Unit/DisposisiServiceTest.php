@@ -2,10 +2,10 @@
 
 namespace Tests\Unit;
 
+use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
-use App\Models\User;
 use App\Services\DisposisiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -14,7 +14,7 @@ class DisposisiServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_disposisi_ke_unit_mengubah_status_dan_menandai_unit_menunggu_investigasi(): void
+    public function test_disposisi_ke_unit_mengubah_status_tiket_tanpa_menimpa_status_unit(): void
     {
         $pengaduan = Pengaduan::factory()->create([
             'status' => StatusPengaduan::Diterima,
@@ -23,7 +23,7 @@ class DisposisiServiceTest extends TestCase
 
         $unit = MasterUnit::factory()->create([
             'aktif' => true,
-            'disposisi' => \App\Enums\DisposisiUnit::Terhubung,
+            'disposisi' => DisposisiUnit::Terhubung,
         ]);
 
         DisposisiService::disposisiKeUnit($pengaduan, $unit, 'Segera ditindaklanjuti');
@@ -33,7 +33,10 @@ class DisposisiServiceTest extends TestCase
 
         $this->assertSame(StatusPengaduan::Diproses, $pengaduan->status);
         $this->assertSame($unit->id, $pengaduan->master_unit_id);
-        $this->assertSame(\App\Enums\DisposisiUnit::MenungguInvestigasi, $unit->disposisi);
+        // Kolom disposisi unit tidak lagi ditulis dari alur tiket. Kalau
+        // nilainya ikut berubah, unit dengan banyak tiket hanya akan
+        // menampilkan status tiket terakhir.
+        $this->assertSame(DisposisiUnit::Terhubung, $unit->disposisi);
         $this->assertGreaterThan(0, $pengaduan->riwayatStatus()->count());
     }
 
@@ -41,7 +44,7 @@ class DisposisiServiceTest extends TestCase
     {
         $unit = MasterUnit::factory()->create([
             'aktif' => true,
-            'disposisi' => \App\Enums\DisposisiUnit::MenungguInvestigasi,
+            'disposisi' => DisposisiUnit::MenungguInvestigasi,
         ]);
 
         $pengaduan = Pengaduan::factory()->create([
@@ -52,7 +55,7 @@ class DisposisiServiceTest extends TestCase
         DisposisiService::disposisiKeUnit($pengaduan, $unit, 'Tugaskan');
         $pengaduan->refresh();
 
-        // Setelah didisposisikan ke unit dan status jadi Diproses, 
+        // Setelah didisposisikan ke unit dan status jadi Diproses,
         // tanganiLangsung tidak bisa dipanggil sesuai aturan saat ini
         $this->expectException(\RuntimeException::class);
         DisposisiService::tanganiLangsung($pengaduan, 'Ditangani langsung humas');

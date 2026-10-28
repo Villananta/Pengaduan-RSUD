@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\DisposisiUnit;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
@@ -48,8 +47,6 @@ class PengaduanDemoSeeder extends Seeder
             $this->isiPercakapan($pengaduan, $baris['percakapan']);
             $this->isiRiwayat($pengaduan, $baris['riwayat']);
         }
-
-        $unit->update(['disposisi' => DisposisiUnit::SedangInvestigasi]);
     }
 
     /**

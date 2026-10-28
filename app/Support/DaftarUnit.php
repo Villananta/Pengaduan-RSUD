@@ -2,9 +2,11 @@
 
 namespace App\Support;
 
+use App\Enums\DisposisiUnit;
 use App\Enums\KategoriUnit;
 use App\Enums\PeranAksesUnit;
 use App\Enums\StatusAksesUnit;
+use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
@@ -175,6 +177,30 @@ final class DaftarUnit
         return (int) ($unit->beban_aktif ?? 0);
     }
 
+    /**
+     * Ringkasan penugasan unit untuk kolom "Penugasan".
+     *
+     * Satu unit bisa memegang beberapa tiket aktif sekaligus, jadi tidak ada
+     * satu status yang bisa mewakili semuanya. Angka di sini dihitung dari
+     * tiket yang masih berjalan dan belum ditutup; kolom `disposisi` tidak
+     * dipakai lagi untuk itu karena nilainya dulu ditimpa tiap kali satu
+     * tiket berpindah tahap, sehingga hanya tiket terakhir yang terlihat.
+     *
+     * Satu-satunya nilai kolom itu yang masih dibaca adalah `Terputus`,
+     * karena penanda hubungan unit memang disetel manual dan tidak bisa
+     * disimpulkan dari tiket mana pun.
+     *
+     * @return array{terputus: bool, investigasi: int, racikan: int}
+     */
+    public function penugasan(MasterUnit $unit): array
+    {
+        return [
+            'terputus' => $unit->disposisi === DisposisiUnit::Terputus,
+            'investigasi' => (int) ($unit->investigasi_aktif ?? 0),
+            'racikan' => (int) ($unit->racikan_aktif ?? 0),
+        ];
+    }
+
     /** Persentase kepatuhan SLA unit, atau null kalau belum punya pengaduan selesai. */
     public function kepatuhan(MasterUnit $unit): ?float
     {
@@ -216,6 +242,13 @@ final class DaftarUnit
             ->withCount([
                 'pengaduan as beban_aktif' => self::pengaduanAktif(),
                 'pengaduan as beban_selesai',
+                // Kolom penugasan dibaca dari tiket aktif, bukan dari kolom
+                // disposisi unit. Dua hitungan ini memisahkan tiket yang
+                // masih ditelusuri dari tiket yang jawabannya sudah masuk,
+                // jadi unit dengan banyak tiket tidak lagi tampil sebagai
+                // satu status milik tiket terakhir.
+                'pengaduan as investigasi_aktif' => fn (Builder $q): Builder => StatusInvestigasi::SedangInvestigasi->terapkan($q),
+                'pengaduan as racikan_aktif' => fn (Builder $q): Builder => StatusInvestigasi::MenungguRacikan->terapkan($q),
             ]);
 
         if (($saring['q'] ?? '') !== '') {

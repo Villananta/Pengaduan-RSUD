@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use App\Models\User;
@@ -35,7 +34,6 @@ final class TahapService
 
         DB::transaction(function () use ($pengaduan, $tujuan, $catatan, $adminId): void {
             $pengaduan->pindahTahap($tujuan, $catatan, $adminId);
-            self::selaraskanDisposisi($pengaduan, $tujuan);
         });
 
         // Kirim notifikasi perubahan tahap
@@ -53,29 +51,6 @@ final class TahapService
         }
 
         self::segarkanStatistik();
-    }
-
-    /**
-     * Selaraskan bendera disposisi unit dengan tahap tiket.
-     */
-    private static function selaraskanDisposisi(Pengaduan $pengaduan, StatusPengaduan $tahap): void
-    {
-        if ($pengaduan->master_unit_id === null) {
-            return;
-        }
-
-        $disposisi = match ($tahap) {
-            StatusPengaduan::Diproses => DisposisiUnit::MenungguInvestigasi,
-            StatusPengaduan::Revisi => DisposisiUnit::MenungguInfoTambahan,
-            StatusPengaduan::Selesai => DisposisiUnit::Terhubung,
-            StatusPengaduan::Diterima => null,
-        };
-
-        if ($disposisi === null) {
-            return;
-        }
-
-        $pengaduan->masterUnit?->update(['disposisi' => $disposisi]);
     }
 
     /**

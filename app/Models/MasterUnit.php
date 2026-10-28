@@ -61,6 +61,9 @@ class MasterUnit extends Model
         'koneksi_simrs' => 'boolean',
         'koneksi_simrs_terakhir' => 'datetime',
         'undangan_berlaku' => 'datetime',
+        // Alur tiket tidak lagi menulis kolom ini. Status penugasan dibaca
+        // dari tiket aktif, sedangkan nilai yang masih dibaca di sini hanya
+        // Terputus sebagai penanda hubungan unit.
         'disposisi' => DisposisiUnit::class,
     ];
 

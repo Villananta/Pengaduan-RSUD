@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Enums\DisposisiUnit;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
@@ -46,18 +45,12 @@ final class JawabanUnit
             throw new RuntimeException('Tiket ini sudah selesai sehingga jawaban unit tidak diterima lagi.');
         }
 
-        DB::transaction(function () use ($unit, $pengaduan, $isi, $berkas): void {
+        DB::transaction(function () use ($pengaduan, $isi, $berkas): void {
             $pengaduan->pesan()->create([
                 'kanal' => PesanPengaduan::KANAL_UNIT,
                 'peran' => 'unit',
                 'isi' => $isi,
                 'lampiran' => PesanPengaduan::simpanBerkas($berkas),
-            ]);
-
-            // Panel koneksi SIMRS di konsol humas membaca kolom disposisi,
-            // jadi jawaban yang baru masuk harus ikut ditandai di sana.
-            $unit->update([
-                'disposisi' => DisposisiUnit::JawabanMasuk,
             ]);
         });
 

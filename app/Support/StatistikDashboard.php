@@ -229,7 +229,7 @@ final class StatistikDashboard
     }
 
     /**
-     * Unit yang terhubung ke SIMRS beserta disposisi terakhir.
+     * Unit yang terhubung ke SIMRS beserta beban tiket aktifnya.
      *
      * @return Collection<int, MasterUnit>
      */

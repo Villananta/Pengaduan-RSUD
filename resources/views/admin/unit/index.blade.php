@@ -187,7 +187,8 @@
                 {{-- Saring 'Terhubung SIMRS' dan 'Terputus' disembunyikan:
                      tidak ada yang menulis heartbeat, jadi keduanya hanya akan
                      menampilkan hasil salah. 'Belum Ditugaskan Tiket' tetap
-                     ada karena statusnya berasal dari data disposisi sendiri. --}}
+                     ada karena dihitung dari riwayat penugasan, bukan dari
+                     heartbeat. --}}
                 <div class="md:col-span-2 relative flex items-center">
                     <x-symbol nama="assignment" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
                     <select
@@ -294,6 +295,7 @@
                                     $beban = $daftar->beban($unit);
                                     $lewat = $daftar->lewat($unit);
                                     $kepatuhan = $daftar->kepatuhan($unit);
+                                    $penugasan = $daftar->penugasan($unit);
                                 @endphp
 
                                 <tr class="transition-colors hover:bg-surface-container/60">
@@ -359,14 +361,34 @@
                                         @endif
                                     </td>
 
-                                    {{-- Badge koneksi SIMRS tidak ditampilkan
-                                         (belum ada yang menulis heartbeat),
-                                         hanya status penugasan unit. --}}
+                                    {{-- Penugasan dibaca dari tiket yang masih aktif.
+                                         Satu unit bisa memegang beberapa tiket
+                                         sekaligus, jadi status tiket terakhir
+                                         tidak boleh mewakili seluruh antrean. --}}
                                     <td class="py-space-md px-space-md min-w-[160px]">
-                                        @if ($unit->disposisi)
-                                            <span class="block mt-1 font-label-sm text-label-sm text-outline">{{ $unit->disposisi->ringkas() }}</span>
+                                        @if ($penugasan['terputus'])
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-bold">
+                                                <x-symbol nama="link_off" class="text-[14px]" />
+                                                Koneksi Terputus
+                                            </span>
+                                        @endif
+
+                                        @if ($penugasan['investigasi'] === 0 && $penugasan['racikan'] === 0)
+                                            <span class="block mt-1 font-label-sm text-label-sm text-outline">Tidak ada tiket aktif</span>
                                         @else
-                                            <span class="block mt-1 font-label-sm text-label-sm text-outline">Belum pernah ditugaskan tiket</span>
+                                            <span class="block mt-1 font-label-sm text-label-sm text-outline">
+                                                @if ($penugasan['investigasi'] > 0)
+                                                    {{ $penugasan['investigasi'] }} tiket investigasi
+                                                @endif
+
+                                                @if ($penugasan['investigasi'] > 0 && $penugasan['racikan'] > 0)
+                                                    &middot;
+                                                @endif
+
+                                                @if ($penugasan['racikan'] > 0)
+                                                    {{ $penugasan['racikan'] }} menunggu racikan
+                                                @endif
+                                            </span>
                                         @endif
                                     </td>
 

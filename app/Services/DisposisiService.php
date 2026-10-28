@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\DisposisiUnit;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
@@ -36,8 +35,6 @@ final class DisposisiService
         }
 
         DB::transaction(function () use ($pengaduan, $unit, $catatan, $adminId): void {
-            $unitSebelumnya = $pengaduan->masterUnit;
-
             $pengaduan->master_unit_id = $unit->id;
 
             if ($pengaduan->status === StatusPengaduan::Diproses) {
@@ -51,12 +48,6 @@ final class DisposisiService
             } else {
                 $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
             }
-
-            if ($unitSebelumnya !== null && $unitSebelumnya->id !== $unit->id) {
-                $unitSebelumnya->update(['disposisi' => DisposisiUnit::Terhubung]);
-            }
-
-            $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
         });
 
         // Kirim notifikasi ke PIC unit yang baru ditugaskan
@@ -100,8 +91,6 @@ final class DisposisiService
             $pengaduan->pindahTahap(StatusPengaduan::Diproses, $catatan, $adminId);
 
             if ($unitDilepas !== null) {
-                $unitDilepas->update(['disposisi' => DisposisiUnit::Terhubung]);
-
                 $pengaduan->riwayatStatus()->create([
                     'dari' => StatusPengaduan::Diproses,
                     'ke' => StatusPengaduan::Diproses,

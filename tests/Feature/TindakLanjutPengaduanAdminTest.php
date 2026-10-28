@@ -11,6 +11,7 @@ use App\Models\PesanPengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanKasusBerat;
 use App\Services\TahapService;
+use App\Support\DaftarUnit;
 use App\Support\DetailPengaduan;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
@@ -55,74 +56,96 @@ class TindakLanjutPengaduanAdminTest extends TestCase
 
         $this->assertTrue($pengaduan->status->diproses());
         $this->assertSame($unit->id, $pengaduan->master_unit_id);
-        $this->assertTrue($unit->fresh()->disposisi === DisposisiUnit::MenungguInvestigasi);
+        // Kolom disposisi unit tidak lagi ditulis oleh penugasan tiket.
+        // Penulisan itulah yang dulu membuat status unit mengikuti tiket
+        // terakhir dan menutupi tiket lain yang masih berjalan.
+        $this->assertSame(DisposisiUnit::SedangInvestigasi, $unit->fresh()->disposisi);
 
         $penugasan = $pengaduan->riwayatStatus()->reorder('id', 'desc')->first();
         $this->assertSame(StatusPengaduan::Diterima, $penugasan->dari);
         $this->assertSame(StatusPengaduan::Diproses, $penugasan->ke);
     }
 
-    public function test_mengalihkan_disposisi_mengembalikan_unit_lama_ke_terhubung(): void
+    public function test_mengalihkan_disposisi_tidak_menulis_status_kedua_unit(): void
     {
         $lama = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
         $baru = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
 
         $pengaduan = $this->tiketDiproses('ADUAN-DISPOSISI-03');
         $pengaduan->update(['master_unit_id' => $lama->id]);
-        $lama->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
+
+        $statusLama = $lama->disposisi;
+        $statusBaru = $baru->disposisi;
 
         $this->post(route('admin.pengaduan.disposisi', $pengaduan->kode_tiket), [
             'unit' => $baru->kode,
         ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
 
-        // Bendera unit lama tidak boleh tertinggal "menunggu investigasi"
-        // padahal tiketnya sudah pindah ke unit lain.
-        $this->assertSame(DisposisiUnit::Terhubung, $lama->fresh()->disposisi);
-        $this->assertSame(DisposisiUnit::MenungguInvestigasi, $baru->fresh()->disposisi);
+        $this->assertSame($baru->id, $pengaduan->fresh()->master_unit_id);
+
+        // Status unit lama dan baru sama-sama tidak disentuh. Dulu unit lama
+        // dipaksa kembali "terhubung" dan unit baru ditandai "menunggu
+        // investigasi", padahal keduanya bisa sedang memegang tiket lain.
+        $this->assertSame($statusLama, $lama->fresh()->disposisi);
+        $this->assertSame($statusBaru, $baru->fresh()->disposisi);
     }
 
-    public function test_tombol_proses_menandai_unit_menunggu_investigasi(): void
+    public function test_detail_tiket_membaca_status_investigasi_tiket_bukan_status_unit(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $pengaduan = $this->tiketDiproses('ADUAN-TAHAP-10', StatusPengaduan::Diterima);
         $pengaduan->update(['master_unit_id' => $unit->id]);
 
+        // Unit sedang memegang tiket lain yang butuh data pelengkap. Status
+        // itu tidak boleh menempel ke tiket ini.
+        $unit->update(['disposisi' => DisposisiUnit::MenungguInfoTambahan]);
+
         $this->post(route('admin.pengaduan.tahap', $pengaduan->kode_tiket), [
             'tujuan' => StatusPengaduan::Diproses->value,
         ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
 
-        $this->assertSame(DisposisiUnit::MenungguInvestigasi, $unit->fresh()->disposisi);
+        $this->get(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->assertOk()
+            ->assertSee(StatusInvestigasi::SedangInvestigasi->label())
+            ->assertDontSee(DisposisiUnit::MenungguInfoTambahan->label());
     }
 
-    public function test_tahap_revisi_menandai_unit_butuh_info_tambahan(): void
+    public function test_tahap_revisi_tidak_menulis_status_unit(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $pengaduan = $this->tiketDiproses('ADUAN-TAHAP-11');
         $pengaduan->update(['master_unit_id' => $unit->id]);
-        $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
+
+        $statusAwal = $unit->disposisi;
 
         $this->post(route('admin.pengaduan.tahap', $pengaduan->kode_tiket), [
             'tujuan' => StatusPengaduan::Revisi->value,
         ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
 
-        $this->assertSame(DisposisiUnit::MenungguInfoTambahan, $unit->fresh()->disposisi);
+        $this->assertSame(StatusPengaduan::Revisi, $pengaduan->fresh()->status);
+        $this->assertSame($statusAwal, $unit->fresh()->disposisi);
     }
 
-    public function test_menutup_tiket_mengembalikan_unit_ke_terhubung(): void
+    public function test_menutup_tiket_mengeluarkannya_dari_hitungan_penugasan_unit(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
         $pengaduan = $this->tiketDiproses('ADUAN-TUTUP-05');
         $pengaduan->update(['master_unit_id' => $unit->id]);
-        $unit->update(['disposisi' => DisposisiUnit::MenungguInvestigasi]);
+
+        $sebelum = $this->penugasanUnit($unit);
+        $this->assertSame(1, $sebelum['investigasi']);
 
         $this->post(route('admin.pengaduan.tahap', $pengaduan->kode_tiket), [
             'tujuan' => StatusPengaduan::Selesai->value,
         ])->assertRedirect(route('admin.pengaduan.show', $pengaduan->kode_tiket));
 
-        $this->assertSame(DisposisiUnit::Terhubung, $unit->fresh()->disposisi);
+        $sesudah = $this->penugasanUnit($unit);
+
+        $this->assertSame(0, $sesudah['investigasi']);
+        $this->assertSame(0, $sesudah['racikan']);
     }
 
     public function test_aksi_c_menolak_unit_yang_koneksinya_terputus(): void
@@ -190,8 +213,9 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $pelepasan = $pengaduan->riwayatStatus->last();
         $this->assertStringContainsString($unit->namaLengkap(), $pelepasan->catatan);
 
-        // Unit yang dilepas kembali siap menerima penugasan.
-        $this->assertSame(DisposisiUnit::Terhubung, $unit->fresh()->disposisi);
+        // Unit yang dilepas tidak perlu direset statusnya; tautan tiketnya
+        // yang dilepas, sedangkan kolom disposisi unit tidak ikut ditulis.
+        $this->assertSame(DisposisiUnit::MenungguInvestigasi, $unit->fresh()->disposisi);
 
         // Setelah Humas menangani sendiri, tautan unit tetap bersih —
         // diamati lagi sebagai PIC karena konsol unit tertutup bagi admin.
@@ -727,6 +751,24 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->post(route('admin.pengaduan.tangani-langsung', $kode))->assertNotFound();
         $this->post(route('admin.pengaduan.kasus-berat', $kode), ['aktif' => 1])->assertNotFound();
         $this->post(route('admin.pengaduan.keparahan', $kode), ['tingkat' => 'berat'])->assertNotFound();
+    }
+
+    /**
+     * Ringkasan penugasan satu unit, diambil dari baris tabel unit.
+     *
+     * Hitungannya menempel pada hasil query DaftarUnit, jadi unitnya harus
+     * diambil dari paginator, bukan dari fresh().
+     *
+     * @return array{terputus: bool, investigasi: int, racikan: int}
+     */
+    private function penugasanUnit(MasterUnit $unit): array
+    {
+        $daftar = DaftarUnit::dariRequest(request());
+        $baris = $daftar->unit->firstWhere('id', $unit->id);
+
+        $this->assertNotNull($baris);
+
+        return $daftar->penugasan($baris);
     }
 
     private function tiketDiproses(string $kode, ?StatusPengaduan $status = null): Pengaduan

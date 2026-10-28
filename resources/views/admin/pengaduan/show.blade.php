@@ -327,9 +327,12 @@
                                 </span>
                             </div>
 
-                            @if ($unit['disposisi'])
-                                <span class="px-2 py-0.5 rounded-full {{ $unit['disposisi']->badge() }} font-label-sm text-label-sm font-bold">
-                                    {{ $unit['disposisi']->label() }}
+                            {{-- Lencana ini membaca status investigasi tiket ini
+                                 sendiri. Status unit tidak dipakai karena satu
+                                 unit bisa memegang banyak tiket sekaligus. --}}
+                            @if ($unit['tertaut'])
+                                <span class="px-2 py-0.5 rounded-full {{ $unit['nada'] }} font-label-sm text-label-sm font-bold">
+                                    {{ $unit['status'] }}
                                 </span>
                             @endif
                         </div>

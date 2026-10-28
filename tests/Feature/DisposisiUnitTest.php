@@ -193,6 +193,7 @@ class DisposisiUnitTest extends TestCase
     public function test_kirim_jawaban_memberi_sinyal_ke_konsol_humas_dan_panel_unit(): void
     {
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $farmasi->update(['disposisi' => DisposisiUnit::Terhubung]);
 
         $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
             ->create(['master_unit_id' => $farmasi->id]);
@@ -213,10 +214,10 @@ class DisposisiUnitTest extends TestCase
             'isi' => 'Klarifikasi selesai, menunggu racikan humas.',
         ]);
 
-        $this->assertSame(
-            DisposisiUnit::JawabanMasuk,
-            $farmasi->fresh()->disposisi,
-        );
+        // Jawaban unit hanya mengubah status investigasi tiketnya. Kolom
+        // disposisi unit tidak ikut ditulis, karena unit bisa memegang
+        // beberapa tiket dengan status berbeda sekaligus.
+        $this->assertSame(DisposisiUnit::Terhubung, $farmasi->fresh()->disposisi);
 
         $setelah = DaftarPengaduan::dariRequest(
             Request::create(route('unit.disposisi.index', $farmasi)),

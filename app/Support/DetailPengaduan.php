@@ -240,7 +240,6 @@ final class DetailPengaduan
                 'nada' => $investigasi->nada(),
                 'keterangan' => 'Belum ada disposisi ke instalasi teknis',
                 'terhubung' => false,
-                'disposisi' => null,
             ];
         }
 
@@ -255,7 +254,6 @@ final class DetailPengaduan
             'nada' => $investigasi->nada(),
             'keterangan' => $investigasi->ringkasPendek(),
             'terhubung' => $unit->koneksiAktif(),
-            'disposisi' => $unit->disposisi,
         ];
     }
 
