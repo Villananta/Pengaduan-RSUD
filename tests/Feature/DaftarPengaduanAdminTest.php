@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
+use App\Enums\TingkatKeparahan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\User;
+use App\Support\DaftarPengaduan;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class DaftarPengaduanAdminTest extends TestCase
@@ -234,6 +237,18 @@ class DaftarPengaduanAdminTest extends TestCase
         ]))
             ->assertOk()
             ->assertSee('ADUAN-AMAN-01');
+    }
+
+    public function test_chip_keparahan_belum_menghitung_tiket_tanpa_tingkat_keparahan(): void
+    {
+        Pengaduan::factory()->count(2)->create(['tingkat_keparahan' => null]);
+        Pengaduan::factory()->create(['tingkat_keparahan' => TingkatKeparahan::Berat]);
+
+        $daftar = DaftarPengaduan::dariRequest(Request::create(route('admin.pengaduan.index')));
+
+        $this->assertSame(2, $daftar->jumlahKeparahan['belum']);
+        $this->assertSame(1, $daftar->jumlahKeparahan[TingkatKeparahan::Berat->value]);
+        $this->assertSame(0, $daftar->jumlahKeparahan[TingkatKeparahan::Ringan->value]);
     }
 
     public function test_ukuran_halaman_tidak_dikenal_kembali_ke_default(): void

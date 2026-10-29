@@ -76,16 +76,16 @@ Contoh pakai: `font-title-md text-title-md`, `font-body-sm text-body-sm`, `font-
 
 ### 1.5 Kelas yang Tidak Ada di `@theme`
 
-Beberapa kelas beredar di template tetapi tidak pernah didefinisikan, jadi tidak menghasilkan CSS apa pun (sudah dicek ke `app.css` dan berkas build):
+Pemeriksaan awal audit menemukan beberapa kelas yang beredar di template tetapi tidak pernah didefinisikan, sehingga tidak menghasilkan CSS apa pun. Keempat kelompok itu sekarang sudah punya token di `resources/css/app.css`:
 
-| Kelas | Dipakai di | Akibat |
-|-------|------------|--------|
-| `text-body-xs`, `font-body-xs` | `admin/layout`, `admin/riwayat/index`, `components/item-notifikasi`, `unit/layout` | waktu dan NRM tampil seukuran teks induk |
-| `text-display-sm`, `font-display-sm` | `admin/unit/index` | angka beban unit tampil kecil |
-| `bg-warning` | `unit/layout`, `unit/partials/notifikasi-dropdown` | titik nudge tidak berwarna |
-| `text-brand-400` | `masuk`, `aktivasi/undangan`, `pengaduan/verifikasi-email` | placeholder memakai warna bawaan browser |
+| Kelas | Token yang ditambahkan | Nilai |
+|-------|------------------------|-------|
+| `text-body-xs`, `font-body-xs` | `--text-body-xs`, `--font-body-xs` | 0.6875rem / 0.875rem |
+| `text-display-sm`, `font-display-sm` | `--text-display-sm`, `--font-display-sm` | 2.25rem / 2.75rem |
+| `bg-warning` | `--color-warning` | `#d97706` |
+| `text-brand-400` | `--color-brand-400` | `#2f9c63` |
 
-Skala `brand` melompat dari `300` ke `500`, `display` hanya punya `lg`, dan `body` berhenti di `sm`. Sebelum memakai kelas token baru, cari namanya di `resources/css/app.css`; kalau tidak ada, pakai token terdekat, jangan menambah `@theme` hanya untuk satu halaman.
+Skala `brand` kini lengkap dari `50` sampai `950`, `display` punya `lg` dan `sm`, dan `body` punya `lg`, `md`, `sm`, `xs`. Sebelum memakai kelas token baru, cari namanya di `resources/css/app.css`; kalau tidak ada, pakai token terdekat, jangan menambah `@theme` hanya untuk satu halaman.
 
 ### 1.6 Radius, Bayangan, dan Build
 

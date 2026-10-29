@@ -27,6 +27,12 @@
     --color-brand-700: #158a4a;
     --color-brand-600: #146c3e;
     --color-brand-500: #17804c;
+    /*
+     * brand-400 hanya dipakai sebagai warna placeholder isian formulir.
+     * Nilainya sengaja di antara brand-300 dan brand-500 supaya teks
+     * contoh tetap terbaca tanpa bersaing dengan isian sebenarnya.
+     */
+    --color-brand-400: #2f9c63;
     --color-brand-300: #86dcab;
     --color-brand-250: #a9e7c2;
     --color-brand-200: #c3efd5;
@@ -136,6 +142,12 @@
     --color-error-container: #ffdad6;
     --color-on-error-container: #93000a;
 
+    /*
+     * Peringatan dipakai untuk penanda yang perlu dilihat tetapi belum
+     * sampai taraf error, misalnya titik notifikasi unit yang belum dibaca.
+     */
+    --color-warning: #d97706;
+
     /* Jarak halaman, mengikuti design konsol admin. */
     --spacing-space-xs: 0.25rem;
     --spacing-space-sm: 0.5rem;
@@ -153,6 +165,7 @@
      * langsung berlaku tanpa utility tambahan.
      */
     --font-display-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-headline-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-headline-md: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-headline-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -162,6 +175,7 @@
     --font-body-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-body-md: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-body-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body-xs: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-label-lg: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-label-md: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-label-sm: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -169,6 +183,10 @@
     --text-display-lg: 3rem;
     --text-display-lg--line-height: 3.5rem;
     --text-display-lg--letter-spacing: -0.02em;
+
+    --text-display-sm: 2.25rem;
+    --text-display-sm--line-height: 2.75rem;
+    --text-display-sm--letter-spacing: -0.015em;
 
     --text-headline-lg: 2rem;
     --text-headline-lg--line-height: 2.5rem;
@@ -198,6 +216,9 @@
 
     --text-body-sm: 0.75rem;
     --text-body-sm--line-height: 1rem;
+
+    --text-body-xs: 0.6875rem;
+    --text-body-xs--line-height: 0.875rem;
 
     --text-label-lg: 0.875rem;
     --text-label-lg--line-height: 1.25rem;

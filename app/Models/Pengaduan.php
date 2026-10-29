@@ -453,16 +453,20 @@ class Pengaduan extends Model
     /**
      * Generate token akses acak untuk pelapor.
      *
-     * Token 64 karakter (32 byte hex) yang unik di database.
-     * Digunakan untuk akses permanen (30 hari) tanpa harus login ulang.
+     * Token 64 karakter (32 byte hex) hanya dikembalikan sekali untuk
+     * ditanam di cookie; yang disimpan di database adalah hash SHA-256-nya.
+     * Dengan begitu dump database yang bocor tidak langsung memberi akses
+     * ke tiket mana pun, karena cookie pelapor tidak bisa direkonstruksi
+     * dari nilai hash.
      */
     public function generateAksesToken(): string
     {
         do {
             $token = bin2hex(random_bytes(32));
-        } while (self::where('akses_token', $token)->exists());
+            $hash = hash('sha256', $token);
+        } while (self::where('akses_token', $hash)->exists());
 
-        $this->akses_token = $token;
+        $this->akses_token = $hash;
         $this->akses_token_expires_at = now()->addDays(30);
         $this->save();
 
@@ -472,11 +476,9 @@ class Pengaduan extends Model
     /**
      * Cek apakah token akses masih valid (belum expired).
      */
-    public function validAksesToken(?string $token = null): bool
+    public function validAksesToken(string $token): bool
     {
-        $token = $token ?? $this->akses_token;
-
-        if (! $token || $this->akses_token !== $token) {
+        if ($this->akses_token === null || ! hash_equals($this->akses_token, hash('sha256', $token))) {
             return false;
         }
 
@@ -488,13 +490,13 @@ class Pengaduan extends Model
      */
     public static function findByValidAksesToken(string $token): ?self
     {
-        $pengaduan = self::where('akses_token', $token)->first();
-
-        if (! $pengaduan || ! $pengaduan->validAksesToken($token)) {
+        if ($token === '') {
             return null;
         }
 
-        return $pengaduan;
+        return self::where('akses_token', hash('sha256', $token))
+            ->where('akses_token_expires_at', '>', now())
+            ->first();
     }
 
     /**

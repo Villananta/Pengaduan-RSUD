@@ -159,10 +159,13 @@ final class DaftarPengaduan
         // sedang dipilih. Nilai kosong dihitung sebagai 'belum'.
         $jumlahKeparahan = [];
 
+        // Kolomnya dibungkus coalesce karena pluck() memakai nilai kolom
+        // sebagai kunci array, dan PHP 8.5 men-deprecate kunci null. Tiket
+        // yang belum diberi keparahan akan menjadi kunci '' di sini.
         $perKeparahan = $dasar()
-            ->selectRaw('tingkat_keparahan, count(*) as jumlah')
+            ->selectRaw("coalesce(tingkat_keparahan, '') as kunci_keparahan, count(*) as jumlah")
             ->groupBy('tingkat_keparahan')
-            ->pluck('jumlah', 'tingkat_keparahan');
+            ->pluck('jumlah', 'kunci_keparahan');
 
         foreach (TingkatKeparahan::cases() as $tingkat) {
             $jumlahKeparahan[$tingkat->value] = (int) ($perKeparahan[$tingkat->value] ?? 0);
