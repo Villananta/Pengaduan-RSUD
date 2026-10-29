@@ -76,8 +76,11 @@ Route::post('/buat-aduan', [PengaduanController::class, 'store'])
 
 Route::get('/buat-aduan/sukses', [PengaduanController::class, 'sukses'])->name('pengaduan.sukses');
 
-// Verifikasi email pelapor (OTP)
-Route::get('/verifikasi-email/{kode}', [PengaduanController::class, 'verifikasiEmail'])
+// Verifikasi email pelapor (OTP). Halaman GET hanya menampilkan formulir;
+// kode OTP selalu dikirim lewat POST supaya tidak pernah ikut tercatat di
+// riwayat browser, log server, maupun header referer.
+Route::get('/verifikasi-email/{kode}', [PengaduanController::class, 'tampilkanVerifikasiEmail'])
+    ->middleware('throttle:20,1,'.ThrottleKeys::VERIFIKASI_EMAIL_TAMPIL)
     ->name('pengaduan.verifikasi-email');
 Route::post('/verifikasi-email/{kode}', [PengaduanController::class, 'verifikasiEmail'])
     ->middleware('throttle:10,1,'.ThrottleKeys::VERIFIKASI_EMAIL)

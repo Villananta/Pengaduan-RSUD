@@ -54,8 +54,7 @@
             </div>
 
             <div class="flex items-center gap-space-md">
-                <!-- Badge standar SLA memakai emas karena menandai angka
-                     pencapaian yang dijanjikan, bukan sekadar informasi. -->
+               
                 <div class="hidden sm:flex items-center gap-space-sm px-space-sm py-1 rounded-xl bg-gold-100 border border-gold-300 text-gold-800">
                     <x-symbol nama="timer" class="text-[18px] text-gold-700 animate-pulse" />
                     <div class="flex flex-col text-left">
@@ -64,11 +63,6 @@
                     </div>
                 </div>
 
-                {{-- Lonceng notifikasi. Datanya disiapkan App\Support\NotifikasiAdmin
-                     lewat view composer pada layout ini supaya template tidak
-                     menyusun query sendiri; dua query tetap dipakai karena
-                     lencana butuh total sebenarnya sedangkan dropdown cukup
-                     memuat yang terbaru. --}}
                 @php
                     $jumlahNotifAdmin = $notifikasiAdmin?->jumlahNotifikasiBelumDibaca() ?? 0;
                     $daftarNotifAdmin = $notifikasiAdmin?->notifikasiTerbaru() ?? collect();
@@ -84,7 +78,7 @@
                             aria-label="Notifikasi"
                             aria-expanded="false"
                             aria-haspopup="true"
-                            class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+                            class="relative flex items-center justify-center p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden before:hidden"
                         >
                             <x-symbol nama="notifications" class="text-[24px]" />
                             @if ($jumlahNotifAdmin > 0)

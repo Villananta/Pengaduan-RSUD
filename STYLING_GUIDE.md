@@ -45,7 +45,16 @@ Semua warna didefinisikan di `resources/css/app.css` dalam blok `@theme`. **Jang
 > Di template: `px-margin`, `py-space-md`, `gap-space-lg`, dsb.
 
 ### 1.4 Tipografi Semantik
-Gunakan kelas `font-*` dan `text-*` yang sudah terdaftar di `@theme`, **bukan** `text-base`, `text-lg`, dsb.
+Project ini punya dua dialek yang sudah mapan dan tidak boleh dicampur dalam satu halaman:
+
+| Area | Tipografi | Spasi | Pemakaian terukur |
+|------|-----------|-------|-------------------|
+| `resources/views/admin/**`, `resources/views/unit/**` | token semantik (`font-body-md text-body-md`) | token `space-*`, `margin`, `gutter` | 1.141 pemakaian semantik, 0 ukuran bawaan |
+| `resources/views/pengaduan/**`, `resources/views/maklumat/**`, `resources/views/layouts/**` | skala bawaan Tailwind (`text-sm`, `text-[13px]`) | numerik (`px-4`, `gap-2`) | 112 pemakaian ukuran bawaan, 0 token |
+
+Halaman publik mengikuti mock desain yang memakai ukuran tetap, konsol mengikuti skala Material 3. Kalau memperbaiki satu halaman, ikuti dialek halaman itu; jangan menyilang tanpa alasan.
+
+Di konsol, gunakan kelas `font-*` dan `text-*` yang sudah terdaftar di `@theme`, **bukan** `text-base`, `text-lg`, dsb.
 
 | Peran | Font | Size | Line Height | Letter Spacing |
 |-------|------|------|-------------|----------------|
@@ -64,6 +73,25 @@ Gunakan kelas `font-*` dan `text-*` yang sudah terdaftar di `@theme`, **bukan** 
 | `label-sm` | Plus Jakarta Sans | 0.6875rem | 0.875rem | 0.04em |
 
 Contoh pakai: `font-title-md text-title-md`, `font-body-sm text-body-sm`, `font-label-sm text-label-sm`.
+
+### 1.5 Kelas yang Tidak Ada di `@theme`
+
+Beberapa kelas beredar di template tetapi tidak pernah didefinisikan, jadi tidak menghasilkan CSS apa pun (sudah dicek ke `app.css` dan berkas build):
+
+| Kelas | Dipakai di | Akibat |
+|-------|------------|--------|
+| `text-body-xs`, `font-body-xs` | `admin/layout`, `admin/riwayat/index`, `components/item-notifikasi`, `unit/layout` | waktu dan NRM tampil seukuran teks induk |
+| `text-display-sm`, `font-display-sm` | `admin/unit/index` | angka beban unit tampil kecil |
+| `bg-warning` | `unit/layout`, `unit/partials/notifikasi-dropdown` | titik nudge tidak berwarna |
+| `text-brand-400` | `masuk`, `aktivasi/undangan`, `pengaduan/verifikasi-email` | placeholder memakai warna bawaan browser |
+
+Skala `brand` melompat dari `300` ke `500`, `display` hanya punya `lg`, dan `body` berhenti di `sm`. Sebelum memakai kelas token baru, cari namanya di `resources/css/app.css`; kalau tidak ada, pakai token terdekat, jangan menambah `@theme` hanya untuk satu halaman.
+
+### 1.6 Radius, Bayangan, dan Build
+
+- Radius mengikuti Material 3 dan sengaja digeser satu tingkat dari skala Tailwind: `rounded-xs` (0.125rem), `rounded-sm` (0.25rem), `rounded-lg` (0.5rem), `rounded-xl` (0.75rem). Yang paling sering dipakai `rounded-lg` (207 kali), lalu `rounded-full` (150) dan `rounded-sm` (111). `rounded-2xl` dan `rounded-3xl` hanya dipakai di halaman publik untuk kartu besar.
+- Bayangan: 44 pemakaian arbitrary seperti `shadow-[0_2px_14px_rgba(26,26,46,0.08)]` untuk topbar dan footer, lalu `shadow-sm` (82) dan `shadow-lg` (2). Arbitrary dipakai saat bayangan perlu tipis dan berwarna; untuk kartu cukup `shadow-sm`.
+- `public/build` tidak ikut git. Setiap perubahan Blade atau `app.css` baru terlihat setelah `npm run dev` atau `npm run build`; kalau tampilan tidak berubah, cek dulu umur berkas di `public/build/assets`.
 
 ---
 
@@ -362,6 +390,27 @@ Sukses:
 
 ---
 
+### 3.7 Komponen Blade yang Sudah Ada
+
+Jangan menulis ulang markup yang sudah dibungkus komponen:
+
+| Komponen | Isi | Dipakai di |
+|----------|-----|------------|
+| `x-brand-logo` | logo RSUD sebagai SVG inline, ukuran lewat `class="h-9 w-9"` | semua layout, footer |
+| `x-symbol` | ikon Material Symbols, `aria-hidden` otomatis | seluruh konsol |
+| `x-item-notifikasi` | satu baris notifikasi lonceng (`:notif="$notif"`) | dropdown admin |
+| `x-stepper-tahap` | stepper empat tahap pengaduan | halaman detail |
+| `x-tiket-identitas` | kartu identitas tiket ringkas | detail admin/unit |
+| `x-bulk-action-scripts` | JS aksi massal tabel | daftar pengaduan |
+| `x-script-tab-kartu` | JS tab kartu status | daftar pengaduan |
+| `x-log-kegiatan` | daftar riwayat aksi | detail admin |
+
+Selain itu ada satu partial yang di-include manual: `unit.partials.notifikasi-dropdown`. Badge dan warna status tidak ditulis di template, tetapi diambil dari enum (`StatusPengaduan::badgeAdmin()`, `ZonaSla::badge()`, `StatusInvestigasi::titik()`), jadi satu perubahan warna cukup di enum.
+
+Data tampilan disiapkan lewat direktif `@use('App\Enums\...')` di baris atas view, lalu `@php` untuk variabel turunan. Query tetap di `App\Support\*` atau controller; template tidak boleh memanggil Eloquent.
+
+---
+
 ## 4. Ikon — Material Symbols Outlined
 
 - Font dimuat di `<head>` layout admin/unit: `Material Symbols Outlined` (variable font).
@@ -393,7 +442,7 @@ Layout `resources/views/layouts/guest.blade.php` beda dari konsol:
 - Navigasi pakai pill mint untuk aktif, navy untuk pasif.
 - Footer kaya (4 kolom: branding, kontak, lokasi, jam).
 - Widget aksesibilitas (perbesar/kecilkan teks, kontras tinggi) + TTS (Web Speech API).
-- Script inline di bawah `@stack('scripts')`.
+- Script inline di layout ditaruh sebelum `@stack('scripts')`; script milik halaman masuk lewat `@push('scripts')`.
 
 **Token warna publik** (lihat `app.css` baris 19–58): `brand-*`, `ink`, `ink-muted`, `gold-*`, `alert-*`, `info-*`.
 
@@ -439,10 +488,10 @@ Method helper di enum (mis. `StatusPengaduan::badgeAdmin()`, `StatusInvestigasi:
 
 ---
 
-## 7. JavaScript Inline (Blade `@push('scripts')`)
+## 7. JavaScript Inline (Blade)
 
-- Ditaruh di akhir file view, dalam `@push('scripts')`.
-- Pakai `DOMContentLoaded`.
+- Script halaman ditaruh di akhir view dalam `@push('scripts')`; script milik layout (aksesibilitas, pemilih suara, dropdown notifikasi) ditulis langsung di layout sebelum `@stack('scripts')`.
+- Sebagian besar script layout berjalan langsung saat elemen sudah ada di DOM; `DOMContentLoaded` dipakai kalau script perlu menunggu markup lain. Dua-duanya ada di project ini, jadi ikuti pola file yang sedang diubah.
 - Variabel `const` untuk elemen DOM.
 - Fungsi kecil, nama deskriptif (`updateToolbar`, `showAksiFields`).
 - Komentar singkat di atas blok logika kompleks.
@@ -472,7 +521,6 @@ Method helper di enum (mis. `StatusPengaduan::badgeAdmin()`, `StatusInvestigasi:
 
 | ✅ Do | ❌ Don't |
 |------|----------|
-| Pakai token warna dari `@theme` | Tulis hex/RGB di class Blade |
 | Simpan class panjang di `@php` variabel | Ulangi class yang sama di setiap input |
 | Komentar alasannya (kenapa, bukan apa) | Komentar yang cuma terjemahan kode |
 | `button disabled` untuk fitur belum jadi | `href="#"` atau `href="javascript:void(0)"` |
@@ -480,7 +528,10 @@ Method helper di enum (mis. `StatusPengaduan::badgeAdmin()`, `StatusInvestigasi:
 | `aria-label` / `aria-current` pada navigasi | Abaikan aksesibilitas |
 | `scroll-smooth` di `<html>` | Pakai JS untuk smooth scroll |
 | `colgroup` + `w-[%]` untuk tabel | Biarkan kolom melebar/mengecil acak |
-| `font-body-md text-body-md` (semantik) | `text-base` / `text-sm` langsung |
+| `font-body-md text-body-md` (semantik) di konsol | `text-base` / `text-sm` di halaman konsol |
+| Skala bawaan Tailwind di halaman publik | Mencampur token semantik dan skala bawaan dalam satu halaman |
+| Cek nama token di `app.css` sebelum dipakai | Memakai `text-body-xs`, `display-sm`, `bg-warning`, `brand-400` yang tidak ada |
+| Hex hanya di template ekspor (`exports/*`) dan SVG bendera/logo | Hex/RGB di class Blade halaman biasa |
 
 ---
 
@@ -494,8 +545,8 @@ Method helper di enum (mis. `StatusPengaduan::badgeAdmin()`, `StatusInvestigasi:
    - Kartu / tabel / form
    - Footer tabel (paginasi, ringkasan)
 4. **Warna**: hanya pakai token (`bg-surface-container`, `text-on-surface-variant`, dsb).
-5. **Spasi**: pakai `space-*`, `margin`, `gutter`.
-6. **Tipografi**: pakai `font-* text-*` semantik.
+5. **Spasi**: konsol memakai `space-*`, `margin`, `gutter`; halaman publik memakai skala numerik halaman itu.
+6. **Tipografi**: konsol memakai `font-* text-*` semantik; halaman publik memakai `text-sm`/`text-[13px]` sesuai mock.
 7. **Ikon**: `<x-symbol nama="..." />`.
 8. **Aksesibilitas**: `aria-label`, `role="alert"`/`"status"`, `scope="col"` di `<th>`.
 9. **Script**: masuk `@push('scripts')`, jangan inline di tengah HTML.
@@ -527,4 +578,4 @@ Method helper di enum (mis. `StatusPengaduan::badgeAdmin()`, `StatusInvestigasi:
 
 ---
 
-*Dokumen ini dihasilkan dari analisis kode pada `app/Support/*`, `resources/views/**/*.blade.php`, `resources/css/app.css`. Perbarui saat token/pattern baru ditambahkan.*
+*Dokumen ini dihasilkan dari analisis kode pada `app/Support/*`, `resources/views/**/*.blade.php`, `resources/css/app.css`, dan CSS hasil build; terakhir dicek ulang 29 Oktober 2026. Dokumen lain (`STYLE.md`, `STYLE_GUIDE.md`, `STYLING_CODE_GUIDE.md`) membahas topik serupa dengan sudut berbeda; kalau ada yang bertentangan, kode di repository yang berlaku dan dokumen ini yang diperbarui.*

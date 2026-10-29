@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Middleware\ProxyTepercaya;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
@@ -17,7 +19,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // edge. Tanpa kepercayaan ini, Laravel menganggap koneksi sebagai
         // HTTP biasa dan membangun tautan aset ber-schema http, sehingga
         // browser memblokir CSS/JS saat halaman dibuka lewat https.
-        $middleware->trustProxies(at: '*');
+        //
+        // Daftarnya dibatasi ke jaringan proxy, bukan '*': Symfony membaca
+        // X-Forwarded-For dari kanan dan berhenti di hop pertama yang tidak
+        // tepercaya, jadi nilai kiriman klien di sebelah kiri tidak pernah
+        // dipakai sebagai IP. Dengan '*' seluruh rantai dianggap tepercaya
+        // dan IP kiriman klien itulah yang akhirnya dipakai throttle.
+        //
+        // Daftarnya baru dibaca saat request masuk lewat ProxyTepercaya
+        // karena config() belum tersedia ketika closure ini dijalankan.
+        $middleware->replace(TrustProxies::class, ProxyTepercaya::class);
 
         // Halaman masuk memakai nama rute sendiri, jadi tamu yang belum
         // autentikasi diarahkan ke sana, bukan ke rute 'login' bawaan.

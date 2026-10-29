@@ -85,6 +85,8 @@
 </section>
 <!-- End of Verifikasi Email -->
 
+@endsection
+
 @push('scripts')
 <script>
     let countdown = 0;

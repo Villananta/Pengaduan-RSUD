@@ -22,6 +22,16 @@ class PengaduanController extends Controller
     /** Kunci session yang menandai tiket sudah diverifikasi pelapor. */
     private const SESI_TERVERIFIKASI = 'tiket_terverifikasi';
 
+    /**
+     * Jumlah tebakan OTP yang boleh dicoba untuk satu tiket.
+     *
+     * OTP hanya 6 digit, jadi tanpa batas ini penebak punya sejuta
+     * kesempatan selama kode masih berlaku. Angkanya kecil supaya tidak
+     * mengganggu pelapor yang salah ketik, tetapi cukup membuat penebakan
+     * beruntun tidak realistis dalam 15 menit.
+     */
+    private const BATAS_PERCOBAAN_OTP = 5;
+
     public function create(): View
     {
         return view('pengaduan.create', [
@@ -254,10 +264,34 @@ class PengaduanController extends Controller
     }
 
     /**
-     * Verifikasi email pelapor via OTP.
+     * Tampilkan formulir verifikasi email.
      *
-     * Endpoint ini bisa diakses via link di email (GET dengan query otp)
-     * atau via form verifikasi (POST).
+     * Kode OTP tidak pernah dibaca dari URL. Tautan di email hanya membuka
+     * formulir ini, sehingga kode tidak tertinggal di riwayat browser, log
+     * server, atau header referer setiap kali halaman dibuka.
+     */
+    public function tampilkanVerifikasiEmail(string $kode): View|RedirectResponse
+    {
+        $pengaduan = Pengaduan::where('kode_tiket', strtoupper($kode))->firstOrFail();
+
+        if ($pengaduan->isEmailVerified()) {
+            return redirect()->route('pengaduan.lacak')
+                ->with('info', 'Email sudah terverifikasi sebelumnya.');
+        }
+
+        return view('pengaduan.verifikasi-email', [
+            'pengaduan' => $pengaduan,
+            'kode' => $pengaduan->kode_tiket,
+        ]);
+    }
+
+    /**
+     * Verifikasi OTP yang dikirim ke email pelapor.
+     *
+     * Percobaan dibatasi per tiket, bukan hanya per IP: penebak bisa
+     * berpindah IP, sedangkan tiket yang ditebak tetap satu. Kuncinya
+     * sengaja tidak memuat IP supaya jatah tidak berlipat hanya karena
+     * pelapor berganti jaringan.
      */
     public function verifikasiEmail(Request $request, string $kode): RedirectResponse
     {
@@ -269,25 +303,32 @@ class PengaduanController extends Controller
                 ->with('info', 'Email sudah terverifikasi sebelumnya.');
         }
 
-        $otp = $request->query('otp') ?? $request->input('otp');
+        $kunciPercobaan = 'otp-email:'.$pengaduan->kode_tiket;
 
-        if (! $otp) {
-            // Tampilkan form input OTP
-            return view('pengaduan.verifikasi-email', [
-                'pengaduan' => $pengaduan,
-                'kode' => $kode,
+        if (RateLimiter::tooManyAttempts($kunciPercobaan, self::BATAS_PERCOBAAN_OTP)) {
+            return back()->withErrors([
+                'otp' => 'Terlalu banyak percobaan kode OTP. Coba lagi dalam 15 menit.',
             ]);
         }
 
-        $otp = trim((string) $otp);
+        $validated = $request->validate([
+            'otp' => ['required', 'string', 'digits:6'],
+        ], [
+            'otp.required' => 'Masukkan kode OTP yang dikirim ke email Anda.',
+            'otp.digits' => 'Kode OTP terdiri dari 6 angka.',
+        ]);
 
-        if ($pengaduan->verifyEmailOtp($otp)) {
+        if ($pengaduan->verifyEmailOtp($validated['otp'])) {
+            RateLimiter::clear($kunciPercobaan);
+
             return redirect()->route('pengaduan.lacak')
                 ->with('sukses', 'Email berhasil diverifikasi. Anda akan menerima notifikasi perkembangan pengaduan.');
         }
 
+        RateLimiter::hit($kunciPercobaan, 900);
+
         return back()->withErrors(['otp' => 'Kode OTP tidak valid atau sudah kedaluwarsa (maksimal 15 menit).'])
-            ->withInput(['otp' => $otp]);
+            ->withInput(['otp' => $validated['otp']]);
     }
 
     /**

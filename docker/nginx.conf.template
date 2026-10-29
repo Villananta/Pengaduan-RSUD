@@ -1,0 +1,40 @@
+# Konfigurasi nginx untuk container tunggal bersama PHP-FPM.
+#
+# __PORT__ diganti port dari environment saat container hidup; nginx tidak
+# membaca environment variable di dalam berkas konfigurasinya.
+server {
+    listen __PORT__ default_server;
+    listen [::]:__PORT__ default_server;
+    server_name _;
+
+    root /app/public;
+    index index.php;
+
+    charset utf-8;
+
+    # Validasi unggahan membatasi 4 MB per berkas dengan maksimal 5 lampiran
+    # per pesan, dan php.ini sudah dilonggarkan ke 8 MB. Batas nginx dibuat
+    # sama supaya permintaan besar ditolak dengan pesan yang jelas, bukan
+    # terpotong di tengah jalan.
+    client_max_body_size 8m;
+
+    # Berkas statis dilayani nginx; alamat lain masuk ke index.php supaya
+    # semua rute tetap melewati Laravel.
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Berkas titik tidak boleh diunduh, kecuali jalur verifikasi milik
+    # layanan lain seperti ACME.
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}

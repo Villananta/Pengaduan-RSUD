@@ -44,7 +44,11 @@ COPY . .
 RUN composer dump-autoload --optimize --classmap-authoritative --no-scripts
 
 # Tahap 3 -- image runtime final.
-FROM php:8.4-cli-alpine
+#
+# Basis FPM, bukan CLI: permintaan PHP dilayani PHP-FPM di belakang nginx
+# dalam container yang sama. Built-in server php artisan serve hanya satu
+# proses, sehingga permintaan antre begitu ada lebih dari satu pembaca.
+FROM php:8.4-fpm-alpine
 
 WORKDIR /app
 
@@ -53,6 +57,7 @@ WORKDIR /app
 # menyatu dengan image php resmi sehingga tidak perlu diinstall manual.
 # GD dibutuhkan phpoffice/phpspreadsheet (export Excel).
 RUN apk add --no-cache \
+    nginx \
     libzip-dev \
     oniguruma-dev \
     libpng-dev \
@@ -74,8 +79,18 @@ RUN apk add --no-cache \
 
 # Validasi controller mengizinkan 4 MB per berkas, jadi batas default PHP
 # 2M harus dilonggarkan lebih dulu supaya unggahan tidak diam-diam gagal.
+# Angka yang sama dipakai client_max_body_size di docker/nginx.conf.template.
 RUN echo "upload_max_filesize=8M" > $PHP_INI_DIR/conf.d/upload.ini && \
     echo "post_max_size=8M" >> $PHP_INI_DIR/conf.d/upload.ini
+
+# Direktori sementara nginx harus ada dan bisa ditulis user nginx, sementara
+# log diarahkan ke stdout/stderr supaya terbaca lewat docker logs.
+RUN mkdir -p /var/log/nginx \
+        /var/lib/nginx/tmp/client_body /var/lib/nginx/tmp/fastcgi \
+        /var/lib/nginx/tmp/proxy /var/lib/nginx/tmp/uwsgi /var/lib/nginx/tmp/scgi \
+    && chown -R nginx:nginx /var/lib/nginx \
+    && ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log
 
 COPY --from=vendor /app/vendor /app/vendor
 COPY --from=frontend /app/public/build /app/public/build

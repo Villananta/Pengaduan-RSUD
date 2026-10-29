@@ -68,6 +68,8 @@ final class ThrottleKeys
     public const PESAN_LACAK = 'pesan-lacak';
 
     // Publik: verifikasi email
+    public const VERIFIKASI_EMAIL_TAMPIL = 'verifikasi-email-tampil';
+
     public const VERIFIKASI_EMAIL = 'verifikasi-email';
 
     public const KIRIM_ULANG_OTP = 'kirim-ulang-otp';

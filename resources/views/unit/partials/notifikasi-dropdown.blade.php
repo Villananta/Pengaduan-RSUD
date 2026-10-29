@@ -19,7 +19,7 @@
             <summary
                 id="btn-notifikasi"
                 data-mark-read-url="{{ $markReadUrl ?: route('unit.notifikasi.baca.user') }}"
-                class="relative p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+                class="relative flex items-center justify-center p-space-xs text-on-surface-variant hover:text-brand-800 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden [&::marker]:hidden before:hidden"
                 aria-label="Notifikasi"
                 aria-expanded="false"
                 aria-haspopup="true"
