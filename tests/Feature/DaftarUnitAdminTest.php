@@ -371,6 +371,26 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertNull($unit->koneksi_simrs_terakhir);
     }
 
+    public function test_unit_baru_tetap_tersimpan_saat_centang_aktif_dilepas(): void
+    {
+        // Checkbox yang tidak dicentang tidak dikirim browser. Kalau nilai
+        // itu tidak diubah jadi boolean lebih dulu, aturan required menolak
+        // pendaftaran unit dan admin tidak bisa mencatat unit nonaktif.
+        $this->post(route('admin.unit.store'), [
+            'kode' => 'UJI-61',
+            'nama' => 'Unit Nonaktif Baru',
+            'kategori' => KategoriUnit::PenunjangKlinis->value,
+            'peran_akses' => PeranAksesUnit::StafPelaksana->value,
+            'status_akses' => StatusAksesUnit::BelumDiundang->value,
+        ])
+            ->assertRedirect(route('admin.unit.index'))
+            ->assertSessionHasNoErrors();
+
+        $unit = MasterUnit::where('kode', 'UJI-61')->firstOrFail();
+
+        $this->assertFalse($unit->aktif);
+    }
+
     public function test_kode_unit_wajib_unik(): void
     {
         $this->post(route('admin.unit.store'), [

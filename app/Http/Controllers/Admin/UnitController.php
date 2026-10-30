@@ -114,6 +114,10 @@ class UnitController extends Controller
      * jadi kode yang tersimpan dipakai lagi; tanpa itu aturan required selalu
      * menolak setiap penyimpanan dari halaman ubah.
      *
+     * Kotak centang "Unit Aktif" juga tidak mengirim apa pun saat dilepas.
+     * Nilainya dijadikan boolean lebih dulu supaya pilihan "tidak aktif"
+     * tersimpan sebagai false, bukan gagal aturan required.
+     *
      * Normalisasi kode dilakukan sebelum validate(), bukan sesudahnya, supaya
      * pemeriksaan keunikan membaca bentuk yang sama dengan yang ditulis ke
      * database. Kode "ifp-01" yang lolos di sini lalu berubah jadi "IFP-01"
@@ -125,6 +129,7 @@ class UnitController extends Controller
     {
         $request->merge([
             'kode' => PemeliharaanUnit::normalisasiKode($unit?->kode ?? $request->input('kode')),
+            'aktif' => $request->boolean('aktif'),
         ]);
 
         return $request->validate(PemeliharaanUnit::aturan($unit));
