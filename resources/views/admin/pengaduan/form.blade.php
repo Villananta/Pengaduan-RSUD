@@ -32,6 +32,7 @@
                     </h1>
                     <p class="font-body-md text-body-md text-on-surface-variant">
                         Isi formulir ini dengan data yang sudah dikonfirmasi langsung dari pelapor. Tiket baru dibuat dengan nomor resmi dan bisa dilacak pelapor begitu kode tiketnya diberikan.
+                        Kategori persoalan tidak dipilih di sini; humas menentukannya dari halaman detail tiket setelah aduan tercatat.
                     </p>
                 </div>
             </div>
@@ -73,7 +74,6 @@
         >
             @csrf
             
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
             <!-- Bagian 1: Kanal Penerimaan -->
             <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
                 <div class="flex items-center gap-space-xs">
@@ -104,40 +104,7 @@
             </section>
             <!-- End of Bagian 1: Kanal Penerimaan -->
 
-            <!-- Bagian 2: Kategori Masalah -->
-            <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md ">
-                <div class="flex items-center gap-space-xs">
-                    <x-symbol nama="category" class="text-primary-container text-[24px]" />
-                    <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Kategori Masalah</h2>
-                </div>
-
-                <div class="flex flex-col gap-1.5 w-full">
-                    <label for="kategori" class="{{ $label }}">Ruang Lingkup Persoalan <span class="text-error">*</span></label>
-                    <select
-                        id="kategori"
-                        name="kategori"
-                        required
-                        class="{{ $input }} appearance-none"
-                    >
-                        <option value="" disabled @selected(! old('kategori'))>Pilih Kategori Masalah...</option>
-                        @foreach ($kategori as $kat)
-                            <option value="{{ $kat->value }}" @selected(old('kategori') === $kat->value)>
-                                {{ $kat->judul() }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <span id="kategori-deskripsi" class="{{ $bantuan }}">
-                        @foreach ($kategori as $kat)
-                            <span class="hidden" data-kategori-deskripsi="{{ $kat->value }}">{{ $kat->deskripsi() }}</span>
-                        @endforeach
-                    </span>
-                    @error('kategori')<span class="{{ $galat }}">{{ $message }}</span>@enderror
-                </div>
-            </section>
-        </div>
-        <!-- End of Bagian 2: Kategori Masalah -->
-        
-            <!-- Bagian 3: Identitas Pelapor -->
+            <!-- Bagian 2: Identitas Pelapor -->
             <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
                 <div class="flex items-center gap-space-xs">
                     <x-symbol nama="person" class="text-primary-container text-[24px]" />
@@ -223,9 +190,9 @@
                     </div>
                 </div>
             </section>
-            <!-- End of Bagian 3: Identitas Pelapor -->
+            <!-- End of Bagian 2: Identitas Pelapor -->
 
-            <!-- Bagian 4: Detail Kejadian -->
+            <!-- Bagian 3: Detail Kejadian -->
             <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
                 <div class="flex items-center gap-space-xs">
                     <x-symbol nama="assignment" class="text-primary-container text-[24px]" />
@@ -295,9 +262,9 @@
                     </div>
                 </div>
             </section>
-            <!-- End of Bagian 4: Detail Kejadian -->
+            <!-- End of Bagian 3: Detail Kejadian -->
 
-            <!-- Bagian 5: Lampiran -->
+            <!-- Bagian 4: Lampiran -->
             <section class="bg-surface-container-lowest p-space-lg rounded-lg shadow-sm flex flex-col gap-space-md">
                 <div class="flex items-center justify-between gap-space-sm flex-wrap">
                     <div class="flex items-center gap-space-xs">
@@ -335,9 +302,9 @@
                     @error('lampiran.*')<span class="{{ $galat }}">{{ $message }}</span>@enderror
                 </div>
             </section>
-            <!-- End of Bagian 5: Lampiran -->
+            <!-- End of Bagian 4: Lampiran -->
 
-            <!-- Bagian 6: Pernyataan dan Aksi -->
+            <!-- Bagian 5: Pernyataan dan Aksi -->
             <div class="flex flex-col gap-space-md bg-surface-container-lowest p-space-lg rounded-lg shadow-sm">
                 <div class="flex items-start gap-2">
                     <input
@@ -380,7 +347,7 @@
                     </div>
                 </div>
             </div>
-            <!-- End of Bagian 6: Pernyataan dan Aksi -->
+            <!-- End of Bagian 5: Pernyataan dan Aksi -->
         </form>
         <!-- End of Formulir Input Aduan -->
 
@@ -388,30 +355,19 @@
 
 @endsection
 
-{{-- Deskripsi kategori dan pratinjau lampiran ditangani di sisi klien. --}}
+{{-- Pratinjau lampiran ditangani di sisi klien. --}}
 @push('scripts')
 
 <script>
-    const selectKategori = document.getElementById('kategori');
-    const wrapDeskripsi = document.getElementById('kategori-deskripsi');
-
-    if (selectKategori && wrapDeskripsi) {
-        const deskripsi = wrapDeskripsi.querySelectorAll('[data-kategori-deskripsi]');
-
-        function refreshDeskripsi() {
-            deskripsi.forEach(function (item) {
-                item.classList.toggle('hidden', item.dataset.kategoriDeskripsi !== selectKategori.value);
-            });
-        }
-
-        selectKategori.addEventListener('change', refreshDeskripsi);
-        refreshDeskripsi();
-    }
-
     const inputFile = document.getElementById('lampiran');
     const preview = document.getElementById('lampiran-preview');
 
     if (inputFile) {
+        // Label unggah berdiri di samping input, bukan membungkusnya, jadi
+        // area jatuhkan dicari lewat atribut for. closest('label') selalu
+        // null di markup ini dan membuat handler drag & drop tidak terpasang.
+        const dropZone = document.querySelector('label[for="lampiran"]');
+
         function render(files) {
             preview.innerHTML = '';
             Array.from(files).forEach(function (file, i) {
@@ -438,19 +394,21 @@
         }
         inputFile.addEventListener('change', function () { render(inputFile.files); });
 
-        ['dragover', 'dragleave', 'drop'].forEach(function (evt) {
-            inputFile.closest('label').addEventListener(evt, function (e) {
-                e.preventDefault();
-                e.currentTarget.classList.toggle('border-secondary/60', evt === 'dragover');
+        if (dropZone) {
+            ['dragover', 'dragleave', 'drop'].forEach(function (evt) {
+                dropZone.addEventListener(evt, function (e) {
+                    e.preventDefault();
+                    e.currentTarget.classList.toggle('border-secondary/60', evt === 'dragover');
+                });
             });
-        });
-        inputFile.closest('label').addEventListener('drop', function (e) {
-            const dt = new DataTransfer();
-            Array.from(e.dataTransfer.files).forEach(function (f) { dt.items.add(f); });
-            Array.from(inputFile.files).forEach(function (f) { dt.items.add(f); });
-            inputFile.files = dt.files;
-            render(inputFile.files);
-        });
+            dropZone.addEventListener('drop', function (e) {
+                const dt = new DataTransfer();
+                Array.from(e.dataTransfer.files).forEach(function (f) { dt.items.add(f); });
+                Array.from(inputFile.files).forEach(function (f) { dt.items.add(f); });
+                inputFile.files = dt.files;
+                render(inputFile.files);
+            });
+        }
     }
 </script>
 

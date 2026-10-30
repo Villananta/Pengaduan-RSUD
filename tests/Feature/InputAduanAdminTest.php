@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Enums\KanalPengaduan;
-use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
@@ -31,7 +30,6 @@ class InputAduanAdminTest extends TestCase
     {
         return array_merge([
             'kanal' => KanalPengaduan::Telepon->value,
-            'kategori' => KategoriPengaduan::Medis->value,
             'nama_lengkap' => 'Siti Nur Aisyah',
             'nrm' => '12-34-56-78',
             'no_wa' => '081234567890',
@@ -52,7 +50,10 @@ class InputAduanAdminTest extends TestCase
             ->assertSee('Input Aduan dari Kanal Non-Web')
             ->assertSee('Kanal Penerimaan')
             ->assertSee('Identitas Pelapor')
-            ->assertSee('Detail Kejadian');
+            ->assertSee('Detail Kejadian')
+            // Kategori tidak dipilih saat mencatat; humas menentukannya di
+            // halaman detail tiket setelah aduan tersimpan.
+            ->assertDontSee('Pilih Kategori Masalah');
     }
 
     public function test_menu_topbar_input_aduan_mengarah_ke_formulirnya(): void
@@ -74,7 +75,10 @@ class InputAduanAdminTest extends TestCase
         $this->assertStringStartsWith('ADUAN-', $pengaduan->kode_tiket);
         $this->assertSame(StatusPengaduan::Diterima, $pengaduan->status);
         $this->assertNull($pengaduan->selesai_at);
-        $this->assertSame(KategoriPengaduan::Medis, $pengaduan->kategori);
+
+        // Tiket baru dari kanal mana pun masuk tanpa kategori. Filter
+        // "belum ditentukan" di daftar bergantung pada nilai null ini.
+        $this->assertNull($pengaduan->kategori);
     }
 
     public function test_aduan_yang_tersimpan_langsung_membuka_workspace_tiketnya(): void
@@ -185,7 +189,7 @@ class InputAduanAdminTest extends TestCase
     {
         $this->post(route('admin.pengaduan.store'), [])
             ->assertSessionHasErrors([
-                'kanal', 'kategori', 'nama_lengkap', 'nrm', 'no_wa', 'email', 'alamat',
+                'kanal', 'nama_lengkap', 'nrm', 'no_wa', 'email', 'alamat',
                 'waktu_kejadian', 'unit', 'subjek', 'deskripsi', 'persetujuan',
             ]);
 
@@ -198,6 +202,19 @@ class InputAduanAdminTest extends TestCase
             ->assertSessionHasErrors('persetujuan');
 
         $this->assertDatabaseCount('pengaduan', 0);
+    }
+
+    public function test_skrip_unggah_mencari_area_jatuhkan_lewat_label(): void
+    {
+        $tampilan = $this->get(route('admin.pengaduan.create'))
+            ->assertOk()
+            ->getContent();
+
+        // Input #lampiran berdiri di samping labelnya, bukan di dalam label.
+        // closest('label') mengembalikan null di markup ini dan membuat seluruh
+        // handler drag & drop gagal terpasang.
+        $this->assertStringContainsString('label[for="lampiran"]', $tampilan);
+        $this->assertStringNotContainsString('inputFile.closest(', $tampilan);
     }
 
     public function test_halaman_tidak_menautkan_aksi_yang_belum_ada(): void

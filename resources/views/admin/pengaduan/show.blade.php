@@ -70,7 +70,7 @@
         />
 
         <!-- Panel Kategori: ruang lingkup tiket ditentukan humas. -->
-        {{-- Tiket dari portal publik masuk tanpa kategori, jadi panel ini
+        {{-- Semua tiket baru masuk tanpa kategori, jadi panel ini
              satu-satunya tempat menetapkannya. Kategori tidak mengubah SLA;
              nilainya hanya memilih alur penanganan dan filter di daftar. --}}
 

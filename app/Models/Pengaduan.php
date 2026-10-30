@@ -144,9 +144,9 @@ class Pengaduan extends Model
     /**
      * Label kategori siap tampil.
      *
-     * Tiket dari portal publik masuk tanpa kategori karena humas yang
-     * menentukannya belakangan. Teks pengganti ini dipakai di daftar,
-     * halaman lacak, email, dan ekspor supaya tidak ada tampilan kosong.
+     * Semua tiket baru masuk tanpa kategori; humas menentukannya dari
+     * halaman detail. Teks pengganti ini dipakai di daftar, halaman lacak,
+     * email, dan ekspor supaya tidak ada tampilan kosong.
      */
     public function labelKategori(): string
     {
@@ -258,7 +258,7 @@ class Pengaduan extends Model
     /**
      * Tetapkan kategori tiket dan catat perubahannya.
      *
-     * Pelapor tidak lagi memilih kategori, jadi method ini yang menjadi satu
+     * Tiket baru tidak membawa kategori, jadi method ini yang menjadi satu
      * satunya pintu penetapan setelah tiket masuk. Baris riwayat memakai
      * tahap asal dan tujuan yang sama karena status tidak berubah; penanda
      * is_kategori yang membedakannya dari disposisi biasa.

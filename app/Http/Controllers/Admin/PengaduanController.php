@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\KanalPengaduan;
-use App\Enums\KategoriPengaduan;
 use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
@@ -45,11 +44,12 @@ class PengaduanController extends Controller
      * tiket resmi, sebab tanpa nomor tiket keluhan itu tidak bisa dilacak
      * pelapor maupun ditagih ke unit. Isiannya sengaja sama dengan
      * formulir pelapor supaya standar datanya tidak berbeda antar kanal.
+     * Kategori tidak dipilih di sini: humas menentukannya dari halaman
+     * detail tiket, sama seperti tiket yang masuk lewat portal.
      */
     public function create(): View
     {
         return view('admin.pengaduan.form', [
-            'kategori' => KategoriPengaduan::cases(),
             'kanal' => KanalPengaduan::cases(),
             'units' => config('pengaduan.units'),
             'hariKerja' => Sla::hariKerja(),
@@ -69,7 +69,7 @@ class PengaduanController extends Controller
         $validated = $request->validate(
             PengaduanMasuk::aturan([
                 'kanal' => ['required', Rule::enum(KanalPengaduan::class)],
-            ], wajibKategori: true),
+            ]),
             PengaduanMasuk::pesanValidasi([
                 'kanal.required' => 'Pilih kanal penerimaan aduan lebih dulu.',
                 'kanal.enum' => 'Kanal penerimaan aduan tidak dikenal.',
