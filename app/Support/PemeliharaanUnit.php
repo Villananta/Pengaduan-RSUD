@@ -125,6 +125,18 @@ final class PemeliharaanUnit
         $data['kode'] = self::normalisasiKode($data['kode']);
         $data['aktif'] = (bool) $data['aktif'];
 
+        // Centang "Unit Aktif" yang menjadi acuan, bukan dropdown kondisi akun.
+        // Keduanya bisa bertentangan karena diisi terpisah: unit bisa
+        // tersimpan aktif sambil berstatus Dinonaktifkan, lalu tetap muncul
+        // sebagai tujuan disposisi padahal akun PIC-nya sudah ditutup.
+        $status = StatusAksesUnit::from($data['status_akses']);
+
+        if (! $data['aktif']) {
+            $data['status_akses'] = StatusAksesUnit::Dinonaktifkan;
+        } elseif ($status === StatusAksesUnit::Dinonaktifkan) {
+            $data['status_akses'] = self::statusSaatAktif($unit);
+        }
+
         // Kolom kontak dikosongkan jadi null, bukan string kosong, supaya
         // pencarian "belum punya PIC" tidak menemukan unit yang isinya spasi.
         foreach (['pic', 'jabatan_pic', 'nip', 'kontak_wa', 'ekstensi', 'jam_layanan', 'akun_simrs'] as $kosong) {
@@ -166,19 +178,28 @@ final class PemeliharaanUnit
     {
         $unit->aktif = ! $unit->aktif;
 
-        if ($unit->aktif) {
-            $unit->status_akses = $unit->pengguna()->exists()
-                ? StatusAksesUnit::AkunAktif
-                : StatusAksesUnit::BelumDiundang;
-        } else {
-            // Dinonaktifkan: tandai Dinonaktifkan
-            $unit->status_akses = StatusAksesUnit::Dinonaktifkan;
-        }
+        $unit->status_akses = $unit->aktif
+            ? self::statusSaatAktif($unit)
+            : StatusAksesUnit::Dinonaktifkan;
 
         $unit->save();
 
         StatistikDashboard::lupaCache();
 
         return $unit;
+    }
+
+    /**
+     * Kondisi akun PIC untuk unit yang sedang aktif.
+     *
+     * AkunAktif hanya jujur kalau PIC-nya benar-benar sudah tertaut. Unit
+     * yang belum pernah diaktivasi dikembalikan ke BelumDiundang supaya
+     * UndanganPic::kirimMassal() masih menjangkaunya.
+     */
+    private static function statusSaatAktif(?MasterUnit $unit): StatusAksesUnit
+    {
+        return $unit?->pengguna()->exists()
+            ? StatusAksesUnit::AkunAktif
+            : StatusAksesUnit::BelumDiundang;
     }
 }

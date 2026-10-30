@@ -389,6 +389,9 @@ class DaftarUnitAdminTest extends TestCase
         $unit = MasterUnit::where('kode', 'UJI-61')->firstOrFail();
 
         $this->assertFalse($unit->aktif);
+
+        // Unit nonaktif tidak boleh tampil seolah akun PIC-nya masih hidup.
+        $this->assertSame(StatusAksesUnit::Dinonaktifkan, $unit->status_akses);
     }
 
     public function test_pesan_validasi_form_unit_memakai_bahasa_indonesia(): void
@@ -402,6 +405,52 @@ class DaftarUnitAdminTest extends TestCase
                 'nama' => 'Nama unit wajib diisi.',
                 'kategori' => 'Pilih kategori layanan.',
             ]);
+    }
+
+    public function test_unit_aktif_dengan_status_dinonaktifkan_diselaraskan_saat_disimpan(): void
+    {
+        // Dropdown kondisi akun dan centang aktif diisi terpisah. Kalau tidak
+        // diselaraskan, unit tersimpan aktif sambil berstatus Dinonaktifkan
+        // sehingga tetap muncul sebagai tujuan disposisi padahal akun PIC-nya
+        // sudah ditutup lewat dropdown.
+        $this->post(route('admin.unit.store'), [
+            'kode' => 'UJI-62',
+            'nama' => 'Unit Aktif Status Tertutup',
+            'kategori' => KategoriUnit::PenunjangKlinis->value,
+            'peran_akses' => PeranAksesUnit::StafPelaksana->value,
+            'status_akses' => StatusAksesUnit::Dinonaktifkan->value,
+            'aktif' => '1',
+        ])
+            ->assertRedirect(route('admin.unit.index'))
+            ->assertSessionHasNoErrors();
+
+        $unit = MasterUnit::where('kode', 'UJI-62')->firstOrFail();
+
+        $this->assertTrue($unit->aktif);
+
+        // Belum ada akun PIC yang tertaut, jadi unit ini masih bisa diundang.
+        $this->assertSame(StatusAksesUnit::BelumDiundang, $unit->status_akses);
+    }
+
+    public function test_menonaktifkan_unit_lewat_form_ikut_menutup_status_akses(): void
+    {
+        // IFP-01 berstatus AkunAktif dari seeder. Kalau centang aktif dilepas
+        // tanpa menyentuh dropdown, statusnya harus ikut tertutup; kalau
+        // tidak, akun PIC tetap dianggap hidup untuk unit yang sudah mati.
+        $this->post(route('admin.unit.update', ['unit' => 'IFP-01']), [
+            'nama' => 'Instalasi Farmasi Pusat',
+            'kategori' => KategoriUnit::InstalasiMedis->value,
+            'peran_akses' => PeranAksesUnit::KepalaUnit->value,
+            'status_akses' => StatusAksesUnit::AkunAktif->value,
+            'aktif' => '0',
+        ])
+            ->assertRedirect(route('admin.unit.index'))
+            ->assertSessionHasNoErrors();
+
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $this->assertFalse($unit->aktif);
+        $this->assertSame(StatusAksesUnit::Dinonaktifkan, $unit->status_akses);
     }
 
     public function test_kode_unit_wajib_unik(): void
