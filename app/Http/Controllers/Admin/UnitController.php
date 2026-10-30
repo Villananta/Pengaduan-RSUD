@@ -109,16 +109,22 @@ class UnitController extends Controller
     /**
      * Validasi formulir unit dengan kode yang sudah diseragamkan.
      *
-     * Kode unit dinormalkan lebih dulu supaya pemeriksaan keunikan membaca
-     * nilai yang sama persis dengan yang akan ditulis ke database. Kalau
-     * tidak, kode huruf kecil lolos validasi lalu ditolak database.
+     * Kode unit tidak bisa diubah setelah unit dibuat, dan input kode di form
+     * ubah sengaja dinonaktifkan. Browser tidak mengirim input yang disabled,
+     * jadi kode yang tersimpan dipakai lagi; tanpa itu aturan required selalu
+     * menolak setiap penyimpanan dari halaman ubah.
+     *
+     * Normalisasi kode dilakukan sebelum validate(), bukan sesudahnya, supaya
+     * pemeriksaan keunikan membaca bentuk yang sama dengan yang ditulis ke
+     * database. Kode "ifp-01" yang lolos di sini lalu berubah jadi "IFP-01"
+     * akan menabrak index unik dan muncul sebagai galat 500.
      *
      * @return array<string, mixed>
      */
     private function validasi(Request $request, ?MasterUnit $unit = null): array
     {
         $request->merge([
-            'kode' => PemeliharaanUnit::normalisasiKode($request->input('kode')),
+            'kode' => PemeliharaanUnit::normalisasiKode($unit?->kode ?? $request->input('kode')),
         ]);
 
         return $request->validate(PemeliharaanUnit::aturan($unit));

@@ -408,8 +408,10 @@ class DaftarUnitAdminTest extends TestCase
             ->assertSee('Perbarui Master Data Unit')
             ->assertSee('Instalasi Farmasi Pusat');
 
+        // Kode sengaja tidak dikirim, sama seperti browser: inputnya
+        // disabled di halaman ubah. Kalau kode tetap dituntut di sini,
+        // setiap penyimpanan dari halaman itu berakhir dengan galat validasi.
         $this->post(route('admin.unit.update', ['unit' => 'IFP-01']), [
-            'kode' => 'IFP-01',
             'nama' => 'Instalasi Farmasi Pusat (Revisi)',
             'kategori' => KategoriUnit::InstalasiMedis->value,
             'pic' => 'apt. Baru',
@@ -427,6 +429,7 @@ class DaftarUnitAdminTest extends TestCase
 
         $this->assertSame('Instalasi Farmasi Pusat (Revisi)', $unit->nama);
         $this->assertSame('apt. Baru', $unit->pic);
+        $this->assertSame('IFP-01', $unit->kode);
 
         // Kolom kontak kosong harus disimpan sebagai null, bukan string
         // kosong, supaya pencarian "belum punya kontak" tidak keliru.
@@ -452,7 +455,6 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertNull(MasterUnit::where('kode', 'UJI-88')->value('jam_layanan'));
 
         $this->post(route('admin.unit.update', ['unit' => 'IFP-01']), $data + [
-            'kode' => 'IFP-01',
             'nama' => 'Instalasi Farmasi Pusat',
             'jam_layanan' => '',
         ])
