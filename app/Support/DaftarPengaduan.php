@@ -492,6 +492,8 @@ final class DaftarPengaduan
      */
     private function aksiUnit(Pengaduan $pengaduan): array
     {
+        $selesai = $pengaduan->status->selesai();
+
         return [
             [
                 'label' => 'Cetak Lembar Disposisi',
@@ -500,14 +502,11 @@ final class DaftarPengaduan
                 'url' => route('unit.disposisi.ekspor.disposisi-pdf', $this->parameterRute + ['kode' => $pengaduan->kode_tiket]),
             ],
             [
-                'label' => 'Lanjutkan Telaah',
-                'ikon' => 'edit_note',
-                'nada' => 'bg-surface-container text-on-surface-variant',
-                'url' => null,
-            ],
-            [
-                'label' => $pengaduan->status->selesai() ? 'Lihat Arsip' : 'Buka Detail',
-                'ikon' => 'visibility',
+                // Satu tombol saja menuju ruang kerja tiket. Dulu ada dua
+                // ("Lanjutkan Telaah" yang mati dan "Buka Detail"), padahal
+                // keduanya akan membuka halaman yang sama.
+                'label' => $selesai ? 'Lihat Arsip' : 'Lanjutkan Telaah',
+                'ikon' => $selesai ? 'visibility' : 'edit_note',
                 'nada' => 'bg-primary-container text-on-primary',
                 'url' => route($this->ruteTiket, $this->parameterRute + ['kode' => $pengaduan->kode_tiket]),
             ],

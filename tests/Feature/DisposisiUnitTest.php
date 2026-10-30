@@ -56,6 +56,28 @@ class DisposisiUnitTest extends TestCase
         $this->assertStringNotContainsString($milikRadiologi->kode_tiket, $tampilan);
     }
 
+    public function test_daftar_disposisi_unit_mengganti_buka_detail_dengan_lanjutkan_telaah(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $tiket = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        // Tombol detail lama diganti satu pintu yang sama: "Lanjutkan
+        // Telaah" langsung membuka ruang kerja tiket, tanpa tombol ganda
+        // yang menuju halaman yang sama.
+        $tampilan = $this->get(route('unit.disposisi.index', $farmasi))
+            ->assertOk()
+            ->assertSee('Lanjutkan Telaah')
+            ->assertDontSee('Buka Detail')
+            ->getContent();
+
+        $this->assertStringContainsString(
+            'href="'.route('unit.disposisi.show', ['unit' => $farmasi, 'kode' => $tiket->kode_tiket]).'"',
+            $tampilan,
+        );
+    }
+
     public function test_detail_tiket_unit_lain_menghasilkan_404(): void
     {
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
