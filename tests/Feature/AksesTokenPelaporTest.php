@@ -67,4 +67,25 @@ class AksesTokenPelaporTest extends TestCase
             ->assertOk()
             ->assertDontSee('ADUAN-TOKEN-02');
     }
+
+    public function test_cookie_token_tetap_membuka_tiket_walau_session_memegang_tiket_lain(): void
+    {
+        $tiketSesi = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-TOKEN-03']);
+        $tiketToken = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-TOKEN-04']);
+
+        $token = $tiketToken->generateAksesToken();
+
+        // Session dan cookie diperiksa terpisah, bukan "session menang".
+        // Pelapor yang baru membuka tiket lain tetap boleh mengirim pesan ke
+        // tiket yang tokennya masih tersimpan di browser.
+        $this->withSession(['tiket_terverifikasi' => ['kode' => $tiketSesi->kode_tiket]])
+            ->withCookie('pengaduan_token', $token)
+            ->post(route('pengaduan.pesan', $tiketToken->kode_tiket), ['isi' => 'Mohon diperbarui.'])
+            ->assertRedirect(route('pengaduan.lacak'));
+
+        $this->assertDatabaseHas('pesan_pengaduan', [
+            'pengaduan_id' => $tiketToken->id,
+            'isi' => 'Mohon diperbarui.',
+        ]);
+    }
 }

@@ -184,12 +184,12 @@ class PesanPengaduan extends Model
     /**
      * Simpan berkas lampiran pesan ke disk lampiran.
      *
-     * Pengembaliannya null, bukan array kosong, saat tidak ada berkas sama
-     * sekali: kolom lampiran yang berisi "[]" membingungkan saat dibaca
-     * manual di luar model, sedangkan null terbaca jelas sebagai tanpa lampiran.
+     * Selalu mengembalikan array, dan array kosong saat tidak ada berkas
+     * yang lolos. Kolom lampiran memakai cast array, jadi bentuknya harus
+     * sama dengan isi kolom lain yang sudah tersimpan.
      *
      * @param  array<int, UploadedFile|null>  $berkas
-     * @return array<int, string>|null
+     * @return array<int, string>
      */
     public static function simpanBerkas(array $berkas): array
     {
@@ -207,6 +207,6 @@ class PesanPengaduan extends Model
             }
         }
 
-        return $daftar === [] ? [] : $daftar;
+        return $daftar;
     }
 }

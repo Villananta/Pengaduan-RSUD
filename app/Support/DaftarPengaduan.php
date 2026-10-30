@@ -9,6 +9,7 @@ use App\Enums\TingkatKeparahan;
 use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use App\Models\PesanPengaduan;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -133,45 +134,74 @@ final class DaftarPengaduan
             ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value))
             ->when($kategoriBelum, fn (Builder $q): Builder => $q->whereNull('kategori'));
 
-        // Hitungan per tahap digabung dalam satu query group-by, bukan lima
-        // query count terpisah. Total dihitung sendiri (bukan dijumlah dari
-        // grup) supaya angka "semua" tetap memperhitungkan baris yang statusnya
-        // tidak dikenal enum, sama seperti sebelum digabung.
-        $jumlahTahap = ['semua' => $dasar()->count()];
+        // Semua angka chip dihitung dalam satu query. Tiap dimensi memakai
+        // conditional aggregate supaya angka tab tetap lengkap walaupun satu
+        // filter sedang dipilih. Syarat "unit sudah menjawab" diambil dari
+        // agregat pesan per tiket, jadi aturan yang sama tidak perlu ditulis
+        // ulang di PHP.
+        $subJawabanUnit = PesanPengaduan::query()
+            ->selectRaw('pengaduan_id, count(*) as jumlah')
+            ->jawabanUnit()
+            ->groupBy('pengaduan_id');
 
-        $perStatus = $dasar()
-            ->selectRaw('status, count(*) as jumlah')
-            ->groupBy('status')
-            ->pluck('jumlah', 'status');
+        $agregat = ['count(*) as semua'];
+        $parameter = [];
 
         foreach (StatusPengaduan::cases() as $tahap) {
-            $jumlahTahap[$tahap->value] = (int) ($perStatus[$tahap->value] ?? 0);
+            $agregat[] = 'sum(case when status = ? then 1 else 0 end) as status_'.$tahap->value;
+            $parameter[] = $tahap->value;
+        }
+
+        // Nilai kosong pada keparahan dihitung sebagai 'belum'. Kolomnya tidak
+        // perlu dibungkus coalesce di sini karena CASE sudah memisahkannya.
+        foreach (TingkatKeparahan::cases() as $tingkat) {
+            $agregat[] = 'sum(case when tingkat_keparahan = ? then 1 else 0 end) as keparahan_'.$tingkat->value;
+            $parameter[] = $tingkat->value;
+        }
+
+        $agregat[] = 'sum(case when tingkat_keparahan is null then 1 else 0 end) as keparahan_belum';
+
+        // Empat tab investigasi memakai syarat yang sama dengan
+        // StatusInvestigasi::terapkan(), hanya ditulis sebagai CASE.
+        $agregat[] = 'sum(case when master_unit_id is null then 1 else 0 end) as investigasi_langsung_humas';
+        $agregat[] = 'sum(case when master_unit_id is not null and status = ? then 1 else 0 end) as investigasi_jawaban_unit';
+        $parameter[] = StatusPengaduan::Selesai->value;
+        $agregat[] = 'sum(case when master_unit_id is not null and status <> ? and jawaban_unit.jumlah is not null then 1 else 0 end) as investigasi_menunggu_racikan';
+        $parameter[] = StatusPengaduan::Selesai->value;
+        $agregat[] = 'sum(case when master_unit_id is not null and status in (?, ?, ?) and jawaban_unit.jumlah is null then 1 else 0 end) as investigasi_sedang_investigasi';
+        array_push(
+            $parameter,
+            StatusPengaduan::Diterima->value,
+            StatusPengaduan::Diproses->value,
+            StatusPengaduan::Revisi->value,
+        );
+
+        $hitung = $dasar()->toBase()
+            ->leftJoinSub($subJawabanUnit, 'jawaban_unit', 'jawaban_unit.pengaduan_id', '=', 'pengaduan.id')
+            ->selectRaw(implode(', ', $agregat), $parameter)
+            ->first();
+
+        // count(*) dipakai untuk "semua" supaya baris dengan status yang tidak
+        // dikenal enum tetap ikut terhitung, sama seperti sebelumnya.
+        $jumlahTahap = ['semua' => (int) $hitung->semua];
+
+        foreach (StatusPengaduan::cases() as $tahap) {
+            $jumlahTahap[$tahap->value] = (int) $hitung->{'status_'.$tahap->value};
         }
 
         $jumlahInvestigasi = [];
 
         foreach (StatusInvestigasi::cases() as $pilihan) {
-            $jumlahInvestigasi[$pilihan->value] = $pilihan->terapkan($dasar())->count();
+            $jumlahInvestigasi[$pilihan->value] = (int) $hitung->{'investigasi_'.$pilihan->value};
         }
 
-        // Hitungan per keparahan juga memakai query dasar tanpa dimensi itu
-        // sendiri, jadi angka tiap chip tetap terlihat walaupun satu warna
-        // sedang dipilih. Nilai kosong dihitung sebagai 'belum'.
         $jumlahKeparahan = [];
 
-        // Kolomnya dibungkus coalesce karena pluck() memakai nilai kolom
-        // sebagai kunci array, dan PHP 8.5 men-deprecate kunci null. Tiket
-        // yang belum diberi keparahan akan menjadi kunci '' di sini.
-        $perKeparahan = $dasar()
-            ->selectRaw("coalesce(tingkat_keparahan, '') as kunci_keparahan, count(*) as jumlah")
-            ->groupBy('tingkat_keparahan')
-            ->pluck('jumlah', 'kunci_keparahan');
-
         foreach (TingkatKeparahan::cases() as $tingkat) {
-            $jumlahKeparahan[$tingkat->value] = (int) ($perKeparahan[$tingkat->value] ?? 0);
+            $jumlahKeparahan[$tingkat->value] = (int) $hitung->{'keparahan_'.$tingkat->value};
         }
 
-        $jumlahKeparahan['belum'] = (int) ($perKeparahan[''] ?? 0);
+        $jumlahKeparahan['belum'] = (int) $hitung->keparahan_belum;
 
         $daftar = $dasar()
             ->when($status !== null, fn (Builder $q): Builder => $q->where('status', $status->value))

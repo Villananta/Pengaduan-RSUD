@@ -6,6 +6,7 @@ use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
 use App\Notifications\PengaduanEmailVerifikasi;
+use App\Support\AksesTiketPelapor;
 use App\Support\PengaduanMasuk;
 use App\Support\StatistikDashboard;
 use App\Support\StatistikPengaduan;
@@ -19,9 +20,6 @@ use Illuminate\View\View;
 
 class PengaduanController extends Controller
 {
-    /** Kunci session yang menandai tiket sudah diverifikasi pelapor. */
-    private const SESI_TERVERIFIKASI = 'tiket_terverifikasi';
-
     /**
      * Jumlah tebakan OTP yang boleh dicoba untuk satu tiket.
      *
@@ -72,9 +70,7 @@ class PengaduanController extends Controller
 
         // Pelapor baru saja membuat tiketnya sendiri, jadi tiketnya langsung
         // ditandai terverifikasi tanpa perlu mengetik kode tiket ulang.
-        $request->session()->put(self::SESI_TERVERIFIKASI, [
-            'kode' => $pengaduan->kode_tiket,
-        ]);
+        AksesTiketPelapor::simpan($request, $pengaduan->kode_tiket);
 
         return redirect()->route('pengaduan.sukses');
     }
@@ -90,8 +86,7 @@ class PengaduanController extends Controller
      */
     public function sukses(Request $request): View|RedirectResponse
     {
-        $terverifikasi = $request->session()->get(self::SESI_TERVERIFIKASI, []);
-        $kode = $terverifikasi['kode'] ?? null;
+        $kode = AksesTiketPelapor::kodeSesi($request);
 
         if ($kode === null) {
             return redirect()->route('pengaduan.create');
@@ -137,7 +132,7 @@ class PengaduanController extends Controller
         $kandidat = Pengaduan::where('kode_tiket', $kode)->first();
 
         if (! $kandidat) {
-            $request->session()->forget(self::SESI_TERVERIFIKASI);
+            AksesTiketPelapor::lupakan($request);
 
             return redirect()
                 ->route('pengaduan.lacak')
@@ -151,13 +146,11 @@ class PengaduanController extends Controller
             RateLimiter::clear($rateKey);
         }
 
-        $request->session()->put(self::SESI_TERVERIFIKASI, [
-            'kode' => $kandidat->kode_tiket,
-        ]);
+        AksesTiketPelapor::simpan($request, $kandidat->kode_tiket);
 
         // Generate token akses permanen & simpan ke cookie HttpOnly (30 hari)
         $token = $kandidat->generateAksesToken();
-        $cookie = cookie('pengaduan_token', $token, 43200, null, null, true, true, false, 'Lax'); // 30 hari = 43200 menit
+        $cookie = cookie(AksesTiketPelapor::COOKIE, $token, 43200, null, null, true, true, false, 'Lax'); // 30 hari = 43200 menit
 
         return redirect()->route('pengaduan.lacak')->cookie($cookie);
     }
@@ -172,24 +165,10 @@ class PengaduanController extends Controller
      */
     public function lacak(Request $request): View
     {
-        // Prioritas: session (verifikasi baru) > cookie token (akses permanen)
-        $terverifikasi = $request->session()->get(self::SESI_TERVERIFIKASI, []);
-        $kodeTerverifikasi = $terverifikasi['kode'] ?? null;
+        // Session diperiksa lebih dulu, lalu cookie token 30 hari.
+        $kodeTerverifikasi = AksesTiketPelapor::kodeTerbuka($request);
 
         $kode = strtoupper(trim((string) $request->query('kode', '')));
-
-        // Kalau tidak ada session, cek cookie token akses
-        if (! $kodeTerverifikasi) {
-            $token = $request->cookie('pengaduan_token');
-            if ($token) {
-                $tiketViaToken = Pengaduan::findByValidAksesToken($token);
-                if ($tiketViaToken) {
-                    $kodeTerverifikasi = $tiketViaToken->kode_tiket;
-                    // Restore session biar konsisten
-                    $request->session()->put(self::SESI_TERVERIFIKASI, ['kode' => $kodeTerverifikasi]);
-                }
-            }
-        }
 
         $tiket = $kodeTerverifikasi
             ? Pengaduan::with([
@@ -201,7 +180,7 @@ class PengaduanController extends Controller
             : null;
 
         if ($tiket === null) {
-            $request->session()->forget(self::SESI_TERVERIFIKASI);
+            AksesTiketPelapor::lupakan($request);
         }
 
         return view('pengaduan.lacak', [
@@ -218,22 +197,7 @@ class PengaduanController extends Controller
         $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
 
         // Cek otorisasi: session (verifikasi baru) ATAU cookie token (akses permanen)
-        $terverifikasi = $request->session()->get(self::SESI_TERVERIFIKASI, []);
-        $authorized = ($terverifikasi['kode'] ?? null) === $pengaduan->kode_tiket;
-
-        if (! $authorized) {
-            $token = $request->cookie('pengaduan_token');
-            if ($token) {
-                $tiketViaToken = Pengaduan::findByValidAksesToken($token);
-                $authorized = $tiketViaToken?->kode_tiket === $pengaduan->kode_tiket;
-                if ($authorized) {
-                    // Restore session biar konsisten
-                    $request->session()->put(self::SESI_TERVERIFIKASI, ['kode' => $pengaduan->kode_tiket]);
-                }
-            }
-        }
-
-        if (! $authorized) {
+        if (! AksesTiketPelapor::berhak($request, $pengaduan)) {
             return redirect()
                 ->route('pengaduan.lacak')
                 ->withErrors(['kode' => 'Verifikasi kode tiket terlebih dahulu sebelum mengirim pesan.']);

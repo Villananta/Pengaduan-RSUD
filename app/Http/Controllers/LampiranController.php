@@ -5,14 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\StatusPengaduan;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Support\AksesTiketPelapor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LampiranController extends Controller
 {
-    private const SESI_TERVERIFIKASI = 'tiket_terverifikasi';
-
     /**
      * Jenis berkas yang aman dirender langsung oleh browser.
      *
@@ -97,21 +96,8 @@ class LampiranController extends Controller
             abort(403);
         }
 
-        // Pelapor - cek session atau token cookie
-        $terverifikasi = $request->session()->get(self::SESI_TERVERIFIKASI, []);
-        if (($terverifikasi['kode'] ?? null) === $pengaduan->kode_tiket) {
-            return;
-        }
-
-        $token = $request->cookie('pengaduan_token');
-        if ($token) {
-            $tiketViaToken = Pengaduan::findByValidAksesToken($token);
-            if ($tiketViaToken && $tiketViaToken->kode_tiket === $pengaduan->kode_tiket) {
-                return;
-            }
-        }
-
-        abort(403);
+        // Pelapor: session verifikasi atau cookie token akses.
+        abort_unless(AksesTiketPelapor::berhak($request, $pengaduan), 403);
     }
 
     /**
