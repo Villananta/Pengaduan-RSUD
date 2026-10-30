@@ -23,11 +23,11 @@ use Illuminate\Support\Collection;
  * nyata. Class ini menahan query, penyusunan kalimat, dan pemilihan warna
  * supaya template hanya bekerja dengan data yang sudah jadi.
  *
- * Jumlah pada tab Lapis 1 dan Lapis 2 dihitung tanpa filter dimensi itu
- * sendiri, tetapi filter lain yang sedang aktif tetap ikut: kata kunci,
- * unit, dan kategori. Jadi angka pada tab menyesuaikan diri dengan hasil
- * pencarian, sementara status tab yang sedang dibuka tidak mengurangi angka
- * tab tetangganya.
+ * Angka pada deretan chip dihitung dengan dimensi lain ikut aktif, sedangkan
+ * dimensi chip itu sendiri tidak. Jadi setiap angka selalu sama dengan jumlah
+ * baris yang muncul bila chip tersebut diklik, termasuk ketika dua dimensi
+ * dipakai bersama. Strip konteks tetap memakai angka dasar tanpa filter
+ * dimensi, karena fungsinya menggambarkan seluruh isi daftar.
  */
 final class DaftarPengaduan
 {
@@ -36,8 +36,8 @@ final class DaftarPengaduan
 
     /**
      * @param  array<string, int>  $jumlahTahap  Indeks 'semua' dan nilai enum tahap.
-     * @param  array<string, int>  $jumlahInvestigasi  Indeks nilai enum StatusInvestigasi.
-     * @param  array<string, int>  $jumlahKeparahan  Indeks nilai enum TingkatKeparahan dan 'belum'.
+     * @param  array<string, int>  $jumlahInvestigasi  Indeks 'semua' dan nilai enum StatusInvestigasi.
+     * @param  array<string, int>  $jumlahKeparahan  Indeks 'semua', nilai enum TingkatKeparahan, dan 'belum'.
      * @param  array<string, mixed>  $ringkas  Angka untuk strip konteks, kartu kaki, dan paginasi.
      * @param  bool  $halamanUnit  True bila halaman ini dibuka dari sisi unit, bukan konsol humas.
      * @param  string  $ruteDaftar  Nama rute yang dipakai untuk tautan tab dan paginasi.
@@ -134,80 +134,43 @@ final class DaftarPengaduan
             ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value))
             ->when($kategoriBelum, fn (Builder $q): Builder => $q->whereNull('kategori'));
 
-        // Semua angka chip dihitung dalam satu query. Tiap dimensi memakai
-        // conditional aggregate supaya angka tab tetap lengkap walaupun satu
-        // filter sedang dipilih. Syarat "unit sudah menjawab" diambil dari
-        // agregat pesan per tiket, jadi aturan yang sama tidak perlu ditulis
-        // ulang di PHP.
+        // Filter tiap dimensi disimpan sebagai closure karena dipakai dua kali:
+        // sekali untuk menarik baris tabel, sekali lagi untuk menghitung chip
+        // dimensi lain.
+        $filterStatus = fn (Builder $query): Builder => $status !== null
+            ? $query->where('status', $status->value)
+            : $query;
+
+        $filterInvestigasi = fn (Builder $query): Builder => $investigasi !== null
+            ? $investigasi->terapkan($query)
+            : $query;
+
+        $filterKeparahan = fn (Builder $query): Builder => $query
+            ->when($keparahan !== null, fn (Builder $q): Builder => $q->where('tingkat_keparahan', $keparahan->value))
+            ->when($keparahanBelum, fn (Builder $q): Builder => $q->whereNull('tingkat_keparahan'));
+
+        // Angka chip dihitung dengan filter dimensi lain ikut aktif, sedangkan
+        // dimensi chip itu sendiri tidak. Kalau semua dimensi diabaikan, chip
+        // bisa menawarkan angka yang tidak pernah tercapai: misalnya "Belum
+        // Ditetapkan (35)" berubah jadi tabel kosong begitu diklik, karena tab
+        // investigasi dari langkah sebelumnya masih menempel di URL.
+        $jumlahTahap = self::hitungTahap($filterInvestigasi($filterKeparahan($dasar())));
+
+        // Syarat "unit sudah menjawab" diambil dari agregat pesan per tiket,
+        // jadi aturan yang sama tidak perlu ditulis ulang di PHP.
         $subJawabanUnit = PesanPengaduan::query()
             ->selectRaw('pengaduan_id, count(*) as jumlah')
             ->jawabanUnit()
             ->groupBy('pengaduan_id');
 
-        $agregat = ['count(*) as semua'];
-        $parameter = [];
-
-        foreach (StatusPengaduan::cases() as $tahap) {
-            $agregat[] = 'sum(case when status = ? then 1 else 0 end) as status_'.$tahap->value;
-            $parameter[] = $tahap->value;
-        }
-
-        // Nilai kosong pada keparahan dihitung sebagai 'belum'. Kolomnya tidak
-        // perlu dibungkus coalesce di sini karena CASE sudah memisahkannya.
-        foreach (TingkatKeparahan::cases() as $tingkat) {
-            $agregat[] = 'sum(case when tingkat_keparahan = ? then 1 else 0 end) as keparahan_'.$tingkat->value;
-            $parameter[] = $tingkat->value;
-        }
-
-        $agregat[] = 'sum(case when tingkat_keparahan is null then 1 else 0 end) as keparahan_belum';
-
-        // Empat tab investigasi memakai syarat yang sama dengan
-        // StatusInvestigasi::terapkan(), hanya ditulis sebagai CASE.
-        $agregat[] = 'sum(case when master_unit_id is null then 1 else 0 end) as investigasi_langsung_humas';
-        $agregat[] = 'sum(case when master_unit_id is not null and status = ? then 1 else 0 end) as investigasi_jawaban_unit';
-        $parameter[] = StatusPengaduan::Selesai->value;
-        $agregat[] = 'sum(case when master_unit_id is not null and status <> ? and jawaban_unit.jumlah is not null then 1 else 0 end) as investigasi_menunggu_racikan';
-        $parameter[] = StatusPengaduan::Selesai->value;
-        $agregat[] = 'sum(case when master_unit_id is not null and status in (?, ?, ?) and jawaban_unit.jumlah is null then 1 else 0 end) as investigasi_sedang_investigasi';
-        array_push(
-            $parameter,
-            StatusPengaduan::Diterima->value,
-            StatusPengaduan::Diproses->value,
-            StatusPengaduan::Revisi->value,
+        $jumlahInvestigasi = self::hitungInvestigasi(
+            $filterStatus($filterKeparahan($dasar())),
+            $subJawabanUnit,
         );
 
-        $hitung = $dasar()->toBase()
-            ->leftJoinSub($subJawabanUnit, 'jawaban_unit', 'jawaban_unit.pengaduan_id', '=', 'pengaduan.id')
-            ->selectRaw(implode(', ', $agregat), $parameter)
-            ->first();
+        $jumlahKeparahan = self::hitungKeparahan($filterStatus($filterInvestigasi($dasar())));
 
-        // count(*) dipakai untuk "semua" supaya baris dengan status yang tidak
-        // dikenal enum tetap ikut terhitung, sama seperti sebelumnya.
-        $jumlahTahap = ['semua' => (int) $hitung->semua];
-
-        foreach (StatusPengaduan::cases() as $tahap) {
-            $jumlahTahap[$tahap->value] = (int) $hitung->{'status_'.$tahap->value};
-        }
-
-        $jumlahInvestigasi = [];
-
-        foreach (StatusInvestigasi::cases() as $pilihan) {
-            $jumlahInvestigasi[$pilihan->value] = (int) $hitung->{'investigasi_'.$pilihan->value};
-        }
-
-        $jumlahKeparahan = [];
-
-        foreach (TingkatKeparahan::cases() as $tingkat) {
-            $jumlahKeparahan[$tingkat->value] = (int) $hitung->{'keparahan_'.$tingkat->value};
-        }
-
-        $jumlahKeparahan['belum'] = (int) $hitung->keparahan_belum;
-
-        $daftar = $dasar()
-            ->when($status !== null, fn (Builder $q): Builder => $q->where('status', $status->value))
-            ->when($investigasi !== null, fn (Builder $q): Builder => $investigasi->terapkan($q))
-            ->when($keparahan !== null, fn (Builder $q): Builder => $q->where('tingkat_keparahan', $keparahan->value))
-            ->when($keparahanBelum, fn (Builder $q): Builder => $q->whereNull('tingkat_keparahan'))
+        $daftar = $filterKeparahan($filterInvestigasi($filterStatus($dasar())))
             ->with('masterUnit')
             // Hanya jawaban PIC unit yang dihitung untuk kalimat "N balasan
             // unit masuk". Pesan pembuka, balasan pelapor, dan obrolan humas
@@ -239,9 +202,13 @@ final class DaftarPengaduan
             pilihanUnit: $terkunci !== null
                 ? collect()
                 : MasterUnit::query()->orderBy('kode')->get(),
+            // Strip konteks menggambarkan seluruh isi daftar, bukan hasil
+            // saring satu dimensi, jadi angkanya tetap dihitung dari query
+            // dasar. Halaman unit memakai angka yang sama, hanya dipersempit
+            // pencarian dan kategori.
             ringkas: $terkunci !== null
-                ? self::ringkasUnit($terkunci, $jumlahTahap)
-                : self::ringkas($jumlahTahap),
+                ? self::ringkasUnit($terkunci, self::hitungTahap($dasar()))
+                : self::ringkas(self::hitungTahap($dasar())),
             keparahan: $keparahan,
             keparahanBelum: $keparahanBelum,
             kategoriBelum: $kategoriBelum,
@@ -595,6 +562,113 @@ final class DaftarPengaduan
     private static function kategori(mixed $nilai): ?KategoriPengaduan
     {
         return is_string($nilai) && $nilai !== '' ? KategoriPengaduan::tryFrom($nilai) : null;
+    }
+
+    /**
+     * Jumlah tiket per tahap humas.
+     *
+     * Baris yang statusnya tidak dikenal enum tetap ikut terhitung di kunci
+     * 'semua' karena angkanya memakai count(*), sama seperti sebelumnya.
+     *
+     * @return array<string, int> Indeks 'semua' dan nilai enum tahap.
+     */
+    private static function hitungTahap(Builder $query): array
+    {
+        $agregat = ['count(*) as semua'];
+        $parameter = [];
+
+        foreach (StatusPengaduan::cases() as $tahap) {
+            $agregat[] = 'sum(case when status = ? then 1 else 0 end) as status_'.$tahap->value;
+            $parameter[] = $tahap->value;
+        }
+
+        $hitung = $query->toBase()
+            ->selectRaw(implode(', ', $agregat), $parameter)
+            ->first();
+
+        $jumlah = ['semua' => (int) $hitung->semua];
+
+        foreach (StatusPengaduan::cases() as $tahap) {
+            $jumlah[$tahap->value] = (int) $hitung->{'status_'.$tahap->value};
+        }
+
+        return $jumlah;
+    }
+
+    /**
+     * Jumlah tiket per tingkat keparahan.
+     *
+     * Nilai kosong dihitung sebagai 'belum'; kolomnya tidak perlu dibungkus
+     * coalesce karena CASE sudah memisahkannya.
+     *
+     * @return array<string, int> Indeks 'semua', nilai enum keparahan, dan 'belum'.
+     */
+    private static function hitungKeparahan(Builder $query): array
+    {
+        $agregat = ['count(*) as semua'];
+        $parameter = [];
+
+        foreach (TingkatKeparahan::cases() as $tingkat) {
+            $agregat[] = 'sum(case when tingkat_keparahan = ? then 1 else 0 end) as keparahan_'.$tingkat->value;
+            $parameter[] = $tingkat->value;
+        }
+
+        $agregat[] = 'sum(case when tingkat_keparahan is null then 1 else 0 end) as keparahan_belum';
+
+        $hitung = $query->toBase()
+            ->selectRaw(implode(', ', $agregat), $parameter)
+            ->first();
+
+        $jumlah = ['semua' => (int) $hitung->semua];
+
+        foreach (TingkatKeparahan::cases() as $tingkat) {
+            $jumlah[$tingkat->value] = (int) $hitung->{'keparahan_'.$tingkat->value};
+        }
+
+        $jumlah['belum'] = (int) $hitung->keparahan_belum;
+
+        return $jumlah;
+    }
+
+    /**
+     * Jumlah tiket per status investigasi.
+     *
+     * Empat tab memakai syarat yang sama dengan StatusInvestigasi::terapkan(),
+     * hanya ditulis sebagai CASE. Subquery jawaban unit di-join sekali supaya
+     * syarat "unit sudah menjawab" tidak perlu menjadi whereHas berulang.
+     *
+     * @return array<string, int> Indeks 'semua' dan nilai enum StatusInvestigasi.
+     */
+    private static function hitungInvestigasi(Builder $query, Builder $subJawabanUnit): array
+    {
+        $agregat = ['count(*) as semua'];
+        $parameter = [];
+
+        $agregat[] = 'sum(case when master_unit_id is null then 1 else 0 end) as investigasi_langsung_humas';
+        $agregat[] = 'sum(case when master_unit_id is not null and status = ? then 1 else 0 end) as investigasi_jawaban_unit';
+        $parameter[] = StatusPengaduan::Selesai->value;
+        $agregat[] = 'sum(case when master_unit_id is not null and status <> ? and jawaban_unit.jumlah is not null then 1 else 0 end) as investigasi_menunggu_racikan';
+        $parameter[] = StatusPengaduan::Selesai->value;
+        $agregat[] = 'sum(case when master_unit_id is not null and status in (?, ?, ?) and jawaban_unit.jumlah is null then 1 else 0 end) as investigasi_sedang_investigasi';
+        array_push(
+            $parameter,
+            StatusPengaduan::Diterima->value,
+            StatusPengaduan::Diproses->value,
+            StatusPengaduan::Revisi->value,
+        );
+
+        $hitung = $query->toBase()
+            ->leftJoinSub($subJawabanUnit, 'jawaban_unit', 'jawaban_unit.pengaduan_id', '=', 'pengaduan.id')
+            ->selectRaw(implode(', ', $agregat), $parameter)
+            ->first();
+
+        $jumlah = ['semua' => (int) $hitung->semua];
+
+        foreach (StatusInvestigasi::cases() as $pilihan) {
+            $jumlah[$pilihan->value] = (int) $hitung->{'investigasi_'.$pilihan->value};
+        }
+
+        return $jumlah;
     }
 
     private static function unit(mixed $nilai): ?MasterUnit

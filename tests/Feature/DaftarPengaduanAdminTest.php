@@ -357,4 +357,85 @@ class DaftarPengaduanAdminTest extends TestCase
 
         $this->assertStringNotContainsString('Timer dijeda', $tampilan);
     }
+
+    public function test_chip_menyempit_mengikuti_filter_dimensi_lain(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $daftar = function (array $query): DaftarPengaduan {
+            return DaftarPengaduan::dariRequest(
+                Request::create(route('admin.pengaduan.index'), 'GET', $query),
+            );
+        };
+
+        // Tiga tiket dengan kombinasi tahap dan keparahan yang berbeda, supaya
+        // angka tiap chip tidak sama dengan angka dasarnya.
+        foreach ([
+            ['ADUAN-CHIP-01', StatusPengaduan::Diterima, null],
+            ['ADUAN-CHIP-02', StatusPengaduan::Diterima, TingkatKeparahan::Berat],
+            ['ADUAN-CHIP-03', StatusPengaduan::Diproses, null],
+        ] as [$kode, $tahap, $tingkat]) {
+            Pengaduan::factory()->status($tahap)->create([
+                'kode_tiket' => $kode,
+                'master_unit_id' => $unit->id,
+                'unit' => $unit->nama,
+                'tingkat_keparahan' => $tingkat,
+            ]);
+        }
+
+        // Tab investigasi aktif: chip keparahan harus memakai angka hasil
+        // saring, bukan angka seluruh daftar. Sebelumnya "Belum Ditetapkan"
+        // menawarkan angka besar lalu menghasilkan tabel kosong saat diklik.
+        $investigasi = $daftar(['investigasi' => StatusInvestigasi::SedangInvestigasi->value]);
+
+        $this->assertSame(2, $investigasi->jumlahKeparahan['belum']);
+        $this->assertSame(3, $investigasi->jumlahKeparahan['semua']);
+        $this->assertSame(
+            $investigasi->jumlahKeparahan['belum'],
+            $daftar([
+                'investigasi' => StatusInvestigasi::SedangInvestigasi->value,
+                'keparahan' => 'belum',
+            ])->daftar->total(),
+        );
+
+        // Sebaliknya, filter keparahan harus menyempitkan chip tahap humas.
+        $keparahan = $daftar(['keparahan' => 'belum']);
+
+        $this->assertSame(1, $keparahan->jumlahTahap[StatusPengaduan::Diterima->value]);
+        $this->assertSame(1, $keparahan->jumlahTahap[StatusPengaduan::Diproses->value]);
+        $this->assertSame(0, $keparahan->jumlahTahap[StatusPengaduan::Selesai->value]);
+        $this->assertSame(2, $keparahan->jumlahTahap['semua']);
+        $this->assertSame(
+            $keparahan->jumlahTahap[StatusPengaduan::Diterima->value],
+            $daftar(['keparahan' => 'belum', 'status' => StatusPengaduan::Diterima->value])->daftar->total(),
+        );
+
+        // Strip konteks tetap menggambarkan seluruh daftar, bukan hasil saring.
+        $this->assertSame(3, $keparahan->ringkas['total']);
+
+        // Halaman dengan dua dimensi aktif tetap harus bisa dirender.
+        $this->get(route('admin.pengaduan.index', [
+            'investigasi' => StatusInvestigasi::SedangInvestigasi->value,
+            'keparahan' => 'belum',
+        ]))
+            ->assertOk()
+            ->assertSee('ADUAN-CHIP-01')
+            ->assertSee('ADUAN-CHIP-03')
+            ->assertDontSee('ADUAN-CHIP-02');
+    }
+
+    public function test_skrip_aksi_massal_tidak_memakai_assignment_pada_optional_chaining(): void
+    {
+        Pengaduan::factory()->create();
+
+        $tampilan = $this->get(route('admin.pengaduan.index'))
+            ->assertOk()
+            ->getContent();
+
+        // bulkCount?.textContent = count adalah SyntaxError, dan satu
+        // SyntaxError mematikan seluruh blok script aksi massal tanpa jejak
+        // apa pun di sisi server.
+        $this->assertStringNotContainsString('bulkCount?.textContent =', $tampilan);
+        $this->assertStringContainsString('bulkCount && (bulkCount.textContent = count)', $tampilan);
+    }
 }

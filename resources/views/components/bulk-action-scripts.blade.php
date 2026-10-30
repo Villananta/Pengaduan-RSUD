@@ -34,7 +34,7 @@
 
             if (count > 0) {
                 toolbar.classList.remove('hidden');
-                bulkCount?.textContent = count;
+                bulkCount && (bulkCount.textContent = count);
                 submitBtn && (submitBtn.disabled = false);
             } else {
                 toolbar.classList.add('hidden');

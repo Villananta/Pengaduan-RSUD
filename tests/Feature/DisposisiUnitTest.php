@@ -432,6 +432,36 @@ class DisposisiUnitTest extends TestCase
         }
     }
 
+    public function test_chip_semua_disposisi_tetap_total_unit_walau_tab_aktif(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        Pengaduan::factory()->selesai()
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        $daftar = function (array $query) use ($farmasi): DaftarPengaduan {
+            return DaftarPengaduan::dariRequest(
+                Request::create(route('unit.disposisi.index', $farmasi), 'GET', $query),
+                terkunci: $farmasi,
+                ruteDaftar: 'unit.disposisi.index',
+                ruteTiket: 'unit.disposisi.show',
+            );
+        };
+
+        // Chip "Semua Disposisi" adalah jalan keluar dari tab, jadi angkanya
+        // tidak ikut menyempit saat satu tab sedang dibuka.
+        $semua = $daftar([]);
+        $tab = $daftar(['investigasi' => StatusInvestigasi::SedangInvestigasi->value]);
+
+        $this->assertSame(2, $semua->jumlahInvestigasi['semua']);
+        $this->assertSame(2, $tab->jumlahInvestigasi['semua']);
+        $this->assertSame(1, $tab->jumlahInvestigasi[StatusInvestigasi::SedangInvestigasi->value]);
+        $this->assertSame(2, $tab->ringkas['total']);
+    }
+
     public function test_menu_unit_memiliki_tiga_item_tanpa_workspace(): void
     {
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();

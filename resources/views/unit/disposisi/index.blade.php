@@ -117,7 +117,7 @@
                 >
                     <span class="w-2 h-2 rounded-full bg-secondary" aria-hidden="true"></span>
                     Semua Disposisi
-                    <span class="opacity-70">({{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }})</span>
+                    <span class="opacity-70">({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})</span>
                 </a>
 
                 @foreach ($tabUnit as $status)

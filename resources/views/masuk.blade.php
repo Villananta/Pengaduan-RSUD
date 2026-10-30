@@ -11,7 +11,7 @@
 <!-- Halaman Masuk -->
 <section class="flex min-h-[720px] items-center bg-brand-light px-8 py-14">
     <div class="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-2">
-
+        
         <!-- Kolom Pengantar: menjelaskan siapa yang boleh masuk dan bagaimana
              akun dibuat, karena tidak ada pendaftaran mandiri di sini. -->
         <div>

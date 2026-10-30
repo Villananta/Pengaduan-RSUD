@@ -149,7 +149,7 @@
                         @if ($daftar->status === null) aria-current="true" @endif
                     >
                         Semua
-                        <span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/20 text-on-primary font-label-sm text-label-sm">
+                        <span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/20 text-on-second font-label-sm text-label-sm">
                             {{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }}
                         </span>
                     </a>
@@ -193,7 +193,7 @@
                         ])
                         @if ($daftar->investigasi === null) aria-current="true" @endif
                     >
-                        Semua Unit ({{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }})
+                        Semua Unit ({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})
                     </a>
 
                     @foreach (StatusInvestigasi::cases() as $investigasi)
@@ -229,7 +229,7 @@
                             'bg-surface-container-low hover:bg-surface-container text-on-surface-variant transition-colors' => $daftar->keparahan !== null || $daftar->keparahanBelum,
                         ])
                     >
-                        Semua ({{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }})
+                        Semua ({{ number_format($daftar->jumlahKeparahan['semua'], 0, ',', '.') }})
                     </a>
 
                     @foreach (TingkatKeparahan::cases() as $tingkat)
