@@ -391,6 +391,19 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertFalse($unit->aktif);
     }
 
+    public function test_pesan_validasi_form_unit_memakai_bahasa_indonesia(): void
+    {
+        // Aturan bawaan Laravel berbahasa Inggris dan proyek ini tidak
+        // memuat folder lang/. Tanpa pesan sendiri, admin membaca kalimat
+        // yang bahasanya berbeda dari sisa aplikasi.
+        $this->post(route('admin.unit.store'), [])
+            ->assertSessionHasErrors([
+                'kode' => 'Kode unit wajib diisi.',
+                'nama' => 'Nama unit wajib diisi.',
+                'kategori' => 'Pilih kategori layanan.',
+            ]);
+    }
+
     public function test_kode_unit_wajib_unik(): void
     {
         $this->post(route('admin.unit.store'), [
@@ -401,7 +414,7 @@ class DaftarUnitAdminTest extends TestCase
             'status_akses' => StatusAksesUnit::BelumDiundang->value,
             'aktif' => '1',
         ])
-            ->assertSessionHasErrors('kode');
+            ->assertSessionHasErrors(['kode' => 'Kode unit ini sudah dipakai unit lain.']);
 
         $this->assertDatabaseMissing('master_units', ['nama' => 'Unit Kode Ganda']);
     }

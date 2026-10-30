@@ -76,6 +76,46 @@ final class PemeliharaanUnit
     }
 
     /**
+     * Pesan validasi formulir unit.
+     *
+     * Aturan bawaan Laravel berbahasa Inggris karena proyek ini tidak
+     * memuat berkas terjemahan. Formulir lain menulis pesannya sendiri,
+     * jadi form unit juga perlu supaya admin membaca kalimat yang sama
+     * bahasanya dengan halaman lain.
+     *
+     * @return array<string, string>
+     */
+    public static function pesanValidasi(): array
+    {
+        return [
+            'kode.required' => 'Kode unit wajib diisi.',
+            'kode.string' => 'Kode unit harus berupa teks.',
+            'kode.max' => 'Kode unit maksimal 10 karakter.',
+            'kode.regex' => 'Kode unit hanya boleh huruf, angka, dan tanda hubung, contoh IFP-01.',
+            'kode.unique' => 'Kode unit ini sudah dipakai unit lain.',
+            'nama.required' => 'Nama unit wajib diisi.',
+            'nama.max' => 'Nama unit maksimal 120 karakter.',
+            'kategori.required' => 'Pilih kategori layanan.',
+            'kategori.in' => 'Kategori layanan tidak dikenal.',
+            'pic.max' => 'Nama PIC maksimal 120 karakter.',
+            'jabatan_pic.max' => 'Jabatan PIC maksimal 120 karakter.',
+            'nip.max' => 'NIP maksimal 30 karakter.',
+            'kontak_wa.max' => 'Nomor WhatsApp maksimal 25 karakter.',
+            'kontak_wa.regex' => 'Nomor WhatsApp hanya boleh angka, spasi, tanda hubung, dan tanda kurung.',
+            'ekstensi.max' => 'Ekstensi internal maksimal 15 karakter.',
+            'jam_layanan.max' => 'Jam layanan maksimal 30 karakter.',
+            'akun_simrs.email' => 'Email / akun SIMRS harus berupa alamat email yang valid.',
+            'akun_simrs.max' => 'Email / akun SIMRS maksimal 120 karakter.',
+            'peran_akses.required' => 'Pilih peran akses.',
+            'peran_akses.in' => 'Peran akses tidak dikenal.',
+            'status_akses.required' => 'Pilih kondisi akun PIC.',
+            'status_akses.in' => 'Kondisi akun PIC tidak dikenal.',
+            'aktif.required' => 'Status aktif unit tidak valid.',
+            'aktif.boolean' => 'Status aktif unit tidak valid.',
+        ];
+    }
+
+    /**
      * Simpan unit baru atau perbarui unit lama.
      *
      * @param  array<string, mixed>  $data

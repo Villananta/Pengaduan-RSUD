@@ -132,7 +132,10 @@ class UnitController extends Controller
             'aktif' => $request->boolean('aktif'),
         ]);
 
-        return $request->validate(PemeliharaanUnit::aturan($unit));
+        return $request->validate(
+            PemeliharaanUnit::aturan($unit),
+            PemeliharaanUnit::pesanValidasi(),
+        );
     }
 
     /**
