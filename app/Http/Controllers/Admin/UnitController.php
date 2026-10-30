@@ -101,8 +101,8 @@ class UnitController extends Controller
         return back()->with(
             'sukses',
             $hasil['terkirim'] > 0
-                ? $hasil['terkirim'].' undangan aktivasi dikirim ke PIC; '.$hasil['dilewat'].' unit dilewati karena alamat emailnya kosong atau akunnya sudah aktif.'
-                : 'Tidak ada undangan yang dikirim: semua unit sudah berakun aktif atau belum punya alamat email.',
+                ? $hasil['terkirim'].' undangan aktivasi dikirim ke PIC; '.$hasil['dilewat'].' unit dilewati karena alamat emailnya kosong, unitnya nonaktif, atau akunnya sudah aktif.'
+                : 'Tidak ada undangan yang dikirim: semua unit sudah berakun aktif, sedang nonaktif, atau belum punya alamat email.',
         );
     }
 

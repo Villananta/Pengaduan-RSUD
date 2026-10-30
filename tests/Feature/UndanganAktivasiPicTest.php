@@ -77,6 +77,29 @@ class UndanganAktivasiPicTest extends TestCase
         $this->assertNull($unit->undangan_token);
     }
 
+    public function test_unit_nonaktif_tidak_diundang_dan_statusnya_tetap_dinonaktifkan(): void
+    {
+        // Undangan ke unit nonaktif hanya akan membuat akun PIC yang tidak
+        // bisa membuka konsolnya, sekaligus menimpa status Dinonaktifkan
+        // menjadi UndanganTerkirim.
+        Notification::fake();
+
+        MasterUnit::where('kode', 'IRJ-05')->firstOrFail()->update([
+            'aktif' => false,
+            'status_akses' => StatusAksesUnit::Dinonaktifkan,
+        ]);
+
+        $this->post(route('admin.unit.undangan'));
+
+        // Dua unit ber-email lainnya tetap diundang; yang nonaktif dilewati.
+        Notification::assertSentOnDemand(UndanganAktivasiPic::class, 2);
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        $this->assertSame(StatusAksesUnit::Dinonaktifkan, $unit->status_akses);
+        $this->assertNull($unit->undangan_token);
+    }
+
     public function test_tombol_kirim_undangan_di_master_unit_kini_berupa_formulir(): void
     {
         $tampilan = $this->get(route('admin.unit.index'))

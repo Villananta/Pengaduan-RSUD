@@ -45,9 +45,10 @@ final class UndanganPic
     /**
      * Kirim undangan ke semua unit yang akunnya belum aktif.
      *
-     * Unit yang alamat emailnya kosong ikut terhitung "dilewat" karena
-     * memang tidak ada tujuan pengiriman; perbaikannya sama: admin
-     * melengkapi data unit lalu menekan tombol sekali lagi.
+     * Unit yang alamat emailnya kosong atau unitnya sedang nonaktif ikut
+     * terhitung "dilewat" karena memang tidak boleh diundang. Perbaikannya
+     * sama: admin melengkapi data unit atau mengaktifkannya lagi, lalu
+     * menekan tombol sekali lagi.
      *
      * @return array{terkirim: int, dilewat: int}
      */
@@ -72,16 +73,19 @@ final class UndanganPic
      * Kirim satu unit undangan beserta tautan aktivasi barunya.
      *
      * Mengembalikan false berarti unit itu tidak boleh diajak: alamat
-     * emailnya kosong atau akunnya sudah aktif. Guard status ada di sini
-     * (bukan hanya di kirimMassal) karena mengirim ulang undangan ke unit
-     * yang sudah berakun akan menurunkan statusnya kembali ke
-     * UndanganTerkirim dan menimpa tautan yang mungkin sedang dibuka PIC.
+     * emailnya kosong, unitnya sedang nonaktif, atau akunnya sudah aktif.
+     * Unit nonaktif dilewati supaya status Dinonaktifkan tidak berubah jadi
+     * UndanganTerkirim dan tidak ada akun PIC yang dibuat untuk unit yang
+     * konsolnya sedang ditutup. Guard status ada di sini (bukan hanya di
+     * kirimMassal) karena mengirim ulang undangan ke unit yang sudah berakun
+     * akan menurunkan statusnya kembali ke UndanganTerkirim dan menimpa
+     * tautan yang mungkin sedang dibuka PIC.
      */
     public static function kirim(MasterUnit $unit): bool
     {
         $alamat = self::tujuan($unit);
 
-        if ($alamat === null || $unit->status_akses === StatusAksesUnit::AkunAktif) {
+        if ($alamat === null || ! $unit->aktif || $unit->status_akses === StatusAksesUnit::AkunAktif) {
             return false;
         }
 
