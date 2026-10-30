@@ -542,6 +542,40 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertTrue($unit->refresh()->aktif);
     }
 
+    public function test_aktivasi_ulang_unit_tanpa_pengguna_tidak_menandainya_akun_aktif(): void
+    {
+        // Unit yang belum pernah diaktivasi tidak punya akun PIC. Kalau
+        // reaktivasi menulis AkunAktif, UndanganPic::kirimMassal() akan
+        // melewatinya selamanya dan PIC tidak pernah bisa diundang.
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        $this->post(route('admin.unit.status', ['unit' => 'IRJ-05']));
+        $this->post(route('admin.unit.status', ['unit' => 'IRJ-05']));
+
+        $unit->refresh();
+
+        $this->assertTrue($unit->aktif);
+        $this->assertSame(StatusAksesUnit::BelumDiundang, $unit->status_akses);
+    }
+
+    public function test_aktivasi_ulang_unit_yang_sudah_punya_pengguna_tetap_akun_aktif(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $pengguna = User::factory()->create();
+
+        $unit->pengguna()->attach($pengguna->id, [
+            'peran_akses' => PeranAksesUnit::KepalaUnit->value,
+        ]);
+
+        $this->post(route('admin.unit.status', ['unit' => 'IFP-01']));
+        $this->post(route('admin.unit.status', ['unit' => 'IFP-01']));
+
+        $unit->refresh();
+
+        $this->assertTrue($unit->aktif);
+        $this->assertSame(StatusAksesUnit::AkunAktif, $unit->status_akses);
+    }
+
     public function test_unit_nonaktif_tidak_lagi_muncul_sebagai_pilihan_disposisi(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();

@@ -117,16 +117,19 @@ final class PemeliharaanUnit
      * Unit yang dinonaktifkan tidak dihapus supaya riwayat penugasan tiket
      * lama tetap punya nama unit yang bisa dibaca.
      * Saat dinonaktifkan, status_akses diubah ke Dinonaktifkan.
-     * Saat diaktifkan kembali, status_akses kembali ke AkunAktif.
+     * Saat diaktifkan kembali, status_akses hanya kembali ke AkunAktif bila
+     * PIC-nya benar-benar sudah tertaut. Unit yang belum pernah diaktivasi
+     * dikembalikan ke BelumDiundang; menandainya AkunAktif membuat
+     * UndanganPic::kirimMassal() melewatinya selamanya.
      */
     public static function alihStatus(MasterUnit $unit): MasterUnit
     {
         $unit->aktif = ! $unit->aktif;
 
-        // Sinkronkan status_akses dengan status aktif
         if ($unit->aktif) {
-            // Diaktifkan kembali: kembali ke AkunAktif (PIC sudah punya akun)
-            $unit->status_akses = StatusAksesUnit::AkunAktif;
+            $unit->status_akses = $unit->pengguna()->exists()
+                ? StatusAksesUnit::AkunAktif
+                : StatusAksesUnit::BelumDiundang;
         } else {
             // Dinonaktifkan: tandai Dinonaktifkan
             $unit->status_akses = StatusAksesUnit::Dinonaktifkan;
