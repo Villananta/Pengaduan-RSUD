@@ -40,8 +40,6 @@ class MasterUnit extends Model
         'nip',
         'kontak_wa',
         'email',
-        'undangan_token',
-        'undangan_berlaku',
         'ekstensi',
         'jam_layanan',
         'akun_simrs',

@@ -131,14 +131,15 @@ final class PemeliharaanUnit
         // sebagai tujuan disposisi padahal akun PIC-nya sudah ditutup.
         $status = StatusAksesUnit::from($data['status_akses']);
 
+        $batalkanUndangan = false;
+
         if (! $data['aktif']) {
             $data['status_akses'] = StatusAksesUnit::Dinonaktifkan;
 
             // Undangan yang sudah beredar ikut dibatalkan. Tanpa ini tautan
             // lama masih bisa membuat akun PIC untuk unit yang konsolnya
             // sudah ditutup admin.
-            $data['undangan_token'] = null;
-            $data['undangan_berlaku'] = null;
+            $batalkanUndangan = true;
         } elseif ($status === StatusAksesUnit::Dinonaktifkan) {
             $data['status_akses'] = self::statusSaatAktif($unit);
         }
@@ -157,8 +158,7 @@ final class PemeliharaanUnit
         // yang tidak bisa dilihat admin.
         if ($data['akun_simrs'] === null) {
             $data['email'] = null;
-            $data['undangan_token'] = null;
-            $data['undangan_berlaku'] = null;
+            $batalkanUndangan = true;
 
             // Tanpa alamat tidak ada undangan yang bisa ditunggu.
             if ($status === StatusAksesUnit::UndanganTerkirim && $data['aktif']) {
@@ -166,7 +166,7 @@ final class PemeliharaanUnit
             }
         }
 
-        return DB::transaction(function () use ($data, $unit): MasterUnit {
+        return DB::transaction(function () use ($data, $unit, $batalkanUndangan): MasterUnit {
             if ($unit === null) {
                 // Unit baru belum pernah ditugaskan tiket, jadi catatan
                 // heartbeat SIMRS-nya dikosongkan sampai ada penugasan pertama.
@@ -176,6 +176,15 @@ final class PemeliharaanUnit
                 $unit = MasterUnit::create($data);
             } else {
                 $unit->fill($data)->save();
+            }
+
+            // Token undangan tidak masuk $fillable karena hanya alur undangan
+            // yang boleh mengisinya, jadi pembatalan tautan diterapkan
+            // langsung ke model setelah unit tersimpan.
+            if ($batalkanUndangan && ($unit->undangan_token !== null || $unit->undangan_berlaku !== null)) {
+                $unit->undangan_token = null;
+                $unit->undangan_berlaku = null;
+                $unit->save();
             }
 
             StatistikDashboard::lupaCache();

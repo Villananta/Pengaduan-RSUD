@@ -410,10 +410,9 @@ class UndanganAktivasiPicTest extends TestCase
         // Token dibentuk manual supaya pasti punya huruf, bukan hanya angka.
         $token = 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd';
 
-        $unit->update([
-            'undangan_token' => $token,
-            'undangan_berlaku' => now()->addHour(),
-        ]);
+        $unit->undangan_token = $token;
+        $unit->undangan_berlaku = now()->addHour();
+        $unit->save();
 
         $this->get(route('aktivasi.undangan', ['token' => $token]))
             ->assertOk()
@@ -431,6 +430,24 @@ class UndanganAktivasiPicTest extends TestCase
         ])->assertSessionHasErrors('undangan');
 
         $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
+    }
+
+    public function test_token_undangan_tidak_bisa_diisi_lewat_mass_assignment(): void
+    {
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        // Token hanya boleh lahir dari alur undangan. Kalau kolom ini bisa
+        // diisi massal, request yang salah bentuk bisa menanam tautan yang
+        // tidak pernah dikirim sistem.
+        $unit->update([
+            'undangan_token' => 'token-dari-request',
+            'undangan_berlaku' => now()->addHour(),
+        ]);
+
+        $unit->refresh();
+
+        $this->assertNull($unit->undangan_token);
+        $this->assertNull($unit->undangan_berlaku);
     }
 
     public function test_tautan_yang_sudah_lewat_waktu_ditolak(): void
