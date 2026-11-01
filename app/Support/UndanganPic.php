@@ -145,10 +145,23 @@ final class UndanganPic
         return $pengguna !== null && ! $pengguna->berperanUnit();
     }
 
-    /** Cari unit pemilik sebuah token, apa pun kondisi masa berlakunya. */
+    /**
+     * Cari unit pemilik sebuah token, apa pun kondisi masa berlakunya.
+     *
+     * Perbandingan di MySQL bisa mengabaikan huruf besar/kecil lewat
+     * collation utf8mb4_unicode_ci, jadi hasil query tetap dicek persis di
+     * sini. Tautan yang hurufnya diubah tidak boleh menemukan unit mana pun,
+     * termasuk di basis data yang migration collation-nya belum jalan.
+     */
     public static function cari(string $token): ?MasterUnit
     {
-        return MasterUnit::query()->where('undangan_token', $token)->first();
+        $unit = MasterUnit::query()->where('undangan_token', $token)->first();
+
+        if ($unit !== null && ! hash_equals((string) $unit->undangan_token, $token)) {
+            return null;
+        }
+
+        return $unit;
     }
 
     /** True bila token masih dipegang unit dan masa berlakunya belum lewat. */

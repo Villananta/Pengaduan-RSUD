@@ -368,6 +368,40 @@ class UndanganAktivasiPicTest extends TestCase
             ->assertSee('Tautan undangan tidak berlaku');
     }
 
+    public function test_token_tidak_ditemukan_bila_huruf_besar_kecilnya_diubah(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        // Token dibentuk manual supaya pasti punya huruf, bukan hanya angka.
+        $token = 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd';
+
+        $unit->update([
+            'undangan_token' => $token,
+            'undangan_berlaku' => now()->addHour(),
+        ]);
+
+        $this->get(route('aktivasi.undangan', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('Buat kata sandi akun PIC');
+
+        // Collation MySQL yang lama menganggap kedua tautan ini sama.
+        $this->get(route('aktivasi.undangan', ['token' => strtolower($token)]))
+            ->assertOk()
+            ->assertSee('Tautan undangan tidak berlaku');
+
+        $this->post(route('aktivasi.undangan.simpan', ['token' => strtolower($token)]), [
+            'nama' => 'PIC Uji',
+            'kata_sandi' => 'sandipic123',
+            'kata_sandi_confirmation' => 'sandipic123',
+        ])->assertSessionHasErrors('undangan');
+
+        $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
+    }
+
     public function test_tautan_yang_sudah_lewat_waktu_ditolak(): void
     {
         Notification::fake();
