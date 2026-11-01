@@ -8,9 +8,11 @@ use App\Models\MasterUnit;
 use App\Models\User;
 use App\Notifications\UndanganAktivasiPic;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Alur undangan aktivasi akun PIC unit.
@@ -63,7 +65,12 @@ final class UndanganPic
      * sama: admin melengkapi data unit atau mengaktifkannya lagi, lalu
      * menekan tombol sekali lagi.
      *
-     * @return array{terkirim: int, dilewat: int}
+     * Satu unit yang gagal tidak menghentikan sisa batch. Kegagalannya
+     * dihitung terpisah dan dicatat ke log, supaya admin tetap mendapat
+     * ringkasan dan bisa mengirim ulang tanpa menebak unit mana yang
+     * tertinggal.
+     *
+     * @return array{terkirim: int, dilewat: int, gagal: int}
      */
     public static function kirimMassal(): array
     {
@@ -74,12 +81,21 @@ final class UndanganPic
 
         $terkirim = 0;
         $dilewat = 0;
+        $gagal = 0;
 
         foreach ($daftarUnit as $unit) {
-            self::kirim($unit) ? $terkirim++ : $dilewat++;
+            try {
+                self::kirim($unit) ? $terkirim++ : $dilewat++;
+            } catch (Throwable $e) {
+                $gagal++;
+
+                Log::error('Undangan aktivasi untuk unit '.$unit->kode.' gagal dikirim.', [
+                    'exception' => $e,
+                ]);
+            }
         }
 
-        return compact('terkirim', 'dilewat');
+        return compact('terkirim', 'dilewat', 'gagal');
     }
 
     /**

@@ -98,12 +98,15 @@ class UnitController extends Controller
     {
         $hasil = UndanganPic::kirimMassal();
 
-        return back()->with(
-            'sukses',
-            $hasil['terkirim'] > 0
-                ? $hasil['terkirim'].' undangan aktivasi dikirim ke PIC; '.$hasil['dilewat'].' unit dilewati karena alamat emailnya kosong, unitnya nonaktif, alamatnya dipakai akun humas, atau akunnya sudah aktif.'
-                : 'Tidak ada undangan yang dikirim: semua unit sudah berakun aktif, sedang nonaktif, alamatnya dipakai akun humas, atau belum punya alamat email.',
-        );
+        $pesan = $hasil['terkirim'] > 0
+            ? $hasil['terkirim'].' undangan aktivasi dikirim ke PIC; '.$hasil['dilewat'].' unit dilewati karena alamat emailnya kosong, unitnya nonaktif, alamatnya dipakai akun humas, atau akunnya sudah aktif.'
+            : 'Tidak ada undangan yang dikirim: semua unit sudah berakun aktif, sedang nonaktif, alamatnya dipakai akun humas, atau belum punya alamat email.';
+
+        if ($hasil['gagal'] > 0) {
+            $pesan .= ' '.$hasil['gagal'].' undangan gagal dikirim; coba tekan tombol kirim sekali lagi.';
+        }
+
+        return back()->with('sukses', $pesan);
     }
 
     /**

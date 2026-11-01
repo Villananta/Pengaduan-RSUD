@@ -12,7 +12,9 @@ use App\Notifications\UndanganAktivasiPic;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use RuntimeException;
 use stdClass;
 use Tests\TestCase;
 
@@ -53,6 +55,30 @@ class UndanganAktivasiPicTest extends TestCase
         $this->assertSame(StatusAksesUnit::UndanganTerkirim, $unit->status_akses);
         $this->assertNotNull($unit->undangan_token);
         $this->assertTrue($unit->undangan_berlaku->isFuture());
+    }
+
+    public function test_undangan_yang_gagal_tidak_menghentikan_batch_lainnya(): void
+    {
+        // Pengiriman notifikasi melempar exception, misalnya karena layanan
+        // email sedang mati. Admin harus tetap mendapat ringkasan, bukan
+        // halaman 500 yang menghentikan seluruh batch.
+        //
+        // Yang dipalsukan adalah send(), bukan route(): route() adalah method
+        // statis milik facade sendiri, jadi tidak pernah sampai ke manager
+        // dan tidak bisa ditangkap mock.
+        Notification::shouldReceive('send')
+            ->times(3)
+            ->andThrow(new RuntimeException('SMTP tidak bisa dihubungi'));
+
+        Log::spy();
+
+        $this->post(route('admin.unit.undangan'))
+            ->assertRedirect()
+            ->assertSessionHas('sukses', function (string $pesan): bool {
+                return str_contains($pesan, '3 undangan gagal dikirim');
+            });
+
+        Log::shouldHaveReceived('error')->times(3);
     }
 
     public function test_unit_tanpa_alamat_email_dilewati_dan_statusnya_tidak_berubah(): void
