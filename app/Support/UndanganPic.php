@@ -73,19 +73,27 @@ final class UndanganPic
      * Kirim satu unit undangan beserta tautan aktivasi barunya.
      *
      * Mengembalikan false berarti unit itu tidak boleh diajak: alamat
-     * emailnya kosong, unitnya sedang nonaktif, atau akunnya sudah aktif.
-     * Unit nonaktif dilewati supaya status Dinonaktifkan tidak berubah jadi
-     * UndanganTerkirim dan tidak ada akun PIC yang dibuat untuk unit yang
-     * konsolnya sedang ditutup. Guard status ada di sini (bukan hanya di
-     * kirimMassal) karena mengirim ulang undangan ke unit yang sudah berakun
-     * akan menurunkan statusnya kembali ke UndanganTerkirim dan menimpa
-     * tautan yang mungkin sedang dibuka PIC.
+     * emailnya kosong, unitnya sedang nonaktif, alamatnya sudah dipakai akun
+     * humas, atau akunnya sudah aktif. Unit nonaktif dilewati supaya status
+     * Dinonaktifkan tidak berubah jadi UndanganTerkirim dan tidak ada akun
+     * PIC yang dibuat untuk unit yang konsolnya sedang ditutup. Guard status
+     * ada di sini (bukan hanya di kirimMassal) karena mengirim ulang undangan
+     * ke unit yang sudah berakun akan menurunkan statusnya kembali ke
+     * UndanganTerkirim dan menimpa tautan yang mungkin sedang dibuka PIC.
+     *
+     * Alamat milik akun humas juga dilewati sejak awal. Tautannya pasti
+     * ditolak di halaman aktivasi, jadi mengirim email hanya akan membuat
+     * PIC menunggu tautan yang tidak pernah bisa dipakai.
      */
     public static function kirim(MasterUnit $unit): bool
     {
         $alamat = self::tujuan($unit);
 
         if ($alamat === null || ! $unit->aktif || $unit->status_akses === StatusAksesUnit::AkunAktif) {
+            return false;
+        }
+
+        if (self::dipakaiAkunHumas($alamat)) {
             return false;
         }
 
@@ -97,6 +105,21 @@ final class UndanganPic
         Notification::route('mail', $alamat)->notify(new UndanganAktivasiPic($unit));
 
         return true;
+    }
+
+    /**
+     * True bila alamat itu sudah menjadi akun petugas humas.
+     *
+     * Undangan tidak boleh memakai akun humas: halaman aktivasi hanya
+     * memeriksa kepemilikan email, tidak tahu peran pemiliknya, dan dulu
+     * sempat menurunkan peran admin menjadi PIC unit. Seeder akun PIC sudah
+     * melewati kasus ini; jalur undangan kini mengikuti aturan yang sama.
+     */
+    private static function dipakaiAkunHumas(string $alamat): bool
+    {
+        $pengguna = User::query()->where('email', $alamat)->first();
+
+        return $pengguna !== null && ! $pengguna->berperanUnit();
     }
 
     /** Cari unit pemilik sebuah token, apa pun kondisi masa berlakunya. */
@@ -120,6 +143,11 @@ final class UndanganPic
      * sekali. Akun yang sudah ada tidak pernah ditimpa: pemegang tautan
      * hanyalah pemilik email, dan menimpa sandi akun yang sudah beredar
      * bisa menutup akses petugas yang sudah memakainya.
+     *
+     * Akun humas ditolak, bukan dipinjam. Tautan undangan hanya membuktikan
+     * kepemilikan alamat email, bukan bahwa pemiliknya bersedia menjadi PIC,
+     * jadi peran yang sudah ada tidak boleh diturunkan hanya karena alamat
+     * unit kebetulan sama dengan alamat admin.
      */
     public static function aktivasi(MasterUnit $unit, string $nama, string $kataSandi): User
     {
@@ -134,14 +162,17 @@ final class UndanganPic
             ]);
         }
 
+        if (self::dipakaiAkunHumas($alamat)) {
+            throw ValidationException::withMessages([
+                'undangan' => 'Alamat '.$alamat.' sudah dipakai akun petugas humas. Minta admin mengganti alamat PIC unit ini di master data, lalu mengirim undangan baru.',
+            ]);
+        }
+
         return DB::transaction(function () use ($unit, $nama, $kataSandi, $alamat): User {
             $pengguna = User::firstOrCreate(
                 ['email' => $alamat],
                 ['name' => $nama, 'peran' => PeranPengguna::Unit, 'password' => $kataSandi],
             );
-
-            $pengguna->peran = PeranPengguna::Unit;
-            $pengguna->save();
 
             $pengguna->unit()->syncWithoutDetaching([
                 $unit->getKey() => ['peran_akses' => $unit->peran_akses->value],

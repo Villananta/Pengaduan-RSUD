@@ -77,6 +77,57 @@ class UndanganAktivasiPicTest extends TestCase
         $this->assertNull($unit->undangan_token);
     }
 
+    public function test_unit_yang_alamatnya_dipakai_akun_humas_dilewati_saat_kirim(): void
+    {
+        // Tautan ke alamat akun humas pasti ditolak di halaman aktivasi,
+        // jadi lebih baik tidak dikirim sejak awal.
+        Notification::fake();
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        User::factory()->admin()->create(['email' => $unit->akun_simrs]);
+
+        $this->post(route('admin.unit.undangan'));
+
+        // Dua unit ber-email lainnya tetap diundang; alamat yang bentrok
+        // dengan akun humas dilewati.
+        Notification::assertSentOnDemand(UndanganAktivasiPic::class, 2);
+
+        $unit->refresh();
+
+        $this->assertSame(StatusAksesUnit::BelumDiundang, $unit->status_akses);
+        $this->assertNull($unit->undangan_token);
+    }
+
+    public function test_aktivasi_menolak_alamat_akun_humas_tanpa_menurunkan_perannya(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        // Akun humas baru muncul setelah undangan terkirim, misalnya karena
+        // admin memakai emailnya sendiri untuk mencoba alur ini. Tautan yang
+        // sudah beredar tidak boleh mengubah perannya menjadi PIC unit.
+        $adminLain = User::factory()->admin()->create(['email' => $unit->akun_simrs]);
+
+        $this->post(route('aktivasi.undangan.simpan', ['token' => $unit->undangan_token]), [
+            'nama' => 'PIC Uji',
+            'kata_sandi' => 'sandipic123',
+            'kata_sandi_confirmation' => 'sandipic123',
+        ])->assertSessionHasErrors('undangan');
+
+        $adminLain->refresh();
+
+        $this->assertSame(PeranPengguna::Admin, $adminLain->peran);
+        $this->assertFalse($adminLain->terdaftarDiUnit($unit));
+
+        $unit->refresh();
+
+        $this->assertSame(StatusAksesUnit::UndanganTerkirim, $unit->status_akses);
+        $this->assertNotNull($unit->undangan_token);
+    }
+
     public function test_unit_nonaktif_tidak_diundang_dan_statusnya_tetap_dinonaktifkan(): void
     {
         // Undangan ke unit nonaktif hanya akan membuat akun PIC yang tidak
@@ -193,9 +244,12 @@ class UndanganAktivasiPicTest extends TestCase
     {
         Notification::fake();
 
+        // Akun lama di sini adalah PIC yang sudah tercatat sebagai akun unit,
+        // bukan akun humas. Akun humas memang ditolak oleh alur undangan.
         $penggunaLama = User::factory()->create([
             'email' => 'poliklinik@rsudsoetomo.go.id',
             'name' => 'Petugas Lama',
+            'peran' => PeranPengguna::Unit,
             'password' => 'sandilama99',
         ]);
 
