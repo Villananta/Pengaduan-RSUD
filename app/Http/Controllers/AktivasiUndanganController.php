@@ -30,7 +30,6 @@ class AktivasiUndanganController extends Controller
         return view('aktivasi.undangan', [
             'unit' => $unit,
             'berlaku' => $unit !== null && UndanganPic::masihBerlaku($unit),
-            'tujuan' => $unit === null ? null : UndanganPic::tujuan($unit),
         ]);
     }
 

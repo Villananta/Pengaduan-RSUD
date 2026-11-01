@@ -84,13 +84,13 @@
             <h1 class="mt-3 text-[28px] font-bold leading-10 tracking-[-0.8px] text-ink">Buat kata sandi akun PIC</h1>
             <p class="mt-2 max-w-[520px] text-base leading-[26px] text-ink-muted">Anda membuka tautan undangan untuk unit berikut. Isi nama dan kata sandi yang akan dipakai membuka konsol unit.</p>
 
-            <!-- Ringkasan Unit: siapa yang mengundang dan ke mana tautan ini terikat. -->
+            <!-- Ringkasan Unit: unit mana yang akan dibuka PIC lewat tautan ini.
+                 Alamat email sengaja tidak ditampilkan karena halaman ini
+                 bisa dibuka siapa pun yang memegang tautannya. -->
             <div class="mt-6 w-full rounded-xl bg-brand-light p-4 text-left">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.6px] text-brand-600">Unit Tujuan</p>
                 <p class="mt-1 text-lg font-bold tracking-[0.5px] text-brand-800">{{ $unit->namaLengkap() }}</p>
-                <p class="mt-1 text-[13px] text-ink-muted">
-                    PIC: {{ $unit->pic ?? 'Belum ditetapkan' }} &middot; {{ $tujuan }}
-                </p>
+                <p class="mt-1 text-[13px] text-ink-muted">PIC: {{ $unit->pic ?? 'Belum ditetapkan' }}</p>
                 <p class="mt-2 text-[13px] text-ink-muted">Tautan berlaku sampai {{ $unit->undangan_berlaku->isoFormat('d MMMM Y, HH:mm') }} WIB.</p>
             </div>
 

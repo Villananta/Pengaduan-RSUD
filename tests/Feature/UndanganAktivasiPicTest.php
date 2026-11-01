@@ -359,7 +359,10 @@ class UndanganAktivasiPicTest extends TestCase
             ->assertOk()
             ->assertSee('Buat kata sandi akun PIC')
             ->assertSee($unit->nama)
-            ->assertSee('name="kata_sandi"', false);
+            ->assertSee('name="kata_sandi"', false)
+            // Halaman ini bisa dibuka siapa pun yang memegang tautannya,
+            // jadi alamat email PIC tidak ikut ditampilkan.
+            ->assertDontSee('poliklinik@rsudsoetomo.go.id');
     }
 
     public function test_email_undangan_tetap_tersusun_setelah_token_dikosongkan(): void
