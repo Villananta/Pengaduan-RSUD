@@ -166,6 +166,19 @@ final class PemeliharaanUnit
             }
         }
 
+        // "Akun Aktif" hanya jujur kalau akun PIC-nya benar-benar tertaut.
+        // Memilihnya untuk unit tanpa akun akan membuat unit itu dilewati
+        // pengiriman undangan selamanya.
+        $statusBaru = $data['status_akses'] instanceof StatusAksesUnit
+            ? $data['status_akses']
+            : StatusAksesUnit::from($data['status_akses']);
+
+        $punyaAkun = $unit !== null && $unit->pengguna()->exists();
+
+        if ($statusBaru === StatusAksesUnit::AkunAktif && ! $punyaAkun) {
+            $data['status_akses'] = StatusAksesUnit::BelumDiundang;
+        }
+
         return DB::transaction(function () use ($data, $unit, $batalkanUndangan): MasterUnit {
             if ($unit === null) {
                 // Unit baru belum pernah ditugaskan tiket, jadi catatan

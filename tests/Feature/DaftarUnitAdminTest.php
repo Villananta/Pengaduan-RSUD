@@ -484,6 +484,41 @@ class DaftarUnitAdminTest extends TestCase
         $this->assertNull($unit->undangan_berlaku);
     }
 
+    public function test_status_akun_aktif_tanpa_akun_dikembalikan_ke_belum_diundang(): void
+    {
+        // IFP-01 belum punya akun PIC tertaut. Kalau statusnya dibiarkan
+        // AkunAktif, UndanganPic::kirimMassal() akan melewati unit ini
+        // selamanya dan PIC tidak pernah menerima undangan.
+        $this->post(route('admin.unit.update', ['unit' => 'IFP-01']), [
+            'nama' => 'Instalasi Farmasi Pusat',
+            'kategori' => KategoriUnit::InstalasiMedis->value,
+            'peran_akses' => PeranAksesUnit::KepalaUnit->value,
+            'status_akses' => StatusAksesUnit::AkunAktif->value,
+            'aktif' => '1',
+        ])->assertSessionHasNoErrors();
+
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $this->assertSame(StatusAksesUnit::BelumDiundang, $unit->status_akses);
+    }
+
+    public function test_status_akun_aktif_tetap_dipakai_bila_akun_pic_sudah_tertaut(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $this->picUntuk($unit);
+
+        $this->post(route('admin.unit.update', ['unit' => 'IFP-01']), [
+            'nama' => 'Instalasi Farmasi Pusat',
+            'kategori' => KategoriUnit::InstalasiMedis->value,
+            'peran_akses' => PeranAksesUnit::KepalaUnit->value,
+            'status_akses' => StatusAksesUnit::AkunAktif->value,
+            'aktif' => '1',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(StatusAksesUnit::AkunAktif, $unit->refresh()->status_akses);
+    }
+
     public function test_kode_unit_wajib_unik(): void
     {
         $this->post(route('admin.unit.store'), [
