@@ -30,16 +30,29 @@ final class UndanganPic
     public const UMUR_JAM = 72;
 
     /**
-     * Alamat email tujuan undangan sebuah unit.
+     * Alamat email yang terikat pada undangan sebuah unit.
      *
-     * Kolom email memang dibuat khusus untuk notifikasi, tapi form admin
-     * saat ini mengisi "Email / Akun SIMRS". Selama keduanya belum
-     * diseragamkan, undangan dikirim ke alamat mana pun yang sudah terisi
-     * supaya unit dengan data lama tidak kehilangan hak undangnya.
+     * Kolom email diperlakukan sebagai salinan tetap alamat pada saat
+     * undangan dikirim, jadi akun yang lahir dari tautan lama tetap memakai
+     * alamat yang benar-benar menerima email itu, bukan alamat yang baru
+     * diketik admin setelahnya. Baris lama yang belum sempat menyalin
+     * alamatnya tetap dilayani lewat akun_simrs sebagai cadangan.
      */
     public static function tujuan(MasterUnit $unit): ?string
     {
         return filled($unit->email) ? $unit->email : $unit->akun_simrs;
+    }
+
+    /**
+     * Alamat yang akan menerima undangan berikutnya.
+     *
+     * Form unit hanya menyunting "Email / Akun SIMRS", jadi kolom itulah
+     * yang dianggap paling baru. Kolom email hanya cadangan untuk baris
+     * lama yang akun_simrs-nya kosong.
+     */
+    private static function alamatTerkini(MasterUnit $unit): ?string
+    {
+        return filled($unit->akun_simrs) ? $unit->akun_simrs : $unit->email;
     }
 
     /**
@@ -84,10 +97,15 @@ final class UndanganPic
      * Alamat milik akun humas juga dilewati sejak awal. Tautannya pasti
      * ditolak di halaman aktivasi, jadi mengirim email hanya akan membuat
      * PIC menunggu tautan yang tidak pernah bisa dipakai.
+     *
+     * Alamat yang dipakai saat kirim disalin ke kolom email. Salinan itulah
+     * yang nanti menentukan akun siapa yang dibuat, supaya menyunting
+     * "Email / Akun SIMRS" setelah email berangkat tidak memindahkan akun
+     * ke pemegang alamat baru.
      */
     public static function kirim(MasterUnit $unit): bool
     {
-        $alamat = self::tujuan($unit);
+        $alamat = self::alamatTerkini($unit);
 
         if ($alamat === null || ! $unit->aktif || $unit->status_akses === StatusAksesUnit::AkunAktif) {
             return false;
@@ -97,6 +115,7 @@ final class UndanganPic
             return false;
         }
 
+        $unit->email = $alamat;
         $unit->undangan_token = Str::random(40);
         $unit->undangan_berlaku = now()->addHours(self::UMUR_JAM);
         $unit->status_akses = StatusAksesUnit::UndanganTerkirim;
@@ -151,6 +170,8 @@ final class UndanganPic
      */
     public static function aktivasi(MasterUnit $unit, string $nama, string $kataSandi): User
     {
+        // Alamat diambil dari salinan saat undangan dikirim, bukan dari
+        // kolom yang mungkin sudah disunting admin setelah email berangkat.
         $alamat = self::tujuan($unit);
 
         // Kolom email users tidak boleh kosong, jadi unit yang alamatnya

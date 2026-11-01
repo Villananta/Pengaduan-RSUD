@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\KategoriUnit;
 use App\Enums\PeranAksesUnit;
 use App\Enums\PeranPengguna;
 use App\Enums\StatusAksesUnit;
@@ -214,6 +215,85 @@ class UndanganAktivasiPicTest extends TestCase
 
         $this->assertSame(StatusAksesUnit::Dinonaktifkan, $unit->status_akses);
         $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
+    }
+
+    public function test_aktivasi_memakai_alamat_yang_menerima_undangan_bukan_alamat_baru(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        // Alamat disalin saat kirim, jadi tautan terikat pada pemilik email
+        // yang benar-benar menerima undangan.
+        $this->assertSame('poliklinik@rsudsoetomo.go.id', $unit->email);
+
+        // Admin mengganti alamat PIC setelah email berangkat. Tautan yang
+        // sudah dipegang PIC lama tetap harus membuat akun untuk alamat itu.
+        $this->post(route('admin.unit.update', ['unit' => 'IRJ-05']), [
+            'nama' => 'Instalasi Rawat Jalan (Poliklinik)',
+            'kategori' => KategoriUnit::InstalasiMedis->value,
+            'peran_akses' => PeranAksesUnit::KepalaUnit->value,
+            'status_akses' => StatusAksesUnit::UndanganTerkirim->value,
+            'aktif' => '1',
+            'akun_simrs' => 'alamat.baru@rsudsoetomo.go.id',
+        ])->assertSessionHasNoErrors();
+
+        $this->post(route('aktivasi.undangan.simpan', ['token' => $unit->undangan_token]), [
+            'nama' => 'PIC Uji',
+            'kata_sandi' => 'sandipic123',
+            'kata_sandi_confirmation' => 'sandipic123',
+        ])->assertSessionHas('aktivasi_sukses');
+
+        $this->assertNotNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
+        $this->assertNull(User::where('email', 'alamat.baru@rsudsoetomo.go.id')->first());
+    }
+
+    public function test_kirim_ulang_setelah_alamat_diubah_mengunci_alamat_baru(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+        $unit->update(['akun_simrs' => 'alamat.baru@rsudsoetomo.go.id']);
+
+        // Unit masih berstatus UndanganTerkirim, jadi admin bisa mengirim
+        // ulang dan salinan alamatnya ikut diperbarui.
+        $this->post(route('admin.unit.undangan'));
+
+        $unit->refresh();
+
+        $this->assertSame('alamat.baru@rsudsoetomo.go.id', $unit->email);
+
+        $this->post(route('aktivasi.undangan.simpan', ['token' => $unit->undangan_token]), [
+            'nama' => 'PIC Uji',
+            'kata_sandi' => 'sandipic123',
+            'kata_sandi_confirmation' => 'sandipic123',
+        ])->assertSessionHas('aktivasi_sukses');
+
+        $this->assertNotNull(User::where('email', 'alamat.baru@rsudsoetomo.go.id')->first());
+        $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
+    }
+
+    public function test_unit_tanpa_akun_simrs_tetap_memakai_kolom_email_lama(): void
+    {
+        // Baris lama bisa hanya punya kolom email tanpa akun_simrs. Unit
+        // seperti ini tidak boleh kehilangan hak undangnya.
+        Notification::fake();
+
+        MasterUnit::where('kode', 'IRJ-05')->firstOrFail()->update([
+            'akun_simrs' => null,
+            'email' => 'pic.lama@rsudsoetomo.go.id',
+        ]);
+
+        $this->post(route('admin.unit.undangan'));
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        $this->assertNotNull($unit->undangan_token);
+        $this->assertSame('pic.lama@rsudsoetomo.go.id', $unit->email);
     }
 
     public function test_tombol_kirim_undangan_di_master_unit_kini_berupa_formulir(): void
