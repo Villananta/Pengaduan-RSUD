@@ -277,10 +277,11 @@ class UndanganAktivasiPicTest extends TestCase
         $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
     }
 
-    public function test_unit_tanpa_akun_simrs_tetap_memakai_kolom_email_lama(): void
+    public function test_alamat_lama_di_kolom_email_dipindahkan_ke_akun_simrs_saat_kirim(): void
     {
-        // Baris lama bisa hanya punya kolom email tanpa akun_simrs. Unit
-        // seperti ini tidak boleh kehilangan hak undangnya.
+        // Baris lama bisa hanya punya kolom email, yang tidak tampil di form.
+        // Alamatnya tetap dipakai, tapi dipindahkan ke akun_simrs supaya
+        // admin bisa melihat dan menyuntingnya.
         Notification::fake();
 
         MasterUnit::where('kode', 'IRJ-05')->firstOrFail()->update([
@@ -293,7 +294,46 @@ class UndanganAktivasiPicTest extends TestCase
         $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
 
         $this->assertNotNull($unit->undangan_token);
+        $this->assertSame('pic.lama@rsudsoetomo.go.id', $unit->akun_simrs);
         $this->assertSame('pic.lama@rsudsoetomo.go.id', $unit->email);
+
+        $this->get(route('admin.unit.edit', ['unit' => 'IRJ-05']))
+            ->assertOk()
+            ->assertSee('pic.lama@rsudsoetomo.go.id');
+    }
+
+    public function test_menghapus_alamat_pic_membatalkan_undangan_yang_sedang_berjalan(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+        $token = $unit->undangan_token;
+
+        // Admin mengosongkan alamat PIC lewat form unit.
+        $this->post(route('admin.unit.update', ['unit' => 'IRJ-05']), [
+            'nama' => 'Instalasi Rawat Jalan (Poliklinik)',
+            'kategori' => KategoriUnit::InstalasiMedis->value,
+            'peran_akses' => PeranAksesUnit::KepalaUnit->value,
+            'status_akses' => StatusAksesUnit::UndanganTerkirim->value,
+            'aktif' => '1',
+        ])->assertSessionHasNoErrors();
+
+        $unit->refresh();
+
+        $this->assertNull($unit->akun_simrs);
+        $this->assertNull($unit->email);
+        $this->assertNull($unit->undangan_token);
+        $this->assertSame(StatusAksesUnit::BelumDiundang, $unit->status_akses);
+
+        // Tautan lama tidak boleh lagi membuat akun.
+        $this->post(route('aktivasi.undangan.simpan', ['token' => $token]), [
+            'nama' => 'PIC Uji',
+            'kata_sandi' => 'sandipic123',
+            'kata_sandi_confirmation' => 'sandipic123',
+        ])->assertSessionHasErrors('undangan');
+
+        $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
     }
 
     public function test_tombol_kirim_undangan_di_master_unit_kini_berupa_formulir(): void

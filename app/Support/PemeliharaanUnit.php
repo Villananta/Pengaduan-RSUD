@@ -151,6 +151,21 @@ final class PemeliharaanUnit
             }
         }
 
+        // Alamat PIC yang dikosongkan ikut membuang salinan undangan dan
+        // tautannya. Kolom email tidak tampil di form, jadi tanpa ini
+        // pengiriman berikutnya menghidupkan lagi alamat lama dari salinan
+        // yang tidak bisa dilihat admin.
+        if ($data['akun_simrs'] === null) {
+            $data['email'] = null;
+            $data['undangan_token'] = null;
+            $data['undangan_berlaku'] = null;
+
+            // Tanpa alamat tidak ada undangan yang bisa ditunggu.
+            if ($status === StatusAksesUnit::UndanganTerkirim && $data['aktif']) {
+                $data['status_akses'] = StatusAksesUnit::BelumDiundang;
+            }
+        }
+
         return DB::transaction(function () use ($data, $unit): MasterUnit {
             if ($unit === null) {
                 // Unit baru belum pernah ditugaskan tiket, jadi catatan

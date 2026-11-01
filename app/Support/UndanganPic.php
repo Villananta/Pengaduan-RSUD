@@ -115,6 +115,10 @@ final class UndanganPic
             return false;
         }
 
+        // Baris lama bisa hanya menyimpan alamat di kolom email yang tidak
+        // tampil di form. Pindahkan ke akun_simrs supaya admin melihat alamat
+        // yang dipakai, bukan alamat tersembunyi.
+        $unit->akun_simrs = $alamat;
         $unit->email = $alamat;
         $unit->undangan_token = Str::random(40);
         $unit->undangan_berlaku = now()->addHours(self::UMUR_JAM);
