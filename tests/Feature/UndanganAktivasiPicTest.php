@@ -13,6 +13,7 @@ use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use stdClass;
 use Tests\TestCase;
 
 /**
@@ -359,6 +360,33 @@ class UndanganAktivasiPicTest extends TestCase
             ->assertSee('Buat kata sandi akun PIC')
             ->assertSee($unit->nama)
             ->assertSee('name="kata_sandi"', false);
+    }
+
+    public function test_email_undangan_tetap_tersusun_setelah_token_dikosongkan(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+        $token = $unit->undangan_token;
+
+        // Notifikasi dibangun saat pengiriman, lalu baru diproses worker
+        // beberapa saat kemudian.
+        $undangan = new UndanganAktivasiPic($unit, $token);
+
+        // Token sudah dikosongkan sebelum worker sempat jalan, misalnya
+        // karena PIC mengaktifkan dari email lain atau admin mengirim ulang.
+        $unit->undangan_token = null;
+        $unit->undangan_berlaku = null;
+        $unit->save();
+
+        $pesan = $undangan->toMail(new stdClass);
+
+        $this->assertSame(
+            route('aktivasi.undangan', ['token' => $token]),
+            $pesan->actionUrl,
+        );
     }
 
     public function test_token_yang_tidak_dikenal_ditolak_dengan_pesan_jujur(): void

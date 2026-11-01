@@ -125,7 +125,7 @@ final class UndanganPic
         $unit->status_akses = StatusAksesUnit::UndanganTerkirim;
         $unit->save();
 
-        Notification::route('mail', $alamat)->notify(new UndanganAktivasiPic($unit));
+        Notification::route('mail', $alamat)->notify(new UndanganAktivasiPic($unit, $unit->undangan_token));
 
         return true;
     }

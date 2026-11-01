@@ -12,9 +12,10 @@ use Illuminate\Notifications\Notification;
 /**
  * Email undangan aktivasi akun PIC unit.
  *
- * Tautan di dalamnya memakai token yang tersimpan di master_units, jadi
- * masa berlakunya dikendalikan kolom undangan_berlaku — email yang sudah
- * terlanjur terkirim tidak bisa dipakai lagi setelah lewat batas.
+ * Notifikasi ini masuk antrean, jadi token dibekukan di konstruktor.
+ * Membaca ulang master_units saat toMail() dijalankan bisa menghasilkan
+ * tautan kosong bila token sudah dibatalkan aktivasi atau kirim ulang
+ * sebelum worker sempat mengirim emailnya.
  */
 class UndanganAktivasiPic extends Notification implements ShouldQueue
 {
@@ -22,6 +23,7 @@ class UndanganAktivasiPic extends Notification implements ShouldQueue
 
     public function __construct(
         public readonly MasterUnit $unit,
+        public readonly string $token,
     ) {}
 
     public function via(object $notifiable): array
@@ -39,7 +41,7 @@ class UndanganAktivasiPic extends Notification implements ShouldQueue
             ->line('Anda diundang mengaktifkan akun PIC untuk **'.$this->unit->namaLengkap().'** di Sistem Pengaduan RSUD Dr. Soetomo.')
             ->line('Akun ini dipakai membuka konsol disposisi unit dan melihat pengaduan yang ditugaskan ke unit Anda.')
             ->line('Tautan berlaku selama **'.UndanganPic::UMUR_JAM.' jam** sejak dikirim. Jangan bagikan tautan ini kepada siapapun.')
-            ->action('Aktivasi Akun', route('aktivasi.undangan', ['token' => $this->unit->undangan_token]))
+            ->action('Aktivasi Akun', route('aktivasi.undangan', ['token' => $this->token]))
             ->line('Kalau Anda tidak merasa diminta menjadi PIC unit ini, abaikan email ini.')
             ->salutation('Hormat kami,<br>Tim Humas & Pengaduan RSUD Dr. Soetomo');
     }
