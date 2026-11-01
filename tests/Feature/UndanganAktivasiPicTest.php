@@ -151,6 +151,71 @@ class UndanganAktivasiPicTest extends TestCase
         $this->assertNull($unit->undangan_token);
     }
 
+    public function test_menonaktifkan_unit_membatalkan_tautan_undangan_yang_sudah_beredar(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+        $token = $unit->undangan_token;
+
+        $this->assertNotNull($token);
+
+        // Admin mengubah status unit, bukan lewat formulir unit.
+        $this->post(route('admin.unit.status', ['unit' => 'IRJ-05']));
+
+        $unit->refresh();
+
+        $this->assertFalse($unit->aktif);
+        $this->assertNull($unit->undangan_token);
+        $this->assertNull($unit->undangan_berlaku);
+
+        // Tautan yang terlanjur dikirim tidak boleh lagi membuka formulir.
+        $this->get(route('aktivasi.undangan', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('Tautan undangan tidak berlaku');
+
+        $this->post(route('aktivasi.undangan.simpan', ['token' => $token]), [
+            'nama' => 'PIC Terlambat',
+            'kata_sandi' => 'sandipic123',
+            'kata_sandi_confirmation' => 'sandipic123',
+        ])->assertSessionHasErrors('undangan');
+
+        $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
+    }
+
+    public function test_aktivasi_ditolak_untuk_unit_nonaktif_yang_masih_menyimpan_token_lama(): void
+    {
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        // Data lama bisa saja masih menyimpan token untuk unit yang sudah
+        // dinonaktifkan, misalnya dari sebelum pembatalan otomatis ada.
+        // Tautan seperti ini tetap harus ditolak, bukan hanya dikosongkan.
+        $token = $unit->undangan_token;
+        $unit->aktif = false;
+        $unit->status_akses = StatusAksesUnit::Dinonaktifkan;
+        $unit->save();
+
+        $this->get(route('aktivasi.undangan', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('Undangan unit ini sudah dibatalkan')
+            ->assertDontSee('name="kata_sandi"', false);
+
+        $this->post(route('aktivasi.undangan.simpan', ['token' => $token]), [
+            'nama' => 'PIC Uji',
+            'kata_sandi' => 'sandipic123',
+            'kata_sandi_confirmation' => 'sandipic123',
+        ])->assertSessionHasErrors('undangan');
+
+        $unit->refresh();
+
+        $this->assertSame(StatusAksesUnit::Dinonaktifkan, $unit->status_akses);
+        $this->assertNull(User::where('email', 'poliklinik@rsudsoetomo.go.id')->first());
+    }
+
     public function test_tombol_kirim_undangan_di_master_unit_kini_berupa_formulir(): void
     {
         $tampilan = $this->get(route('admin.unit.index'))

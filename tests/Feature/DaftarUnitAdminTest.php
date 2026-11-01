@@ -16,6 +16,7 @@ use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class DaftarUnitAdminTest extends TestCase
@@ -451,6 +452,36 @@ class DaftarUnitAdminTest extends TestCase
 
         $this->assertFalse($unit->aktif);
         $this->assertSame(StatusAksesUnit::Dinonaktifkan, $unit->status_akses);
+    }
+
+    public function test_menonaktifkan_unit_lewat_form_ikut_membatalkan_undangannya(): void
+    {
+        // Undangan yang masih beredar harus ikut mati saat unit ditutup dari
+        // formulir, bukan hanya saat ditutup dari tombol status. Tanpa ini
+        // tautan lama masih bisa membuat akun untuk unit yang konsolnya mati.
+        Notification::fake();
+
+        $this->post(route('admin.unit.undangan'));
+
+        $unit = MasterUnit::where('kode', 'IRJ-05')->firstOrFail();
+
+        $this->assertNotNull($unit->undangan_token);
+
+        $this->post(route('admin.unit.update', ['unit' => 'IRJ-05']), [
+            'nama' => 'Instalasi Rawat Jalan (Poliklinik)',
+            'kategori' => KategoriUnit::InstalasiMedis->value,
+            'peran_akses' => PeranAksesUnit::KepalaUnit->value,
+            'status_akses' => StatusAksesUnit::UndanganTerkirim->value,
+            'aktif' => '0',
+        ])
+            ->assertRedirect(route('admin.unit.index'))
+            ->assertSessionHasNoErrors();
+
+        $unit->refresh();
+
+        $this->assertFalse($unit->aktif);
+        $this->assertNull($unit->undangan_token);
+        $this->assertNull($unit->undangan_berlaku);
     }
 
     public function test_kode_unit_wajib_unik(): void

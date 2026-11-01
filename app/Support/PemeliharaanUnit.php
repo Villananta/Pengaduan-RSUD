@@ -133,6 +133,12 @@ final class PemeliharaanUnit
 
         if (! $data['aktif']) {
             $data['status_akses'] = StatusAksesUnit::Dinonaktifkan;
+
+            // Undangan yang sudah beredar ikut dibatalkan. Tanpa ini tautan
+            // lama masih bisa membuat akun PIC untuk unit yang konsolnya
+            // sudah ditutup admin.
+            $data['undangan_token'] = null;
+            $data['undangan_berlaku'] = null;
         } elseif ($status === StatusAksesUnit::Dinonaktifkan) {
             $data['status_akses'] = self::statusSaatAktif($unit);
         }
@@ -167,7 +173,9 @@ final class PemeliharaanUnit
      * Alih status aktif sebuah unit.
      *
      * Unit yang dinonaktifkan tidak dihapus supaya riwayat penugasan tiket
-     * lama tetap punya nama unit yang bisa dibaca.
+     * lama tetap punya nama unit yang bisa dibaca. Tautan undangan yang
+     * masih beredar ikut dibatalkan bersama statusnya, karena unit yang
+     * konsolnya ditutup tidak boleh lagi melahirkan akun PIC.
      * Saat dinonaktifkan, status_akses diubah ke Dinonaktifkan.
      * Saat diaktifkan kembali, status_akses hanya kembali ke AkunAktif bila
      * PIC-nya benar-benar sudah tertaut. Unit yang belum pernah diaktivasi
@@ -181,6 +189,14 @@ final class PemeliharaanUnit
         $unit->status_akses = $unit->aktif
             ? self::statusSaatAktif($unit)
             : StatusAksesUnit::Dinonaktifkan;
+
+        if (! $unit->aktif) {
+            // Tautan undangan yang masih beredar ikut dibatalkan, supaya
+            // tidak ada akun PIC yang lahir untuk unit yang konsolnya sudah
+            // ditutup admin.
+            $unit->undangan_token = null;
+            $unit->undangan_berlaku = null;
+        }
 
         $unit->save();
 

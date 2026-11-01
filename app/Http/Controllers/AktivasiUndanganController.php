@@ -19,9 +19,9 @@ class AktivasiUndanganController extends Controller
     /**
      * Tampilkan formulir sandi sesuai kondisi token yang dibuka.
      *
-     * Tiga keadaan dipisah supaya pesan di layar bisa jujur: token yang
-     * tidak dikenal, token yang sudah lewat masa berlaku, dan token sehat
-     * yang siap dipakai membuat akun.
+     * Empat keadaan dipisah supaya pesan di layar bisa jujur: token yang
+     * tidak dikenal, token yang sudah lewat masa berlaku, unit yang sudah
+     * dinonaktifkan, dan token sehat yang siap dipakai membuat akun.
      */
     public function tampil(string $token): View
     {
@@ -43,6 +43,14 @@ class AktivasiUndanganController extends Controller
             return redirect()
                 ->route('aktivasi.undangan', ['token' => $token])
                 ->withErrors(['undangan' => 'Tautan undangan ini sudah tidak berlaku. Minta admin mengirim undangan baru.']);
+        }
+
+        // Unit yang dinonaktifkan tidak boleh melahirkan akun baru, walaupun
+        // tokennya masih tersimpan dari data lama.
+        if (! $unit->aktif) {
+            return redirect()
+                ->route('aktivasi.undangan', ['token' => $token])
+                ->withErrors(['undangan' => 'Unit '.$unit->namaLengkap().' sedang nonaktif, jadi undangan ini tidak bisa dipakai.']);
         }
 
         $data = $request->validate([

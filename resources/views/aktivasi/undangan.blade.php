@@ -34,7 +34,7 @@
             </span>
 
             <h1 class="mt-6 text-[28px] font-bold leading-10 tracking-[-0.8px] text-ink">Tautan undangan tidak berlaku</h1>
-            <p class="mt-2 text-base leading-[26px] text-ink-muted">Tautan ini tidak dikenal atau sudah pernah dipakai. Minta admin mengirim undangan baru lewat halaman Master Data Unit.</p>
+            <p class="mt-2 text-base leading-[26px] text-ink-muted">Tautan ini tidak dikenal, sudah pernah dipakai, atau dibatalkan karena unitnya dinonaktifkan. Minta admin mengirim undangan baru lewat halaman Master Data Unit.</p>
 
         @elseif (! $berlaku)
 
@@ -49,6 +49,20 @@
 
             <h1 class="mt-6 text-[28px] font-bold leading-10 tracking-[-0.8px] text-ink">Tautan undangan sudah kedaluwarsa</h1>
             <p class="mt-2 text-base leading-[26px] text-ink-muted">Tautan untuk {{ $unit->namaLengkap() }} berlaku {{ \App\Support\UndanganPic::UMUR_JAM }} jam sejak dikirim dan kini sudah lewat. Minta admin mengirim undangan baru.</p>
+
+        @elseif (! $unit->aktif)
+
+            <!-- Unit sudah dinonaktifkan admin: token lama yang masih tersimpan
+                 tidak boleh dipakai membuat akun, karena konsol unitnya ditutup. -->
+            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-error-container">
+                <svg class="h-8 w-8 text-on-error-container" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                    <path d="m6 6 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </span>
+
+            <h1 class="mt-6 text-[28px] font-bold leading-10 tracking-[-0.8px] text-ink">Undangan unit ini sudah dibatalkan</h1>
+            <p class="mt-2 text-base leading-[26px] text-ink-muted">Unit {{ $unit->namaLengkap() }} sedang nonaktif, jadi tautan undangan ini tidak bisa dipakai lagi. Minta admin mengaktifkan unitnya kembali lalu mengirim undangan baru.</p>
 
         @else
 

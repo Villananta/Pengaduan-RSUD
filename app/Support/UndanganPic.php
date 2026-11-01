@@ -162,6 +162,12 @@ final class UndanganPic
             ]);
         }
 
+        if (! $unit->aktif) {
+            throw ValidationException::withMessages([
+                'undangan' => 'Unit '.$unit->namaLengkap().' sedang nonaktif, jadi undangan ini tidak bisa dipakai. Minta admin mengaktifkannya kembali lalu mengirim undangan baru.',
+            ]);
+        }
+
         if (self::dipakaiAkunHumas($alamat)) {
             throw ValidationException::withMessages([
                 'undangan' => 'Alamat '.$alamat.' sudah dipakai akun petugas humas. Minta admin mengganti alamat PIC unit ini di master data, lalu mengirim undangan baru.',
