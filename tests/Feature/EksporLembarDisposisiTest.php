@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\StatusPengaduan;
+use App\Exports\UnitPengaduanExport;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Database\Seeders\MasterUnitSeeder;
@@ -131,6 +132,26 @@ class EksporLembarDisposisiTest extends TestCase
         $this->get(route('unit.disposisi.export.pdf', $farmasi))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_ekspor_daftar_disposisi_unit_hanya_memuat_tiket_yang_sudah_diteruskan(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $diteruskan = Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        // Tiket ini sudah menempel ke unit lewat pilihan pelapor, tetapi
+        // humas belum meneruskannya sehingga halamannya masih 404 bagi PIC.
+        Pengaduan::factory()->status(StatusPengaduan::Diterima)
+            ->create(['master_unit_id' => $farmasi->id]);
+
+        $kode = (new UnitPengaduanExport($farmasi, 'disposisi'))
+            ->collection()
+            ->pluck('kode_tiket')
+            ->all();
+
+        $this->assertSame([$diteruskan->kode_tiket], $kode);
     }
 
     public function test_arsip_unit_bisa_diekspor_ke_excel_dan_pdf(): void

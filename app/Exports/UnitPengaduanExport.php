@@ -23,6 +23,10 @@ class UnitPengaduanExport implements FromCollection, WithHeadings, WithMapping, 
     {
         return Pengaduan::query()
             ->where('master_unit_id', $this->unit->id)
+            // master_unit_id sudah terisi sejak tiket dibuat karena pelapor
+            // memilih unitnya. Tanpa saringan ini ekspor unit memuat tiket
+            // yang humas belum teruskan, lengkap dengan identitas pelapor.
+            ->sudahDiteruskanHumas()
             ->when($this->tipe === 'arsip', fn ($q) => $q->where('status', 'selesai'))
             ->when($this->tipe === 'disposisi', fn ($q) => $q->where('status', '!=', 'selesai'))
             ->with(['masterUnit'])

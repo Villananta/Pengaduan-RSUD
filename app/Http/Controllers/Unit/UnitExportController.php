@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Unit;
 use App\Exports\UnitPengaduanExport;
 use App\Http\Controllers\Controller;
 use App\Models\MasterUnit;
-use App\Models\Pengaduan;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -37,12 +36,9 @@ class UnitExportController extends Controller
      */
     public function disposisiPdf(Request $request, MasterUnit $unit)
     {
-        $pengaduan = Pengaduan::query()
-            ->where('master_unit_id', $unit->id)
-            ->where('status', '!=', 'selesai')
-            ->with(['masterUnit'])
-            ->latest()
-            ->get();
+        // Query yang sama dengan berkas Excel, supaya aturan "tiket yang
+        // sudah diteruskan humas" tidak punya dua versi di dua ekspor.
+        $pengaduan = (new UnitPengaduanExport($unit, 'disposisi'))->collection();
 
         $pdf = Pdf::loadView('exports.unit-daftar', [
             'unit' => $unit,
@@ -59,12 +55,7 @@ class UnitExportController extends Controller
      */
     public function arsipPdf(Request $request, MasterUnit $unit)
     {
-        $pengaduan = Pengaduan::query()
-            ->where('master_unit_id', $unit->id)
-            ->where('status', 'selesai')
-            ->with(['masterUnit'])
-            ->latest()
-            ->get();
+        $pengaduan = (new UnitPengaduanExport($unit, 'arsip'))->collection();
 
         $pdf = Pdf::loadView('exports.unit-daftar', [
             'unit' => $unit,
