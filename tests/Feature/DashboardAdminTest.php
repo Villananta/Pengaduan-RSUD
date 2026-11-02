@@ -239,9 +239,13 @@ class DashboardAdminTest extends TestCase
         $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
         $radiologi = MasterUnit::where('kode', 'IRS-03')->firstOrFail();
 
-        Pengaduan::factory()->count(2)->create(['master_unit_id' => $farmasi->id]);
-        Pengaduan::factory()->create(['master_unit_id' => $radiologi->id]);
+        Pengaduan::factory()->count(2)->status(StatusPengaduan::Diproses)->create(['master_unit_id' => $farmasi->id]);
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create(['master_unit_id' => $radiologi->id]);
         Pengaduan::factory()->selesai()->create(['master_unit_id' => $farmasi->id]);
+
+        // Pilihan unit pelapor sudah mengisi master_unit_id sejak tiket masih
+        // Diterima, tetapi humas belum meneruskannya, jadi bukan beban unit.
+        Pengaduan::factory()->status(StatusPengaduan::Diterima)->create(['master_unit_id' => $radiologi->id]);
 
         $beban = StatistikDashboard::unitTerbebani()->keyBy('kode');
 

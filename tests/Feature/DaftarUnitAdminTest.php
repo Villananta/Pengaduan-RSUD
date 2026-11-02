@@ -229,21 +229,31 @@ class DaftarUnitAdminTest extends TestCase
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'kode_tiket' => 'ADUAN-AKTIF-01',
             'master_unit_id' => $unit->id,
         ]);
 
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'kode_tiket' => 'ADUAN-AKTIF-02',
             'master_unit_id' => $unit->id,
         ]);
 
         $lain = MasterUnit::where('kode', 'IGD-02')->firstOrFail();
 
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'kode_tiket' => 'ADUAN-LAIN-01',
             'master_unit_id' => $lain->id,
+        ]);
+
+        // Unit bedah hanya memegang tiket yang masih Diterima. Pilihan unit
+        // pelapor sudah mengisi master_unit_id, tetapi humas belum
+        // meneruskannya, jadi unit ini belum punya antrean kerja.
+        $bedah = MasterUnit::where('kode', 'IBT-04')->firstOrFail();
+
+        Pengaduan::factory()->status(StatusPengaduan::Diterima)->create([
+            'kode_tiket' => 'ADUAN-BELUM-DITERUSKAN-01',
+            'master_unit_id' => $bedah->id,
         ]);
 
         $halamanAdaBeban = $this->get(route('admin.unit.index', ['beban' => 'ada']))
@@ -320,15 +330,30 @@ class DaftarUnitAdminTest extends TestCase
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        Pengaduan::factory()->create([
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'kode_tiket' => 'ADUAN-LEWAT-01',
             'master_unit_id' => $unit->id,
+            'created_at' => now()->subDays(Sla::hariInvestigasi() + 5),
+        ]);
+
+        // Tiket lama yang masih Diterima belum diteruskan humas, jadi
+        // umurnya tidak boleh dihitung sebagai keterlambatan unit.
+        $belumDiteruskan = MasterUnit::where('kode', 'IBT-04')->firstOrFail();
+
+        Pengaduan::factory()->status(StatusPengaduan::Diterima)->create([
+            'kode_tiket' => 'ADUAN-LEWAT-02',
+            'master_unit_id' => $belumDiteruskan->id,
             'created_at' => now()->subDays(Sla::hariInvestigasi() + 5),
         ]);
 
         $this->get(route('admin.unit.index'))
             ->assertOk()
             ->assertSee('lewat batas');
+
+        $daftar = DaftarUnit::dariRequest(request());
+
+        $this->assertSame(1, $daftar->lewat($daftar->unit->firstWhere('id', $unit->id)));
+        $this->assertSame(0, $daftar->lewat($daftar->unit->firstWhere('id', $belumDiteruskan->id)));
     }
 
     public function test_form_tambah_unit_dapat_diakses(): void

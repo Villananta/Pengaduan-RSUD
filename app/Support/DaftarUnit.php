@@ -171,7 +171,7 @@ final class DaftarUnit
         return false;
     }
 
-    /** Jumlah tiket aktif yang ditugaskan ke sebuah unit. */
+    /** Jumlah tiket aktif yang sudah diteruskan humas ke sebuah unit. */
     public function beban(MasterUnit $unit): int
     {
         return (int) ($unit->beban_aktif ?? 0);
@@ -182,9 +182,9 @@ final class DaftarUnit
      *
      * Satu unit bisa memegang beberapa tiket aktif sekaligus, jadi tidak ada
      * satu status yang bisa mewakili semuanya. Angka di sini dihitung dari
-     * tiket yang masih berjalan dan belum ditutup; kolom `disposisi` tidak
-     * dipakai lagi untuk itu karena nilainya dulu ditimpa tiap kali satu
-     * tiket berpindah tahap, sehingga hanya tiket terakhir yang terlihat.
+     * tiket yang sudah diteruskan humas dan belum ditutup; kolom `disposisi`
+     * tidak dipakai lagi untuk itu karena nilainya dulu ditimpa tiap kali
+     * satu tiket berpindah tahap, sehingga hanya tiket terakhir yang terlihat.
      *
      * Satu-satunya nilai kolom itu yang masih dibaca adalah `Terputus`,
      * karena penanda hubungan unit memang disetel manual dan tidak bisa
@@ -247,8 +247,8 @@ final class DaftarUnit
                 // masih ditelusuri dari tiket yang jawabannya sudah masuk,
                 // jadi unit dengan banyak tiket tidak lagi tampil sebagai
                 // satu status milik tiket terakhir.
-                'pengaduan as investigasi_aktif' => fn (Builder $q): Builder => StatusInvestigasi::SedangInvestigasi->terapkan($q),
-                'pengaduan as racikan_aktif' => fn (Builder $q): Builder => StatusInvestigasi::MenungguRacikan->terapkan($q),
+                'pengaduan as investigasi_aktif' => fn (Builder $q): Builder => StatusInvestigasi::SedangInvestigasi->terapkan($q)->sudahDiteruskanHumas(),
+                'pengaduan as racikan_aktif' => fn (Builder $q): Builder => StatusInvestigasi::MenungguRacikan->terapkan($q)->sudahDiteruskanHumas(),
             ]);
 
         if (($saring['q'] ?? '') !== '') {
@@ -302,11 +302,17 @@ final class DaftarUnit
      * Eloquent Builder. Nilai statusnya sendiri tetap dari enum supaya
      * definisi selesai tidak punya dua versi.
      *
+     * Tiket 'Diterima' ikut dibuang karena pelapor sudah memilih unit sejak
+     * formulir, padahal humas belum meneruskannya. Tanpa syarat ini, beban
+     * unit di halaman admin menghitung tiket yang masih di meja humas.
+     *
      * @return Closure(mixed): mixed
      */
     private static function pengaduanAktif(): Closure
     {
-        return fn ($q) => $q->where('status', '!=', StatusPengaduan::Selesai->value);
+        return fn ($q) => $q
+            ->where('status', '!=', StatusPengaduan::Selesai->value)
+            ->where('status', '!=', StatusPengaduan::Diterima->value);
     }
 
     /** Saring kondisi akses akun PIC unit. */
@@ -364,7 +370,11 @@ final class DaftarUnit
             ->whereHas('pengaduan', self::pengaduanAktif())
             ->count();
 
-        $tiketAktif = Pengaduan::query()->aktif()->whereNotNull('master_unit_id')->count();
+        $tiketAktif = Pengaduan::query()
+            ->aktif()
+            ->sudahDiteruskanHumas()
+            ->whereNotNull('master_unit_id')
+            ->count();
 
         $akunAktif = MasterUnit::query()
             ->where('status_akses', StatusAksesUnit::AkunAktif->value)
@@ -414,7 +424,7 @@ final class DaftarUnit
                 'nadaBar' => 'bg-tertiary',
                 'persen' => self::persen($punyaAntrean, $total),
                 'sisi' => $tiketAktif.' pengaduan masih diproses unit',
-                'ket' => 'Beban dihitung dari pengaduan yang belum selesai, bukan akumulasi historis.',
+                'ket' => 'Beban dihitung dari pengaduan yang sudah diteruskan humas dan belum selesai, bukan akumulasi historis.',
             ],
             [
                 'label' => 'Akun PIC Aktif',
@@ -478,6 +488,7 @@ final class DaftarUnit
     {
         return Pengaduan::query()
             ->aktif()
+            ->sudahDiteruskanHumas()
             ->whereNotNull('master_unit_id')
             ->get(['master_unit_id', 'created_at'])
             ->filter(fn (Pengaduan $pengaduan): bool => Sla::lewatInvestigasi($pengaduan->created_at))

@@ -123,15 +123,19 @@ final class StatistikDashboard
     /**
      * Unit dengan pengaduan aktif terbanyak, untuk visualisasi beban.
      *
-     * Beban dihitung dari pengaduan yang belum selesai agar kartu ini
-     * mencerminkan antrean kerja nyata, bukan akumulasi historis.
+     * Beban dihitung dari pengaduan yang sudah diteruskan humas dan belum
+     * selesai agar kartu ini mencerminkan antrean kerja nyata, bukan
+     * akumulasi historis. Tiket yang masih 'Diterima' belum menjadi
+     * pekerjaan unit meski pelapor sudah memilih unitnya.
      *
      * @return Collection<int, MasterUnit>
      */
     public static function unitTerbebani(int $jumlah = 4): Collection
     {
         return MasterUnit::query()
-            ->withCount(['pengaduan as beban_aktif' => fn ($q) => $q->aktif()])
+            ->withCount([
+                'pengaduan as beban_aktif' => fn ($q) => $q->aktif()->sudahDiteruskanHumas(),
+            ])
             ->get()
             ->filter(fn (MasterUnit $unit): bool => $unit->beban_aktif > 0)
             ->sortBy([
@@ -231,12 +235,17 @@ final class StatistikDashboard
     /**
      * Unit yang terhubung ke SIMRS beserta beban tiket aktifnya.
      *
+     * Definisi beban disamakan dengan unitTerbebani(): hanya tiket yang
+     * sudah diteruskan humas, karena tiket 'Diterima' belum sampai ke unit.
+     *
      * @return Collection<int, MasterUnit>
      */
     public static function statusKoneksi(): Collection
     {
         return MasterUnit::query()
-            ->withCount(['pengaduan as beban_aktif' => fn ($q) => $q->aktif()])
+            ->withCount([
+                'pengaduan as beban_aktif' => fn ($q) => $q->aktif()->sudahDiteruskanHumas(),
+            ])
             ->orderByDesc('koneksi_simrs')
             ->orderByDesc('beban_aktif')
             ->orderBy('kode')
