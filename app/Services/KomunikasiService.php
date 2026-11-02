@@ -16,6 +16,9 @@ use RuntimeException;
 
 final class KomunikasiService
 {
+    /** Jarak minimal antar-nudge ke unit yang sama, dalam menit. */
+    private const COOLDOWN_NUDGE_MENIT = 240;
+
     /**
      * Simpan satu balasan admin di kolom percakapan.
      *
@@ -88,10 +91,17 @@ final class KomunikasiService
             ->latest('created_at')
             ->first();
 
-        if ($nudgeTerakhir !== null && $nudgeTerakhir->created_at->gt(now()->subMinutes(240))) {
-            $sisaMenit = $nudgeTerakhir->created_at->diffInMinutes(now(), true) * -1;
-            $sisaJam = floor(abs($sisaMenit) / 60);
-            $sisaMenitSisa = abs($sisaMenit) % 60;
+        if ($nudgeTerakhir !== null && $nudgeTerakhir->created_at->gt(now()->subMinutes(self::COOLDOWN_NUDGE_MENIT))) {
+            // Sisa waktu dihitung dari batas 4 jam, bukan dari waktu yang
+            // sudah berjalan. Angka lama menampilkan durasi sejak nudge
+            // terakhir, sehingga admin justru membaca kebalikannya.
+            $sisaDetik = max(
+                0,
+                self::COOLDOWN_NUDGE_MENIT * 60 - (int) $nudgeTerakhir->created_at->diffInSeconds(now()),
+            );
+            $sisaJam = intdiv($sisaDetik, 3600);
+            $sisaMenitSisa = intdiv($sisaDetik % 3600, 60);
+
             throw new RuntimeException(
                 'Nudge baru bisa dikirim lagi setelah 4 jam dari nudge terakhir. '
                 .'Sisa waktu: '.$sisaJam.' jam '.$sisaMenitSisa.' menit.'

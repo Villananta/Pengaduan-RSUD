@@ -794,6 +794,35 @@ class TindakLanjutPengaduanAdminTest extends TestCase
         $this->assertSame($admin->id, $jejak->admin_id);
     }
 
+    public function test_nudge_kedua_dalam_empat_jam_menampilkan_sisa_waktu(): void
+    {
+        // Waktu dibekukan supaya selisih menit tidak bergeser di tengah uji.
+        $this->travelTo(now()->startOfMinute());
+
+        $unit = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
+
+        $pengaduan = $this->tiketDiproses('ADUAN-NUDGE-02');
+        $pengaduan->update(['master_unit_id' => $unit->id]);
+
+        // Nudge 90 menit lalu menyisakan 150 menit dari batas 4 jam.
+        $pengaduan->riwayatStatus()->create([
+            'dari' => $pengaduan->status,
+            'ke' => $pengaduan->status,
+            'catatan' => 'Nudge manual ke unit: pertama',
+            'is_nudge' => true,
+        ])->forceFill(['created_at' => now()->subMinutes(90)])->save();
+
+        $this->from(route('admin.pengaduan.show', $pengaduan->kode_tiket))
+            ->post(route('admin.pengaduan.nudge', $pengaduan->kode_tiket), [
+                'catatan' => 'Kedua',
+            ])
+            ->assertSessionHasErrors([
+                'catatan' => 'Nudge baru bisa dikirim lagi setelah 4 jam dari nudge terakhir. Sisa waktu: 2 jam 30 menit.',
+            ]);
+
+        $this->assertSame(1, $pengaduan->riwayatStatus()->where('is_nudge', true)->count());
+    }
+
     public function test_tiket_yang_tidak_ada_menghasilkan_not_found_untuk_setiap_tindakan(): void
     {
         $kode = 'ADUAN-HILANG-99';
