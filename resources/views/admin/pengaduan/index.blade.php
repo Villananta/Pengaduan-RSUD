@@ -34,13 +34,16 @@
             'q' => $daftar->cari,
         ]);
 
-        // Ekspor memakai nama parameter sendiri (cari, bukan q) dan hanya
-        // membaca empat dimensi, jadi tautannya disusun terpisah dari
-        // $filterAktif agar berkasnya berisi tiket yang sama dengan layar.
+        // Ekspor memakai nama parameter sendiri (cari, bukan q) dan membaca
+        // dimensi yang sama dengan tabel, jadi tautannya disusun terpisah
+        // dari $filterAktif agar berkasnya berisi tiket yang sama dengan
+        // layar.
         $tautanEkspor = array_filter([
             'status' => $daftar->status?->value,
+            'investigasi' => $daftar->investigasi?->value,
             'unit' => $daftar->unit?->kode,
             'kategori' => $daftar->kategori?->value ?? ($daftar->kategoriBelum ? 'belum' : null),
+            'keparahan' => $daftar->keparahan?->value ?? ($daftar->keparahanBelum ? 'belum' : null),
             'cari' => $daftar->cari,
         ]);
     @endphp

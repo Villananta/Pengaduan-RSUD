@@ -2,6 +2,8 @@
 
 namespace App\Exports;
 
+use App\Enums\StatusInvestigasi;
+use App\Enums\TingkatKeparahan;
 use App\Models\Pengaduan;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -19,6 +21,8 @@ class PengaduanExport implements FromCollection, ShouldAutoSize, WithHeadings, W
         protected ?string $unitFilter = null,
         protected ?string $kategoriFilter = null,
         protected ?string $search = null,
+        protected ?string $investigasiFilter = null,
+        protected ?string $keparahanFilter = null,
     ) {}
 
     public function collection(): Collection
@@ -52,6 +56,23 @@ class PengaduanExport implements FromCollection, ShouldAutoSize, WithHeadings, W
                     ->orWhere('nrm', 'like', "%{$this->search}%")
                     ->orWhere('subjek', 'like', "%{$this->search}%");
             });
+        }
+
+        // Dua saringan ini memakai aturan yang sama dengan tab di halaman
+        // daftar. Kalau diterjemahkan ulang di sini, berkas ekspor bisa
+        // memuat tiket yang tidak terlihat pada tab yang sedang dibuka.
+        $investigasi = StatusInvestigasi::dariNilai($this->investigasiFilter);
+        if ($investigasi !== null) {
+            $investigasi->terapkan($query);
+        }
+
+        if ($this->keparahanFilter === 'belum') {
+            $query->whereNull('tingkat_keparahan');
+        } else {
+            $keparahan = TingkatKeparahan::dariNilai($this->keparahanFilter);
+            if ($keparahan !== null) {
+                $query->where('tingkat_keparahan', $keparahan->value);
+            }
         }
 
         return $query->get();

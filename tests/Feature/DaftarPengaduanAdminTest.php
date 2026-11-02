@@ -225,6 +225,19 @@ class DaftarPengaduanAdminTest extends TestCase
             );
     }
 
+    public function test_tautan_ekspor_membawa_filter_investigasi_dan_keparahan(): void
+    {
+        $this->get(route('admin.pengaduan.index', [
+            'investigasi' => StatusInvestigasi::LangsungHumas->value,
+            'keparahan' => 'belum',
+        ]))
+            ->assertOk()
+            ->assertSee(route('admin.pengaduan.ekspor.excel', [
+                'investigasi' => StatusInvestigasi::LangsungHumas->value,
+                'keparahan' => 'belum',
+            ]));
+    }
+
     public function test_filter_tidak_dikenal_diabaikan(): void
     {
         Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-AMAN-01']);

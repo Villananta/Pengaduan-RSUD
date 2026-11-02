@@ -24,6 +24,8 @@ class ExportController extends Controller
             unitFilter: $request->query('unit'),
             kategoriFilter: $request->query('kategori'),
             search: $request->query('cari'),
+            investigasiFilter: $request->query('investigasi'),
+            keparahanFilter: $request->query('keparahan'),
         );
 
         $namaFile = 'pengaduan-'.now()->format('Ymd-His').'.xlsx';
