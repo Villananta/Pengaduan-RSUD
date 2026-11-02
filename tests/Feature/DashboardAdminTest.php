@@ -155,6 +155,25 @@ class DashboardAdminTest extends TestCase
             ->assertSee('Semua Dalam Batas');
     }
 
+    public function test_tiket_diterima_yang_menunggu_humas_tidak_dihitung_lewat_batas_unit(): void
+    {
+        // Pilihan unit pelapor sudah mengisi master_unit_id sejak tiket
+        // dibuat, tetapi humas belum meneruskannya. Unit belum punya
+        // pekerjaan, jadi tiket setua apa pun bukan keterlambatan unit.
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-MENUNGGU-HUMAS-01',
+            'master_unit_id' => $unit->id,
+            'created_at' => now()->subWeeks(3),
+        ]);
+
+        $ringkasan = StatistikDashboard::ringkasanKritis();
+
+        $this->assertSame(0, $ringkasan['total_lewat']);
+        $this->assertTrue($ringkasan['lewat']->isEmpty());
+    }
+
     public function test_tiket_tanpa_unit_tidak_dihitung_lewat_batas_investigasi(): void
     {
         // Tiket yang ditangani humas langsung tidak punya investigasi unit,

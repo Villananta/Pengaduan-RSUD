@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\User;
@@ -154,6 +155,25 @@ class PengingatDanEskalasiSlaTest extends TestCase
         $this->assertSame(0, $this->jumlahNotifikasi($pic, 'pengaduan_eskalasi_nudge'));
     }
 
+    public function test_tiket_yang_belum_diteruskan_humas_tidak_ditegur_ke_unit(): void
+    {
+        $unit = $this->unit();
+        $pic = $this->picUntuk($unit);
+
+        // master_unit_id sudah terisi dari pilihan pelapor, tetapi humas
+        // belum meneruskan tiket. Unit belum bisa membukanya, jadi tidak
+        // ada pekerjaan yang boleh ditegur sebagai terlambat.
+        Pengaduan::factory()->create([
+            'master_unit_id' => $unit->id,
+            'created_at' => Carbon::parse(self::MASUK_LEWAT),
+        ]);
+
+        $this->artisan('pengaduan:cek-sla --kirim-notifikasi --eskalasi --force')->assertSuccessful();
+
+        $this->assertSame(0, $this->jumlahNotifikasi($pic, 'pengaduan_sla_lewat'));
+        $this->assertSame(0, $this->jumlahNotifikasi($pic, 'pengaduan_eskalasi_nudge'));
+    }
+
     public function test_jadwal_cek_sla_menyertakan_opsi_eskalasi(): void
     {
         $jadwal = collect($this->app->make(Schedule::class)->events())
@@ -172,7 +192,7 @@ class PengingatDanEskalasiSlaTest extends TestCase
 
     private function tiketLewat(MasterUnit $unit): Pengaduan
     {
-        return Pengaduan::factory()->create([
+        return Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
             'master_unit_id' => $unit->id,
             'created_at' => Carbon::parse(self::MASUK_LEWAT),
         ]);

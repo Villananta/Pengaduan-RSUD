@@ -7,12 +7,14 @@ use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\PesanPengaduan;
+use App\Notifications\PengaduanDisposisi;
 use App\Support\Sla;
 use App\Support\StatistikDashboard;
 use Carbon\Carbon;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -114,6 +116,22 @@ class PengaduanTest extends TestCase
         // Tiket yang baru dibuat tidak boleh masuk hitungan tiket yang
         // menunggu telaah balasan unit.
         $this->assertSame(0, StatistikDashboard::ringkasanKritis()['telaah']);
+    }
+
+    public function test_tiket_baru_belum_mengirim_notifikasi_disposisi_ke_unit(): void
+    {
+        $this->seed(MasterUnitSeeder::class);
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $pic = $this->picUntuk($farmasi);
+
+        Notification::fake();
+
+        $this->post(route('pengaduan.store'), $this->form(['unit' => 'Instalasi Farmasi']))
+            ->assertRedirect();
+
+        // Tiket masih 'Diterima', jadi halaman unit untuknya belum bisa
+        // dibuka. Notifikasi disposisi menyusul saat humas meneruskannya.
+        Notification::assertNotSentTo($pic, PengaduanDisposisi::class);
     }
 
     public function test_unit_yang_tidak_bisa_ditugaskan_tidak_dipasang_otomatis(): void

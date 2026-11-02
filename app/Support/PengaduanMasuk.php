@@ -7,7 +7,6 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\User;
 use App\Notifications\PengaduanDibuat;
-use App\Notifications\PengaduanDisposisi;
 use App\Notifications\PengaduanEmailVerifikasi;
 use App\Rules\NormalizedNrmRule;
 use Illuminate\Http\UploadedFile;
@@ -121,16 +120,10 @@ final class PengaduanMasuk
             Notification::send($admins, new PengaduanDibuat($pengaduan, $pengaduan->kode_tiket));
         }
 
-        // Notifikasi ke PIC unit jika tiket langsung ditugaskan ke unit
-        $pengaduan->loadMissing('masterUnit.pengguna');
-        if ($pengaduan->master_unit_id !== null && $pengaduan->masterUnit?->pengguna->isNotEmpty()) {
-            Notification::send($pengaduan->masterUnit->pengguna, new PengaduanDisposisi(
-                $pengaduan,
-                $pengaduan->masterUnit,
-                'Tiket otomatis ditugaskan berdasarkan pilihan pelapor.'
-            ));
-        }
-
+        // Unit sengaja belum diberi tahu di sini. master_unit_id memang sudah
+        // terisi dari pilihan pelapor, tetapi tiket masih 'Diterima' dan belum
+        // bisa dibuka unit. Notifikasi disposisi baru dikirim saat humas
+        // benar-benar meneruskannya lewat DisposisiService atau TahapService.
         return $pengaduan;
     }
 

@@ -51,9 +51,13 @@ class CekSlaPengaduan extends Command
 
         $this->info('Memeriksa SLA pengaduan aktif...');
 
+        // Tiket 'Diterima' sudah punya master_unit_id dari pilihan pelapor,
+        // tetapi humas belum meneruskannya. Tanpa saringan ini unit menerima
+        // teguran SLA untuk tiket yang belum pernah bisa dibukanya.
         $pengaduanAktif = Pengaduan::query()
             ->aktif()
             ->whereNotNull('master_unit_id')
+            ->sudahDiteruskanHumas()
             ->with(['masterUnit.pengguna'])
             ->get();
 

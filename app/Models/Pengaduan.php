@@ -356,10 +356,15 @@ class Pengaduan extends Model
      * umurnya yang panjang tidak pernah dihitung sebagai keterlambatan unit.
      * Syarat master_unit_id ditahan di sini supaya daftar, kartu, dan detail
      * tiket tidak lagi berbeda pendapat soal tiket mana yang terlambat.
+     *
+     * Tiket yang masih 'Diterima' juga tidak dihitung: pilihan unit pelapor
+     * sudah mengisi master_unit_id sejak tiket dibuat, tetapi humas belum
+     * meneruskannya, sehingga unit belum punya pekerjaan yang bisa terlambat.
      */
     public function lewatInvestigasiUnit(): bool
     {
         return $this->master_unit_id !== null
+            && $this->status !== StatusPengaduan::Diterima
             && Sla::lewatInvestigasi($this->created_at);
     }
 
