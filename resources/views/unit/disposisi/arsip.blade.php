@@ -238,12 +238,13 @@
                                 </td>
 
                                 <td class="py-space-sm px-space-md align-top">
+                                    <div class="flex flex-col gap-2.5">
                                     @foreach ($baris['aksi'] as $aksi)
 
                                         @if ($aksi['url'] !== null)
                                             <a
                                                 href="{{ $aksi['url'] }}"
-                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold"
+                                                class="inline-flex items-center gap-3 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold"
                                             >
                                                 <x-symbol :nama="$aksi['ikon']" class="text-[14px]" />
                                                 {{ $aksi['label'] }}
@@ -252,7 +253,7 @@
                                             {{-- Tindakan yang belum dibangun tetap tampil sebagai
                                                  penanda pekerjaan, bukan sebagai tautan palsu. --}}
                                             <span
-                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold cursor-not-allowed"
+                                                class="inline-flex items-center gap-3 px-2.5 py-1.5 rounded-sm {{ $aksi['nada'] }} font-label-sm text-label-sm font-bold cursor-not-allowed"
                                                 role="button"
                                                 aria-disabled="true"
                                             >
@@ -261,6 +262,7 @@
                                             </span>
                                         @endif
                                     @endforeach
+                                    </div>
                                 </td>
                             </tr>
                         @empty

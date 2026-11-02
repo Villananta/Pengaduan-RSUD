@@ -293,7 +293,7 @@
                                 </td>
 
                                 <td class="py-space-sm px-space-md align-top">
-                                    <div class="flex flex-col gap-1.5">
+                                    <div class="flex flex-col gap-2.5">
                                         @foreach ($baris['aksi'] as $aksi)
 
                                             @if ($aksi['url'] !== null)
