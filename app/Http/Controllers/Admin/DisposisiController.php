@@ -36,6 +36,7 @@ class DisposisiController extends Controller
                 $pengaduan,
                 $unit,
                 $validated['catatan'] ?? null,
+                $request->user()?->id,
             );
         } catch (RuntimeException $alasan) {
             // Alasan penolakan diarahkan ke field unit supaya muncul di dalam
@@ -70,6 +71,7 @@ class DisposisiController extends Controller
             DisposisiService::tanganiLangsung(
                 $pengaduan,
                 $validated['catatan'] ?? null,
+                $request->user()?->id,
             );
         } catch (RuntimeException $alasan) {
             throw ValidationException::withMessages([

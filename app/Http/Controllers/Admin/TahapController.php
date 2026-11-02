@@ -41,6 +41,7 @@ class TahapController extends Controller
                 $pengaduan,
                 $tujuan,
                 $validated['catatan'] ?? null,
+                $request->user()?->id,
             );
         } catch (RuntimeException $alasan) {
             // Alasan penolakan ditulis dengan nama field yang dipakai template,

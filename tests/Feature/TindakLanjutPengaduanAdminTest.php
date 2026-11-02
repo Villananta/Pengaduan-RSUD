@@ -740,6 +740,60 @@ class TindakLanjutPengaduanAdminTest extends TestCase
             ->assertSee('Kirim Balasan');
     }
 
+    public function test_tindakan_humas_mencatat_admin_pelaku_di_jejak_audit(): void
+    {
+        $admin = auth()->user();
+        $unit = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
+
+        // Disposisi ke unit teknis.
+        $disposisi = $this->tiketDiproses('ADUAN-AUDIT-01', StatusPengaduan::Diterima);
+
+        $this->post(route('admin.pengaduan.disposisi', $disposisi->kode_tiket), [
+            'unit' => $unit->kode,
+        ])->assertRedirect(route('admin.pengaduan.show', $disposisi->kode_tiket));
+
+        $this->assertSame(
+            $admin->id,
+            $disposisi->riwayatStatus()->reorder('id', 'desc')->first()->admin_id,
+        );
+
+        // Penanganan langsung oleh humas.
+        $langsung = $this->tiketDiproses('ADUAN-AUDIT-02', StatusPengaduan::Diterima);
+        $langsung->update(['master_unit_id' => $unit->id]);
+
+        $this->post(route('admin.pengaduan.tangani-langsung', $langsung->kode_tiket))
+            ->assertRedirect(route('admin.pengaduan.show', $langsung->kode_tiket));
+
+        $this->assertSame(
+            $admin->id,
+            $langsung->riwayatStatus()->reorder('id', 'desc')->first()->admin_id,
+        );
+
+        // Perpindahan tahap dari panel keputusan.
+        $tahap = $this->tiketDiproses('ADUAN-AUDIT-03');
+
+        $this->post(route('admin.pengaduan.tahap', $tahap->kode_tiket), [
+            'tujuan' => StatusPengaduan::Revisi->value,
+        ])->assertRedirect(route('admin.pengaduan.show', $tahap->kode_tiket));
+
+        $this->assertSame(
+            $admin->id,
+            $tahap->riwayatStatus()->reorder('id', 'desc')->first()->admin_id,
+        );
+
+        // Nudge ke unit, yang punya kolom riwayat tersendiri.
+        $nudge = $this->tiketDiproses('ADUAN-AUDIT-04');
+        $nudge->update(['master_unit_id' => $unit->id]);
+
+        $this->post(route('admin.pengaduan.nudge', $nudge->kode_tiket), [
+            'catatan' => 'Mohon segera ditindaklanjuti.',
+        ])->assertRedirect(route('admin.pengaduan.show', $nudge->kode_tiket));
+
+        $jejak = $nudge->riwayatStatus()->where('is_nudge', true)->firstOrFail();
+
+        $this->assertSame($admin->id, $jejak->admin_id);
+    }
+
     public function test_tiket_yang_tidak_ada_menghasilkan_not_found_untuk_setiap_tindakan(): void
     {
         $kode = 'ADUAN-HILANG-99';

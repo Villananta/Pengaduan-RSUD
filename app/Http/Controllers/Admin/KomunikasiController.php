@@ -110,6 +110,7 @@ class KomunikasiController extends Controller
             KomunikasiService::nudgeUnit(
                 $pengaduan,
                 $validated['catatan'],
+                $request->user()?->id,
             );
         } catch (RuntimeException $alasan) {
             throw ValidationException::withMessages([
