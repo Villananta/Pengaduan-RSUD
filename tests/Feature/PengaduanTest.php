@@ -682,4 +682,24 @@ class PengaduanTest extends TestCase
             'kode' => 'ADUAN-20260925-XXXXX',
         ])->assertStatus(429);
     }
+
+    public function test_kode_tiket_dibatasi_per_kode_walau_ip_berganti(): void
+    {
+        $url = route('pengaduan.verifikasi');
+        $kode = 'ADUAN-20260925-BF001';
+
+        foreach (range(1, 5) as $percobaan) {
+            $this->withServerVariables(['REMOTE_ADDR' => '10.20.0.'.$percobaan])
+                ->post($url, ['kode' => $kode])
+                ->assertSessionHasErrors('kode');
+        }
+
+        // IP baru tidak memberi jatah baru untuk kode tiket yang sama.
+        $response = $this->withServerVariables(['REMOTE_ADDR' => '10.20.0.99'])
+            ->post($url, ['kode' => $kode]);
+
+        $response->assertRedirect(route('pengaduan.lacak'));
+        $response->assertSessionHasErrors('kode');
+        $this->assertStringContainsString('Terlalu banyak percobaan', session('errors')->first('kode'));
+    }
 }

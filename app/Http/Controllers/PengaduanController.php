@@ -30,6 +30,12 @@ class PengaduanController extends Controller
      */
     private const BATAS_PERCOBAAN_OTP = 5;
 
+    /** Jumlah percobaan kode tiket yang boleh dicoba dalam satu jendela. */
+    private const BATAS_PERCOBAAN_KODE = 5;
+
+    /** Panjang jendela pembatas tebakan kode tiket, dalam detik. */
+    private const JEDA_PERCOBAAN_KODE = 60;
+
     public function create(): View
     {
         return view('pengaduan.create', [
@@ -108,12 +114,14 @@ class PengaduanController extends Controller
      */
     public function verifikasi(Request $request): RedirectResponse
     {
-        // Rate limit per kode tiket + IP (maks 5 percobaan per menit)
-        // Mencegah brute-force menebak kode tiket walau ganti IP.
+        // Rate limit per kode tiket (maks 5 percobaan per menit). Kunci
+        // sengaja tanpa IP supaya jatah satu kode tidak berlipat hanya
+        // karena penebak berpindah jaringan; pembatasan per IP tetap dijaga
+        // throttle rute di atasnya.
         $kodeInput = strtoupper(trim((string) $request->input('kode', '')));
         if ($kodeInput !== '') {
-            $rateKey = 'verifikasi:'.$kodeInput.':'.$request->ip();
-            if (RateLimiter::tooManyAttempts($rateKey, 5)) {
+            $rateKey = self::kunciPercobaanKode($kodeInput);
+            if (RateLimiter::tooManyAttempts($rateKey, self::BATAS_PERCOBAAN_KODE)) {
                 $seconds = RateLimiter::availableIn($rateKey);
 
                 return redirect()
@@ -121,7 +129,7 @@ class PengaduanController extends Controller
                     ->withErrors(['kode' => "Terlalu banyak percobaan untuk kode ini. Coba lagi dalam {$seconds} detik."])
                     ->withInput(['kode' => $kodeInput]);
             }
-            RateLimiter::hit($rateKey, 60);
+            RateLimiter::hit($rateKey, self::JEDA_PERCOBAAN_KODE);
         }
 
         $validated = $request->validate([
@@ -142,8 +150,7 @@ class PengaduanController extends Controller
 
         // Reset rate limit saat berhasil
         if ($kodeInput !== '') {
-            $rateKey = 'verifikasi:'.$kodeInput.':'.$request->ip();
-            RateLimiter::clear($rateKey);
+            RateLimiter::clear(self::kunciPercobaanKode($kodeInput));
         }
 
         AksesTiketPelapor::simpan($request, $kandidat->kode_tiket);
@@ -320,5 +327,11 @@ class PengaduanController extends Controller
         }
 
         return back()->with('sukses', 'Kode OTP baru sudah dikirim ke email Anda. Berlaku 15 menit.');
+    }
+
+    /** Kunci pembatas tebakan kode tiket, sengaja tanpa IP. */
+    private static function kunciPercobaanKode(string $kode): string
+    {
+        return 'verifikasi:'.$kode;
     }
 }
