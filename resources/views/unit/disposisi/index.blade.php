@@ -160,9 +160,7 @@
             <!-- Pencarian & Kategori -->
             <form method="GET" action="{{ route('unit.disposisi.index', $unit) }}" class="grid grid-cols-1 md:grid-cols-12 gap-space-sm">
                 @foreach ($filterAktif as $nama => $nilai)
-
                     <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
-
                 @endforeach
 
                 <div class="md:col-span-6 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
@@ -180,9 +178,7 @@
                     <x-symbol nama="category" class="text-[18px] text-outline" />
                     <select name="kategori" class="w-full bg-transparent py-2.5 font-body-md text-body-md text-on-surface outline-none">
                         <option value="">Semua Kategori</option>
-
                         @foreach (KategoriPengaduan::cases() as $kategori)
-
                             <option value="{{ $kategori->value }}" @selected($daftar->kategori === $kategori)>
                                 {{ $kategori->label() }}
                             </option>
