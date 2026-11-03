@@ -99,11 +99,11 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertDontSee('ADUAN-DITERIMA-01')
             ->getContent();
 
-        // Filter Lapis 1 (status) sekarang pakai dropdown select, bukan chip.
-        // Opsi yang dipilih ditandai dengan selected (tanpa value, behavior bawaan @selected).
-        $this->assertStringContainsString('value="'.StatusPengaduan::Diproses->value.'" selected', $tampilan);
-        // Lapis 2 "Semua Unit" tetap tidak aktif (dropdown, bukan chip).
-        $this->assertStringNotContainsString('aria-current="true"', $tampilan);
+        // Dropdown status harus terpilih pada nilai yang difilter.
+        $this->assertStringContainsString(
+            'value="diproses" selected>',
+            $tampilan
+        );
     }
 
     public function test_filter_status_investigasi_memisahkan_tiap_tahap_unit(): void

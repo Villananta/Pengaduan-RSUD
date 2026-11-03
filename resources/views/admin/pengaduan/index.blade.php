@@ -133,93 +133,77 @@
         </div>
         <!-- End of Strip Konteks -->
 
-        <!-- Konsol Filter: Lapis 1, Lapis 2, dan pencarian gabungan. -->
-        <div class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
-            <form method="GET" action="{{ route('admin.pengaduan.index') }}" id="filter-form" class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm md:col-span-4">
-                    <div class="flex items-center gap-2">
+        <!-- Konsol Filter: Semua saringan dalam satu form. -->
+        <form method="GET" action="{{ route('admin.pengaduan.index') }}" class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
+            {{-- Baris 1: Status Pengaduan (Lapis 1) & Status Investigasi (Lapis 2) --}}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm">
+                <div class="md:col-span-5 flex flex-col gap-space-sm">
+                    <label for="status" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-primary-container font-label-sm text-label-sm uppercase font-bold tracking-wide" style="color: rgb(149, 249, 166)">Lapis 1</span>
-                        <span class="font-title-sm text-title-sm text-on-surface font-semibold">Status Pengaduan Humas:</span>
-                    </div>
-
-                    <div class="relative flex items-center flex-1">
-                        <x-symbol nama="filter_list" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                        Status Pengaduan Humas
+                    </label>
+                    <div class="relative">
                         <select
+                            id="status"
                             name="status"
                             onchange="this.form.submit()"
-                            class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                            class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                         >
-                            <option value="" @selected($daftar->status === null)>Semua ({{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }})</option>
+                            <option value="" @selected($daftar->status === null)>Semua Status ({{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }})</option>
                             @foreach (StatusPengaduan::cases() as $tahap)
-                                <option value="{{ $tahap->value }}" @selected($daftar->status === $tahap)>
-                                    {{ $tahap->label() }} ({{ number_format($daftar->jumlahTahap[$tahap->value], 0, ',', '.') }})
-                                </option>
+                                <option value="{{ $tahap->value }}" @selected($daftar->status === $tahap)>{{ $tahap->label() }} ({{ number_format($daftar->jumlahTahap[$tahap->value], 0, ',', '.') }})</option>
                             @endforeach
                         </select>
-                        <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
+                        <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
                     </div>
                 </div>
 
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pt-space-xs md:col-span-4">
-                    <div class="flex items-center gap-2">
+                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                    <label for="investigasi" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Lapis 2</span>
-                        <span class="font-title-sm text-title-sm text-on-surface-variant font-medium">Status Investigasi di Unit:</span>
-                    </div>
-
-                    <div class="relative flex items-center flex-1">
-                        <x-symbol nama="filter_list" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                        Status Investigasi di Unit
+                    </label>
+                    <div class="relative">
                         <select
+                            id="investigasi"
                             name="investigasi"
                             onchange="this.form.submit()"
-                            class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                            class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                         >
-                            <option value="" @selected($daftar->investigasi === null)>Semua Unit ({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})</option>
+                            <option value="" @selected($daftar->investigasi === null)>Semua Status ({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})</option>
                             @foreach (StatusInvestigasi::cases() as $investigasi)
-                                <option value="{{ $investigasi->value }}" @selected($daftar->investigasi === $investigasi)>
-                                    {{ $investigasi->label() }} ({{ number_format($daftar->jumlahInvestigasi[$investigasi->value], 0, ',', '.') }})
-                                </option>
+                                <option value="{{ $investigasi->value }}" @selected($daftar->investigasi === $investigasi)>{{ $investigasi->label() }} ({{ number_format($daftar->jumlahInvestigasi[$investigasi->value], 0, ',', '.') }})</option>
                             @endforeach
                         </select>
-                        <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
+                        <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
                     </div>
                 </div>
 
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pt-space-xs md:col-span-4">
-                    <div class="flex items-center gap-2">
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
+                    <label for="keparahan" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-error-container text-on-error-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Keparahan</span>
-                        <span class="font-title-sm text-title-sm text-on-surface-variant font-medium">Tingkat Keparahan Tiket:</span>
-                    </div>
-
-                    <div class="relative flex items-center flex-1">
-                        <x-symbol nama="filter_list" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                        Tingkat Keparahan
+                    </label>
+                    <div class="relative">
                         <select
+                            id="keparahan"
                             name="keparahan"
                             onchange="this.form.submit()"
-                            class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                            class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                         >
                             <option value="" @selected($daftar->keparahan === null && ! $daftar->keparahanBelum)>Semua ({{ number_format($daftar->jumlahKeparahan['semua'], 0, ',', '.') }})</option>
                             @foreach (TingkatKeparahan::cases() as $tingkat)
-                                <option value="{{ $tingkat->value }}" @selected($daftar->keparahan === $tingkat)>
-                                    {{ $tingkat->label() }} ({{ number_format($daftar->jumlahKeparahan[$tingkat->value], 0, ',', '.') }})
-                                </option>
+                                <option value="{{ $tingkat->value }}" @selected($daftar->keparahan === $tingkat)>{{ $tingkat->label() }} ({{ number_format($daftar->jumlahKeparahan[$tingkat->value], 0, ',', '.') }})</option>
                             @endforeach
                             <option value="belum" @selected($daftar->keparahanBelum)>Belum Ditetapkan ({{ number_format($daftar->jumlahKeparahan['belum'], 0, ',', '.') }})</option>
                         </select>
-                        <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
+                        <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
                     </div>
                 </div>
+            </div>
 
-                <div class="md:col-span-5 relative flex items-center">
-                @foreach ($filterAktif as $nama => $nilai)
-                    {{-- Kolom yang punya kontrol sendiri di form ini tidak perlu
-                         dibawa sebagai hidden input; selain menggandakan parameter
-                         di URL, nilainya juga bisa saling menimpa. --}}
-                    @continue(in_array($nama, ['q', 'unit', 'kategori', 'status', 'investigasi', 'keparahan'], true))
-
-                    <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
-
-                @endforeach
-
+            {{-- Baris 2: Pencarian, Unit, Kategori --}}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
                 <div class="md:col-span-5 relative flex items-center">
                     <x-symbol nama="search" class="absolute left-3 text-outline text-[20px]" />
                     <input
@@ -235,6 +219,7 @@
                     <x-symbol nama="domain" class="absolute left-3 text-outline text-[18px]" />
                     <select
                         name="unit"
+                        onchange="this.form.submit()"
                         class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                     >
                         <option value="">Semua Unit Tujuan</option>
@@ -251,6 +236,7 @@
                     <x-symbol nama="medical_services" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
                     <select
                         name="kategori"
+                        onchange="this.form.submit()"
                         class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                     >
                         <option value="">Semua Kategori</option>
@@ -265,27 +251,28 @@
                 </div>
 
                 <div class="md:col-span-2 flex items-center gap-2">
-                    <button
-                        type="submit"
-                        class="flex-1 py-2.5 px-3 rounded-sm bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors hover:bg-primary"
-                    >
-                        <x-symbol nama="filter_list" class="text-[18px]" />
-                        Terapkan
-                    </button>
-
                     @if ($daftar->adaFilterLain() || $daftar->cari !== '')
                         <a
                             href="{{ route('admin.pengaduan.index') }}"
-                            class="p-2.5 rounded-sm bg-surface-container hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors shrink-0"
+                            class="flex-1 py-2.5 px-3 rounded-sm bg-surface-container hover:bg-surface-variant text-on-surface-variant hover:text-on-surface transition-colors shrink-0 text-center"
                             title="Hapus semua filter"
                             aria-label="Hapus semua filter"
                         >
                             <x-symbol nama="close" class="text-[18px]" />
+                            Reset
                         </a>
+                    @else
+                        <button
+                            type="submit"
+                            class="flex-1 py-2.5 px-3 rounded-sm bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center gap-1.5 transition-colors hover:bg-primary"
+                        >
+                            <x-symbol nama="filter_list" class="text-[18px]" />
+                            Terapkan
+                        </button>
                     @endif
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
         <!-- End of Konsol Filter -->
 
         <!-- Tabel Utama Daftar Pengaduan -->

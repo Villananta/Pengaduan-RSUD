@@ -124,45 +124,32 @@
         </div>
         <!-- End of Ringkasan Angka Disposisi -->
 
-        <!-- Tab Status Investigasi -->
-        <div class="flex flex-col gap-space-sm">
-            <div class="flex flex-wrap items-center gap-space-xs">
-                <a
-                    href="{{ $daftar->urlTanpa('investigasi') }}"
-                    @class([
-                        'flex items-center gap-space-xs px-space-md py-2 rounded-full font-label-md text-label-md font-bold transition-colors',
-                        'bg-secondary-container text-on-secondary-container' => $daftar->investigasi === null,
-                        'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container' => $daftar->investigasi !== null,
-                    ])
-                >
-                    <span class="w-2 h-2 rounded-full bg-secondary" aria-hidden="true"></span>
-                    Semua Disposisi
-                    <span class="opacity-70">({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})</span>
-                </a>
-
-                @foreach ($tabUnit as $status)
-
-                    <a
-                        href="{{ $daftar->urlTanpa('investigasi', $status->value) }}"
-                        @class([
-                            'flex items-center gap-space-xs px-space-md py-2 rounded-full font-label-md text-label-md font-bold transition-colors',
-                            'bg-secondary-container text-on-secondary-container' => $daftar->investigasi === $status,
-                            'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container' => $daftar->investigasi !== $status,
-                        ])
+        <!-- Saringan Disposisi: Status Investigasi, Pencarian, Kategori -->
+        <form method="GET" action="{{ route('unit.disposisi.index', $unit) }}" class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
+            {{-- Baris 1: Status Investigasi --}}
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+                <label for="investigasi" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-xs bg-secondary-container text-on-secondary-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Status Investigasi</span>
+                    Saring Status
+                </label>
+                <div class="relative w-full md:w-64 flex-1">
+                    <select
+                        id="investigasi"
+                        name="investigasi"
+                        onchange="this.form.submit()"
+                        class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                     >
-                        <span class="w-2 h-2 rounded-full {{ $status->titik() }}" aria-hidden="true"></span>
-                        {{ $status->label() }}
-                        <span class="opacity-70">({{ number_format($daftar->jumlahInvestigasi[$status->value], 0, ',', '.') }})</span>
-                    </a>
-                @endforeach
+                        <option value="" @selected($daftar->investigasi === null)>Semua Disposisi ({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})</option>
+                        @foreach ($tabUnit as $status)
+                            <option value="{{ $status->value }}" @selected($daftar->investigasi === $status)>{{ $status->label() }} ({{ number_format($daftar->jumlahInvestigasi[$status->value], 0, ',', '.') }})</option>
+                        @endforeach
+                    </select>
+                    <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                </div>
             </div>
 
-            <!-- Pencarian & Kategori -->
-            <form method="GET" action="{{ route('unit.disposisi.index', $unit) }}" class="grid grid-cols-1 md:grid-cols-12 gap-space-sm">
-                @foreach ($filterAktif as $nama => $nilai)
-                    <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
-                @endforeach
-
+            {{-- Baris 2: Pencarian & Kategori --}}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
                 <div class="md:col-span-6 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                     <x-symbol nama="search" class="text-[18px] text-outline" />
                     <input
@@ -176,9 +163,15 @@
 
                 <div class="md:col-span-4 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                     <x-symbol nama="category" class="text-[18px] text-outline" />
-                    <select name="kategori" class="w-full bg-transparent py-2.5 font-body-md text-body-md text-on-surface outline-none">
+                    <select
+                        name="kategori"
+                        onchange="this.form.submit()"
+                        class="w-full bg-transparent py-2.5 font-body-md text-body-md text-on-surface outline-none"
+                    >
                         <option value="">Semua Kategori</option>
+
                         @foreach (KategoriPengaduan::cases() as $kategori)
+
                             <option value="{{ $kategori->value }}" @selected($daftar->kategori === $kategori)>
                                 {{ $kategori->label() }}
                             </option>
@@ -187,15 +180,21 @@
                 </div>
 
                 <div class="md:col-span-2 flex items-center gap-space-xs">
-                    <button
-                        type="submit"
-                        class="w-full px-space-md py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold hover:opacity-90 transition-opacity"
-                    >Terapkan</button>
+                    @if ($daftar->investigasi !== null || $daftar->kategori !== null || $daftar->cari !== '')
+                        <a
+                            href="{{ route('unit.disposisi.index', $unit) }}"
+                            class="w-full px-space-md py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold text-center transition-colors"
+                        >Reset</a>
+                    @else
+                        <button
+                            type="submit"
+                            class="w-full px-space-md py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold hover:opacity-90 transition-opacity"
+                        >Terapkan</button>
+                    @endif
                 </div>
-            </form>
-            <!-- End of Pencarian & Kategori -->
-        </div>
-        <!-- End of Tab Status Investigasi -->
+            </div>
+        </form>
+        <!-- End of Saringan Disposisi -->
 
         <!-- Tabel Disposisi -->
         <div class="w-full rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-sm">
