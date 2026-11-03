@@ -529,16 +529,22 @@ class Pengaduan extends Model
     }
 
     /**
-     * Cek apakah OTP email valid.
+     * Verifikasi OTP email dan rotasi token akses.
+     *
+     * Token lama dicabut supaya akses permanen hanya dipegang browser yang
+     * membuktikan kepemilikan email. Token asli dikembalikan agar pemanggil
+     * bisa menanamnya ke cookie; yang tersimpan di database tetap hash-nya.
+     *
+     * @return string|null Token akses baru, atau null bila OTP tidak sah.
      */
-    public function verifyEmailOtp(string $otp): bool
+    public function verifyEmailOtp(string $otp): ?string
     {
         if (! $this->email_otp || ! hash_equals((string) $this->email_otp, (string) $otp)) {
-            return false;
+            return null;
         }
 
         if (! $this->email_otp_expires_at?->isFuture()) {
-            return false;
+            return null;
         }
 
         // OTP valid, tandai email terverifikasi
@@ -547,14 +553,9 @@ class Pengaduan extends Model
         $this->email_otp_expires_at = null;
 
         // Rotasi token akses: email sekarang terverifikasi, token lama dicabut
-        // dan token baru dibuat agar akses permanen (30 hari) terikat ke email terverifikasi
-        $this->akses_token = null;
-        $this->akses_token_expires_at = null;
-        $this->generateAksesToken();
-
-        $this->save();
-
-        return true;
+        // dan token baru dibuat agar akses permanen (30 hari) terikat ke email
+        // terverifikasi. generateAksesToken() sekaligus menyimpan perubahan.
+        return $this->generateAksesToken();
     }
 
     /**

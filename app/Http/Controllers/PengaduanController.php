@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Cookie;
 
 class PengaduanController extends Controller
 {
@@ -169,9 +170,8 @@ class PengaduanController extends Controller
 
         // Generate token akses permanen & simpan ke cookie HttpOnly (30 hari)
         $token = $kandidat->generateAksesToken();
-        $cookie = cookie(AksesTiketPelapor::COOKIE, $token, 43200, null, null, true, true, false, 'Lax'); // 30 hari = 43200 menit
 
-        return redirect()->route('pengaduan.lacak')->cookie($cookie);
+        return redirect()->route('pengaduan.lacak')->cookie(self::cookieAkses($token));
     }
 
     /**
@@ -301,11 +301,18 @@ class PengaduanController extends Controller
             'otp.digits' => 'Kode OTP terdiri dari 6 angka.',
         ]);
 
-        if ($pengaduan->verifyEmailOtp($validated['otp'])) {
+        $tokenBaru = $pengaduan->verifyEmailOtp($validated['otp']);
+
+        if ($tokenBaru !== null) {
             RateLimiter::clear($kunciPercobaan);
 
+            // Rotasi token mencabut token lama, jadi cookie di browser ini
+            // harus diganti saat itu juga. Tanpa ini pelapor tetap bisa
+            // membuka tiket selama session hidup, lalu kehilangan akses
+            // begitu session berakhir.
             return redirect()->route('pengaduan.lacak')
-                ->with('sukses', 'Email berhasil diverifikasi. Anda akan menerima notifikasi perkembangan pengaduan.');
+                ->with('sukses', 'Email berhasil diverifikasi. Anda akan menerima notifikasi perkembangan pengaduan.')
+                ->cookie(self::cookieAkses($tokenBaru));
         }
 
         RateLimiter::hit($kunciPercobaan, 900);
@@ -365,5 +372,17 @@ class PengaduanController extends Controller
     private static function kunciPercobaanKode(string $kode): string
     {
         return 'verifikasi:'.$kode;
+    }
+
+    /**
+     * Cookie token akses 30 hari.
+     *
+     * Dipakai jalur verifikasi kode tiket maupun verifikasi email. Disatukan
+     * supaya kedua jalur tidak bisa berbeda soal HttpOnly, Secure, dan
+     * SameSite saat salah satunya diubah.
+     */
+    private static function cookieAkses(string $token): Cookie
+    {
+        return cookie(AksesTiketPelapor::COOKIE, $token, 43200, null, null, true, true, false, 'Lax'); // 30 hari = 43200 menit
     }
 }

@@ -52,6 +52,35 @@ class AksesTokenPelaporTest extends TestCase
             ->assertSee('ADUAN-TOKEN-01');
     }
 
+    public function test_verifikasi_email_mengganti_cookie_dengan_token_baru(): void
+    {
+        $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-TOKEN-05']);
+
+        $tokenLama = $pengaduan->generateAksesToken();
+        $otp = $pengaduan->generateEmailOtp();
+
+        $response = $this->withCookie('pengaduan_token', $tokenLama)
+            ->post(route('pengaduan.verifikasi-email.post', $pengaduan->kode_tiket), ['otp' => $otp]);
+
+        $response->assertRedirect(route('pengaduan.lacak'));
+
+        $cookie = $response->getCookie('pengaduan_token');
+
+        // Verifikasi email merotasi token, jadi cookie lama tidak berlaku
+        // lagi. Kalau tidak diganti, pelapor hanya bisa membuka tiket selama
+        // session masih hidup.
+        $this->assertNotNull($cookie);
+        $this->assertNotSame($tokenLama, $cookie->getValue());
+        $this->assertNull(Pengaduan::findByValidAksesToken($tokenLama));
+
+        $this->flushSession();
+
+        $this->withCookie('pengaduan_token', $cookie->getValue())
+            ->get(route('pengaduan.lacak'))
+            ->assertOk()
+            ->assertSee('ADUAN-TOKEN-05');
+    }
+
     public function test_token_yang_sudah_kedaluwarsa_tidak_membuka_tiket(): void
     {
         $pengaduan = Pengaduan::factory()->create(['kode_tiket' => 'ADUAN-TOKEN-02']);
