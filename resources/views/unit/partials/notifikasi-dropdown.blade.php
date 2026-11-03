@@ -5,8 +5,8 @@
 @endphp
 @if (auth()->check() && auth()->user()->berperanUnit())
     @php
-        $jumlahNotif = $notifikasiUnitObj ? $notifikasiUnitObj->jumlahNotifikasiBelumDibaca() : auth()->user()->unreadNotifications()->count();
-        $adaNudge = $notifikasiUnitObj ? $notifikasiUnitObj->adaNudgeBelumDibaca() : auth()->user()->unreadNotifications()->where('data->type', 'pengaduan_nudge_unit')->exists();
+        $jumlahNotif = $notifikasiUnitObj ? $notifikasiUnitObj->jumlahNotifikasiBelumDibaca() : \App\Support\NotifikasiPengguna::jumlahBelumDibaca(auth()->user());
+        $adaNudge = $notifikasiUnitObj ? $notifikasiUnitObj->adaNudgeBelumDibaca() : \App\Support\NotifikasiPengguna::adaNudgeBelumDibaca(auth()->user());
         $notifikasi = $notifikasiUnitObj ? $notifikasiUnitObj->notifikasiTerbaru(10) : auth()->user()->unreadNotifications()->latest()->limit(10)->get();
         $markReadUrl = $unitNotif ? route('unit.notifikasi.tandai-dibaca', $unitNotif) : null;
         $markAllUrl = $unitNotif ? route('unit.notifikasi.tandai-semua-dibaca', $unitNotif) : null;

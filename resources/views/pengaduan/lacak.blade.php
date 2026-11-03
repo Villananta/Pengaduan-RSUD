@@ -333,7 +333,7 @@
                                     <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
                                     <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
-                                <span class="text-[11px] font-semibold tracking-[0.33px] text-brand-500">Balasan Admin: {{ $tiket->pesan->where('peran', 'admin')->count() }}</span>
+                                <span class="text-[11px] font-semibold tracking-[0.33px] text-brand-500">Balasan Admin: {{ $tiket->jumlahBalasanAdmin() }}</span>
                             </span>
                         </div>
 

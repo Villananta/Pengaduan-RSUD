@@ -413,6 +413,12 @@ class Pengaduan extends Model
         return array_values(array_filter($this->lampiran ?? []));
     }
 
+    /** Jumlah pesan yang dikirim oleh admin humas. */
+    public function jumlahBalasanAdmin(): int
+    {
+        return $this->pesan->where('peran', 'admin')->count();
+    }
+
     public function urlLampiran(string $path): string
     {
         $disk = config('pengaduan.disk_lampiran');
