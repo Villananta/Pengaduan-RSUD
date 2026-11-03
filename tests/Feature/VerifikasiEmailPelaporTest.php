@@ -80,4 +80,26 @@ class VerifikasiEmailPelaporTest extends TestCase
         ]);
         $this->assertFalse($pengaduan->fresh()->isEmailVerified());
     }
+
+    public function test_kirim_ulang_otp_dibatasi_per_tiket_walau_ip_berganti(): void
+    {
+        Notification::fake();
+        $pengaduan = Pengaduan::factory()->create();
+        $url = route('pengaduan.verifikasi-email.resend', $pengaduan->kode_tiket);
+
+        foreach (range(1, 3) as $percobaan) {
+            $this->withServerVariables(['REMOTE_ADDR' => '10.30.0.'.$percobaan])
+                ->postJson($url)
+                ->assertOk()
+                ->assertJson(['success' => true]);
+        }
+
+        // IP baru tidak memberi jatah baru untuk tiket yang sama.
+        $this->withServerVariables(['REMOTE_ADDR' => '10.30.0.99'])
+            ->postJson($url)
+            ->assertStatus(429)
+            ->assertJsonPath('message', 'Terlalu banyak permintaan kode OTP. Coba lagi dalam 15 menit.');
+
+        Notification::assertSentOnDemandTimes(PengaduanEmailVerifikasi::class, 3);
+    }
 }

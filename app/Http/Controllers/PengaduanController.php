@@ -36,6 +36,18 @@ class PengaduanController extends Controller
     /** Panjang jendela pembatas tebakan kode tiket, dalam detik. */
     private const JEDA_PERCOBAAN_KODE = 60;
 
+    /**
+     * Jumlah permintaan kirim ulang OTP untuk satu tiket.
+     *
+     * Satu tiket hanya punya satu alamat email, jadi batas per tiket sudah
+     * cukup menahan kiriman berulang tanpa ikut menghukum pelapor lain yang
+     * kebetulan memakai jaringan yang sama.
+     */
+    private const BATAS_KIRIM_ULANG_OTP = 3;
+
+    /** Panjang jendela pembatas kirim ulang OTP, dalam detik (15 menit). */
+    private const JEDA_KIRIM_ULANG_OTP = 900;
+
     public function create(): View
     {
         return view('pengaduan.create', [
@@ -318,9 +330,29 @@ class PengaduanController extends Controller
                 ->with('info', 'Email sudah terverifikasi sebelumnya.');
         }
 
+        // Kirim ulang juga dibatasi per tiket, bukan hanya per IP lewat
+        // throttle rute. Tanpa ini, satu kode tiket bisa dipakai membanjiri
+        // alamat emailnya sendiri hanya dengan berpindah jaringan.
+        $kunciKirimUlang = 'kirim-ulang-otp:'.$pengaduan->kode_tiket;
+
+        if (RateLimiter::tooManyAttempts($kunciKirimUlang, self::BATAS_KIRIM_ULANG_OTP)) {
+            $sisaMenit = max(1, (int) ceil(RateLimiter::availableIn($kunciKirimUlang) / 60));
+            $pesan = 'Terlalu banyak permintaan kode OTP. Coba lagi dalam '.$sisaMenit.' menit.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $pesan], 429);
+            }
+
+            return back()->withErrors(['otp' => $pesan]);
+        }
+
         $otp = $pengaduan->generateEmailOtp();
         Notification::route('mail', $pengaduan->email)
             ->notify(new PengaduanEmailVerifikasi($pengaduan, $otp));
+
+        // Hitungan baru dicatat setelah email benar-benar dikirim, supaya
+        // kegagalan pengiriman tidak menghabiskan jatah pelapor.
+        RateLimiter::hit($kunciKirimUlang, self::JEDA_KIRIM_ULANG_OTP);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Kode OTP baru sudah dikirim ke email Anda. Berlaku 15 menit.']);

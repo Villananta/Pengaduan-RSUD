@@ -109,11 +109,13 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success || data.message) {
-                alert(data.message || 'Kode OTP baru sudah dikirim.');
+            alert(data.message || (data.success ? 'Kode OTP baru sudah dikirim.' : 'Gagal mengirim ulang kode.'));
+
+            // Hitung mundur hanya untuk pengiriman yang benar-benar berhasil.
+            // Kalau dibatasi, pesan sisa waktunya yang tampil tanpa tombol
+            // ikut terkunci selama satu menit.
+            if (data.success) {
                 startCountdown(60);
-            } else {
-                alert(data.message || 'Gagal mengirim ulang kode.');
             }
         })
         .catch(() => {
