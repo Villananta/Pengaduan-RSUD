@@ -141,42 +141,21 @@
                     <span class="font-title-sm text-title-sm text-on-surface font-semibold">Status Pengaduan Humas:</span>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-1.5">
-                    <a
-                        href="{{ $daftar->urlTanpa('status') }}"
-                        @class([
-                            'px-3.5 py-1.5 rounded-xl font-label-md text-label-md flex items-center gap-1.5',
-                            'bg-primary-container text-on-primary font-bold shadow-sm' => $daftar->status === null,
-                            'bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors' => $daftar->status !== null,
-                        ])
-                        @if ($daftar->status === null) aria-current="true" @endif
+                <div class="md:col-span-4 relative flex items-center">
+                    <x-symbol nama="filter_list" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                    <select
+                        name="status"
+                        onchange="this.form.submit()"
+                        class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                     >
-                        Semua
-                        <span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/20 text-on-second font-label-sm text-label-sm">
-                            {{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }}
-                        </span>
-                    </a>
-
-                    @foreach (StatusPengaduan::cases() as $tahap)
-                        <a
-                            href="{{ $daftar->urlTanpa('status', $tahap->value) }}"
-                            @class([
-                                'px-3.5 py-1.5 rounded-xl font-label-md text-label-md flex items-center gap-1.5',
-                                'bg-primary-container text-on-primary font-bold shadow-sm' => $daftar->status === $tahap,
-                                'bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors' => $daftar->status !== $tahap,
-                            ])
-                            @if ($daftar->status === $tahap) aria-current="true" @endif
-                        >
-                            {{ $tahap->label() }}
-                            <span @class([
-                                'px-1.5 py-0.2 rounded-full font-label-sm text-label-sm font-bold',
-                                'bg-surface-container-lowest/20 text-on-primary' => $daftar->status === $tahap,
-                                $tahap->chip() => $daftar->status !== $tahap,
-                            ])>
-                                {{ number_format($daftar->jumlahTahap[$tahap->value], 0, ',', '.') }}
-                            </span>
-                        </a>
-                    @endforeach
+                        <option value="" @selected($daftar->status === null)>Semua ({{ number_format($daftar->jumlahTahap['semua'], 0, ',', '.') }})</option>
+                        @foreach (StatusPengaduan::cases() as $tahap)
+                            <option value="{{ $tahap->value }}" @selected($daftar->status === $tahap)>
+                                {{ $tahap->label() }} ({{ number_format($daftar->jumlahTahap[$tahap->value], 0, ',', '.') }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
                 </div>
             </div>
 
@@ -186,34 +165,21 @@
                     <span class="font-title-sm text-title-sm text-on-surface-variant font-medium">Status Investigasi di Unit:</span>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-1.5">
-                    <a
-                        href="{{ $daftar->urlTanpa('investigasi') }}"
-                        @class([
-                            'px-3 py-1 rounded-sm font-label-sm text-label-sm',
-                            'bg-surface-container-highest text-on-surface font-bold' => $daftar->investigasi === null,
-                            'bg-surface-container-low hover:bg-surface-container text-on-surface-variant transition-colors' => $daftar->investigasi !== null,
-                        ])
-                        @if ($daftar->investigasi === null) aria-current="true" @endif
+                <div class="md:col-span-4 relative flex items-center">
+                    <x-symbol nama="filter_list" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                    <select
+                        name="investigasi"
+                        onchange="this.form.submit()"
+                        class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                     >
-                        Semua Unit ({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})
-                    </a>
-
-                    @foreach (StatusInvestigasi::cases() as $investigasi)
-                        <a
-                            href="{{ $daftar->urlTanpa('investigasi', $investigasi->value) }}"
-                            @class([
-                                'px-3 py-1 rounded-sm font-label-sm text-label-sm flex items-center gap-1 transition-colors',
-                                'bg-surface-container-highest text-on-surface font-bold' => $daftar->investigasi === $investigasi,
-                                'bg-surface-container-low hover:bg-surface-container text-on-surface-variant' => $daftar->investigasi !== $investigasi,
-                            ])
-                            @if ($daftar->investigasi === $investigasi) aria-current="true" @endif
-                        >
-                            <span class="w-1.5 h-1.5 rounded-full {{ $investigasi->titik() }}" aria-hidden="true"></span>
-                            {{ $investigasi->label() }}
-                            ({{ number_format($daftar->jumlahInvestigasi[$investigasi->value], 0, ',', '.') }})
-                        </a>
-                    @endforeach
+                        <option value="" @selected($daftar->investigasi === null)>Semua Unit ({{ number_format($daftar->jumlahInvestigasi['semua'], 0, ',', '.') }})</option>
+                        @foreach (StatusInvestigasi::cases() as $investigasi)
+                            <option value="{{ $investigasi->value }}" @selected($daftar->investigasi === $investigasi)>
+                                {{ $investigasi->label() }} ({{ number_format($daftar->jumlahInvestigasi[$investigasi->value], 0, ',', '.') }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
                 </div>
             </div>
 
@@ -223,45 +189,22 @@
                     <span class="font-title-sm text-title-sm text-on-surface-variant font-medium">Tingkat Keparahan Tiket:</span>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-1.5">
-                    <a
-                        href="{{ $daftar->urlTanpa('keparahan') }}"
-                        @class([
-                            'px-3 py-1 rounded-sm font-label-sm text-label-sm',
-                            'bg-surface-container-highest text-on-surface font-bold' => $daftar->keparahan === null && ! $daftar->keparahanBelum,
-                            'bg-surface-container-low hover:bg-surface-container text-on-surface-variant transition-colors' => $daftar->keparahan !== null || $daftar->keparahanBelum,
-                        ])
+                <div class="md:col-span-4 relative flex items-center">
+                    <x-symbol nama="filter_list" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                    <select
+                        name="keparahan"
+                        onchange="this.form.submit()"
+                        class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
                     >
-                        Semua ({{ number_format($daftar->jumlahKeparahan['semua'], 0, ',', '.') }})
-                    </a>
-
-                    @foreach (TingkatKeparahan::cases() as $tingkat)
-                        <a
-                            href="{{ $daftar->urlTanpa('keparahan', $tingkat->value) }}"
-                            @class([
-                                'px-3 py-1 rounded-sm font-label-sm text-label-sm flex items-center gap-1 transition-colors',
-                                'bg-surface-container-highest text-on-surface font-bold' => $daftar->keparahan === $tingkat,
-                                'bg-surface-container-low hover:bg-surface-container text-on-surface-variant' => $daftar->keparahan !== $tingkat,
-                            ])
-                        >
-                            <span class="w-1.5 h-1.5 rounded-full {{ $tingkat->titik() }}" aria-hidden="true"></span>
-                            {{ $tingkat->label() }}
-                            ({{ number_format($daftar->jumlahKeparahan[$tingkat->value], 0, ',', '.') }})
-                        </a>
-                    @endforeach
-
-                    <a
-                        href="{{ $daftar->urlTanpa('keparahan', 'belum') }}"
-                        @class([
-                            'px-3 py-1 rounded-sm font-label-sm text-label-sm flex items-center gap-1 transition-colors',
-                            'bg-surface-container-highest text-on-surface font-bold' => $daftar->keparahanBelum,
-                            'bg-surface-container-low hover:bg-surface-container text-on-surface-variant' => ! $daftar->keparahanBelum,
-                        ])
-                    >
-                        <span class="w-1.5 h-1.5 rounded-full bg-outline" aria-hidden="true"></span>
-                        Belum Ditetapkan
-                        ({{ number_format($daftar->jumlahKeparahan['belum'], 0, ',', '.') }})
-                    </a>
+                        <option value="" @selected($daftar->keparahan === null && ! $daftar->keparahanBelum)>Semua ({{ number_format($daftar->jumlahKeparahan['semua'], 0, ',', '.') }})</option>
+                        @foreach (TingkatKeparahan::cases() as $tingkat)
+                            <option value="{{ $tingkat->value }}" @selected($daftar->keparahan === $tingkat)>
+                                {{ $tingkat->label() }} ({{ number_format($daftar->jumlahKeparahan[$tingkat->value], 0, ',', '.') }})
+                            </option>
+                        @endforeach
+                        <option value="belum" @selected($daftar->keparahanBelum)>Belum Ditetapkan ({{ number_format($daftar->jumlahKeparahan['belum'], 0, ',', '.') }})</option>
+                    </select>
+                    <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
                 </div>
             </div>
 
@@ -270,7 +213,7 @@
                     {{-- Kolom yang punya kontrol sendiri di form ini tidak perlu
                          dibawa sebagai hidden input; selain menggandakan parameter
                          di URL, nilainya juga bisa saling menimpa. --}}
-                    @continue(in_array($nama, ['q', 'unit', 'kategori'], true))
+                    @continue(in_array($nama, ['q', 'unit', 'kategori', 'status', 'investigasi', 'keparahan'], true))
 
                     <input type="hidden" name="{{ $nama }}" value="{{ $nilai }}">
 

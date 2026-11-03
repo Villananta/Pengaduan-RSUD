@@ -99,9 +99,11 @@ class DaftarPengaduanAdminTest extends TestCase
             ->assertDontSee('ADUAN-DITERIMA-01')
             ->getContent();
 
-        // Hanya tab Lapis 1 yang dipilih dan tab "Semua Unit" Lapis 2 yang
-        // boleh memakai aria-current; navigasi utama memakai aria-current="page".
-        $this->assertSame(2, substr_count($tampilan, 'aria-current="true"'));
+        // Filter Lapis 1 (status) sekarang pakai dropdown select, bukan chip.
+        // Opsi yang dipilih ditandai dengan selected (tanpa value, behavior bawaan @selected).
+        $this->assertStringContainsString('value="'.StatusPengaduan::Diproses->value.'" selected', $tampilan);
+        // Lapis 2 "Semua Unit" tetap tidak aktif (dropdown, bukan chip).
+        $this->assertStringNotContainsString('aria-current="true"', $tampilan);
     }
 
     public function test_filter_status_investigasi_memisahkan_tiap_tahap_unit(): void
