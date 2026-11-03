@@ -44,13 +44,33 @@
                 </p>
             </div>
 
-            <a
-                href="{{ route('unit.disposisi.index', $unit) }}"
-                class="flex items-center gap-1.5 px-3 py-2 rounded-sm border border-outline-variant bg-surface-container-low text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors shrink-0"
-            >
-                <x-symbol nama="arrow_back" class="text-[16px]" />
-                Daftar Disposisi Masuk
-            </a>
+            <div class="flex flex-wrap items-center gap-space-xs shrink-0">
+                <a
+                    href="{{ route('unit.arsip.export.excel', $unit) }}"
+                    class="flex items-center gap-1.5 px-3 py-2 rounded-sm bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors"
+                    title="Unduh seluruh arsip unit ini ke Excel"
+                >
+                    <x-symbol nama="download" class="text-[16px]" />
+                    Ekspor Excel
+                </a>
+
+                <a
+                    href="{{ route('unit.arsip.export.pdf', $unit) }}"
+                    class="flex items-center gap-1.5 px-3 py-2 rounded-sm bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors"
+                    title="Unduh seluruh arsip unit ini sebagai PDF"
+                >
+                    <x-symbol nama="picture_as_pdf" class="text-[16px]" />
+                    Ekspor PDF
+                </a>
+
+                <a
+                    href="{{ route('unit.disposisi.index', $unit) }}"
+                    class="flex items-center gap-1.5 px-3 py-2 rounded-sm border border-outline-variant bg-surface-container-low text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors shrink-0"
+                >
+                    <x-symbol nama="arrow_back" class="text-[16px]" />
+                    Daftar Disposisi Masuk
+                </a>
+            </div>
         </div>
         <!-- End of Strip Konteks -->
 

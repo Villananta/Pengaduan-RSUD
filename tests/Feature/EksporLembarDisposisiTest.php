@@ -170,4 +170,26 @@ class EksporLembarDisposisiTest extends TestCase
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_daftar_dan_arsip_unit_menampilkan_tautan_ekspor(): void
+    {
+        $farmasi = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $this->masukSebagaiPicUntuk($farmasi);
+
+        // Rute ekspor sudah lama ada, tetapi tanpa tombol di halaman daftar
+        // dan arsip petugas unit tidak punya jalan untuk memakainya.
+        $this->get(route('unit.disposisi.index', $farmasi))
+            ->assertOk()
+            ->assertSee(route('unit.disposisi.export.excel', $farmasi), false)
+            ->assertSee(route('unit.disposisi.export.pdf', $farmasi), false)
+            ->assertSee('Ekspor Excel')
+            ->assertSee('Ekspor PDF');
+
+        $this->get(route('unit.disposisi.arsip', $farmasi))
+            ->assertOk()
+            ->assertSee(route('unit.arsip.export.excel', $farmasi), false)
+            ->assertSee(route('unit.arsip.export.pdf', $farmasi), false)
+            ->assertSee('Ekspor Excel')
+            ->assertSee('Ekspor PDF');
+    }
 }

@@ -7,7 +7,9 @@ use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\User;
 use Database\Seeders\MasterUnitSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -130,5 +132,40 @@ class AksiMassalPengaduanTest extends TestCase
 
         $this->assertSame($this->admin->id, $riwayat->admin_id);
         $this->assertSame($unit->id, $pengaduan->fresh()->master_unit_id);
+    }
+
+    public function test_unit_tujuan_hanya_diambil_sekali_untuk_banyak_tiket(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $kodeTiket = Pengaduan::factory()
+            ->count(3)
+            ->status(StatusPengaduan::Diterima)
+            ->create(['master_unit_id' => null])
+            ->pluck('kode_tiket')
+            ->all();
+
+        $queryUnit = 0;
+
+        // Satu query datang dari aturan validasi exists, satu lagi dari
+        // pencarian unit di controller. Kalau pencarian itu kembali masuk
+        // ke dalam loop, angkanya naik mengikuti jumlah tiket.
+        DB::listen(function (QueryExecuted $query) use (&$queryUnit, $unit): void {
+            if (str_contains($query->sql, 'from "master_units"')
+                && ($query->bindings[0] ?? null) === $unit->kode) {
+                $queryUnit++;
+            }
+        });
+
+        $this->from(route('admin.pengaduan.index'))
+            ->post(route('admin.pengaduan.bulk-action'), [
+                'aksi' => 'disposisi',
+                'kode_tiket' => $kodeTiket,
+                'unit' => $unit->kode,
+            ])
+            ->assertRedirect(route('admin.pengaduan.index'))
+            ->assertSessionHas('sukses');
+
+        $this->assertSame(2, $queryUnit);
     }
 }

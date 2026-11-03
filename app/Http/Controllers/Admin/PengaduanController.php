@@ -155,13 +155,18 @@ class PengaduanController extends Controller
         $berhasil = 0;
         $gagal = [];
 
+        // Unit tujuan sama untuk semua tiket, jadi cukup diambil sekali.
+        // Sebelumnya query ini ikut berjalan di dalam loop dan terulang
+        // untuk setiap tiket pada satu kiriman.
+        $unit = $aksi === 'disposisi'
+            ? MasterUnit::where('kode', $validated['unit'])->firstOrFail()
+            : null;
+
         foreach ($kodeTiket as $kode) {
             try {
                 $pengaduan = Pengaduan::where('kode_tiket', $kode)->firstOrFail();
 
                 if ($aksi === 'disposisi') {
-                    $unit = MasterUnit::where('kode', $validated['unit'])->firstOrFail();
-
                     if (! $unit->bisaDitugaskan()) {
                         throw new RuntimeException('Unit tidak aktif atau koneksi terputus.');
                     }
