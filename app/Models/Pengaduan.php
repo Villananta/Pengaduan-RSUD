@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\KanalPengaduan;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Enums\TingkatKeparahan;
@@ -81,6 +82,7 @@ class Pengaduan extends Model
         'lampiran' => 'array',
         'kategori' => KategoriPengaduan::class,
         'status' => StatusPengaduan::class,
+        'kanal' => KanalPengaduan::class,
     ];
 
     /**
@@ -157,6 +159,18 @@ class Pengaduan extends Model
     public function judulKategori(): string
     {
         return $this->kategori?->judul() ?? 'Belum Ditentukan';
+    }
+
+    /** Label kanal sumber aduan untuk ditampilkan di tabel/daftar. */
+    public function labelKanal(): string
+    {
+        return $this->kanal?->label() ?? 'Portal Web';
+    }
+
+    /** Ikon Material Symbols untuk kanal sumber aduan. */
+    public function ikonKanal(): string
+    {
+        return $this->kanal?->ikon() ?? 'public';
     }
 
     // Jejak audit perubahan tahap pengaduan.

@@ -259,7 +259,6 @@
                             aria-label="Hapus semua filter"
                         >
                             <x-symbol nama="close" class="text-[18px]" />
-                            Reset
                         </a>
                     @else
                         <button

@@ -99,10 +99,13 @@ final class PengaduanMasuk
             'nrm' => Pengaduan::normalisasiNrm($data['nrm'] ?? ''),
         ]);
 
+        $kanal = isset($data['kanal']) ? KanalPengaduan::from($data['kanal']) : null;
+
         $pengaduan = Pengaduan::buat(
             (new Collection($data))
-                ->except(['persetujuan', 'kanal', 'lampiran'])
+                ->except(['persetujuan', 'lampiran'])
                 ->put('master_unit_id', self::unitMaster($data['unit'] ?? null))
+                ->put('kanal', $kanal)
                 ->all(),
             self::kodeTiketBaru(),
         );
