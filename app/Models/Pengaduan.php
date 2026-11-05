@@ -68,6 +68,7 @@ class Pengaduan extends Model
         'draf_jawaban',
         'akses_token',
         'akses_token_expires_at',
+        'kanal',
     ];
 
     protected $casts = [

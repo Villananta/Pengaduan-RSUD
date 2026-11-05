@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\KanalPengaduan;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
@@ -49,6 +50,7 @@ final class DaftarPengaduan
         public readonly array $jumlahTahap,
         public readonly array $jumlahInvestigasi,
         public readonly array $jumlahKeparahan,
+        public readonly array $jumlahKanal,
         public readonly ?StatusPengaduan $status,
         public readonly ?StatusInvestigasi $investigasi,
         public readonly ?KategoriPengaduan $kategori,
@@ -60,6 +62,8 @@ final class DaftarPengaduan
         public readonly ?TingkatKeparahan $keparahan = null,
         public readonly bool $keparahanBelum = false,
         public readonly bool $kategoriBelum = false,
+        public readonly ?KanalPengaduan $kanal = null,
+        public readonly bool $kanalBelum = false,
         public readonly bool $halamanUnit = false,
         public readonly string $ruteDaftar = 'admin.pengaduan.index',
         public readonly string $ruteTiket = 'admin.pengaduan.show',
@@ -107,6 +111,11 @@ final class DaftarPengaduan
         $keparahan = $terkunci === null ? TingkatKeparahan::dariNilai($keparahanMentah) : null;
         $keparahanBelum = $terkunci === null && $keparahanMentah === 'belum';
 
+        // Filter kanal hanya ada di konsol humas.
+        $kanalMentah = $request->query('kanal');
+        $kanal = $terkunci === null ? KanalPengaduan::tryFrom($kanalMentah ?? '') : null;
+        $kanalBelum = $terkunci === null && $kanalMentah === 'belum';
+
         // Closure ini adalah query dasar tanpa filter dimensinya sendiri,
         // dipakai ulang untuk menghitung tiap tab dan untuk menarik baris.
         $dasar = fn (): Builder => Pengaduan::query()
@@ -149,12 +158,16 @@ final class DaftarPengaduan
             ->when($keparahan !== null, fn (Builder $q): Builder => $q->where('tingkat_keparahan', $keparahan->value))
             ->when($keparahanBelum, fn (Builder $q): Builder => $q->whereNull('tingkat_keparahan'));
 
+        $filterKanal = fn (Builder $query): Builder => $query
+            ->when($kanal !== null, fn (Builder $q): Builder => $q->where('kanal', $kanal->value))
+            ->when($kanalBelum, fn (Builder $q): Builder => $q->whereNull('kanal'));
+
         // Angka chip dihitung dengan filter dimensi lain ikut aktif, sedangkan
         // dimensi chip itu sendiri tidak. Kalau semua dimensi diabaikan, chip
         // bisa menawarkan angka yang tidak pernah tercapai: misalnya "Belum
         // Ditetapkan (35)" berubah jadi tabel kosong begitu diklik, karena tab
         // investigasi dari langkah sebelumnya masih menempel di URL.
-        $jumlahTahap = self::hitungTahap($filterInvestigasi($filterKeparahan($dasar())));
+        $jumlahTahap = self::hitungTahap($filterInvestigasi($filterKeparahan($filterKanal($dasar()))));
 
         // Syarat "unit sudah menjawab" diambil dari agregat pesan per tiket,
         // jadi aturan yang sama tidak perlu ditulis ulang di PHP.
@@ -164,13 +177,15 @@ final class DaftarPengaduan
             ->groupBy('pengaduan_id');
 
         $jumlahInvestigasi = self::hitungInvestigasi(
-            $filterStatus($filterKeparahan($dasar())),
+            $filterStatus($filterKeparahan($filterKanal($dasar()))),
             $subJawabanUnit,
         );
 
-        $jumlahKeparahan = self::hitungKeparahan($filterStatus($filterInvestigasi($dasar())));
+        $jumlahKeparahan = self::hitungKeparahan($filterStatus($filterInvestigasi($filterKanal($dasar()))));
 
-        $daftar = $filterKeparahan($filterInvestigasi($filterStatus($dasar())))
+        $jumlahKanal = self::hitungKanal($filterStatus($filterInvestigasi($filterKeparahan($dasar()))));
+
+        $daftar = $filterKanal($filterKeparahan($filterInvestigasi($filterStatus($dasar()))))
             ->with('masterUnit')
             // Hanya jawaban PIC unit yang dihitung untuk kalimat "N balasan
             // unit masuk". Pesan pembuka, balasan pelapor, dan obrolan humas
@@ -191,6 +206,7 @@ final class DaftarPengaduan
             jumlahTahap: $jumlahTahap,
             jumlahInvestigasi: $jumlahInvestigasi,
             jumlahKeparahan: $jumlahKeparahan,
+            jumlahKanal: $jumlahKanal,
             status: $status,
             investigasi: $investigasi,
             kategori: $kategori,
@@ -212,6 +228,8 @@ final class DaftarPengaduan
             keparahan: $keparahan,
             keparahanBelum: $keparahanBelum,
             kategoriBelum: $kategoriBelum,
+            kanal: $kanal,
+            kanalBelum: $kanalBelum,
             halamanUnit: $terkunci !== null,
             ruteDaftar: $ruteDaftar,
             ruteTiket: $ruteTiket,
@@ -228,7 +246,9 @@ final class DaftarPengaduan
             || $this->kategoriBelum
             || $this->unit !== null
             || $this->keparahan !== null
-            || $this->keparahanBelum;
+            || $this->keparahanBelum
+            || $this->kanal !== null
+            || $this->kanalBelum;
     }
 
     /**
@@ -276,6 +296,7 @@ final class DaftarPengaduan
             'sla' => $this->sla($pengaduan),
             'aksi' => $this->aksi($pengaduan),
             'redup' => $pengaduan->status->selesai(),
+            'kanal' => $pengaduan->kanal,
         ];
     }
 
@@ -625,6 +646,38 @@ final class DaftarPengaduan
         }
 
         $jumlah['belum'] = (int) $hitung->keparahan_belum;
+
+        return $jumlah;
+    }
+
+    /**
+     * Jumlah tiket per kanal sumber aduan.
+     *
+     * @return array<string, int> Indeks 'semua', nilai enum KanalPengaduan, dan 'belum'.
+     */
+    private static function hitungKanal(Builder $query): array
+    {
+        $agregat = ['count(*) as semua'];
+        $parameter = [];
+
+        foreach (KanalPengaduan::cases() as $k) {
+            $agregat[] = 'sum(case when kanal = ? then 1 else 0 end) as kanal_'.$k->value;
+            $parameter[] = $k->value;
+        }
+
+        $agregat[] = 'sum(case when kanal is null then 1 else 0 end) as kanal_belum';
+
+        $hitung = $query->toBase()
+            ->selectRaw(implode(', ', $agregat), $parameter)
+            ->first();
+
+        $jumlah = ['semua' => (int) $hitung->semua];
+
+        foreach (KanalPengaduan::cases() as $k) {
+            $jumlah[$k->value] = (int) $hitung->{'kanal_'.$k->value};
+        }
+
+        $jumlah['belum'] = (int) $hitung->kanal_belum;
 
         return $jumlah;
     }

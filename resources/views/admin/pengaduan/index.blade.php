@@ -2,6 +2,7 @@
 
 @section('title', 'Daftar Pengaduan')
 
+@use('App\Enums\KanalPengaduan')
 @use('App\Enums\KategoriPengaduan')
 @use('App\Enums\StatusInvestigasi')
 @use('App\Enums\StatusPengaduan')
@@ -31,6 +32,7 @@
             'unit' => $daftar->unit?->kode,
             'kategori' => $daftar->kategori?->value ?? ($daftar->kategoriBelum ? 'belum' : null),
             'keparahan' => $daftar->keparahan?->value ?? ($daftar->keparahanBelum ? 'belum' : null),
+            'kanal' => $daftar->kanal?->value ?? ($daftar->kanalBelum ? 'belum' : null),
             'q' => $daftar->cari,
         ]);
 
@@ -44,6 +46,7 @@
             'unit' => $daftar->unit?->kode,
             'kategori' => $daftar->kategori?->value ?? ($daftar->kategoriBelum ? 'belum' : null),
             'keparahan' => $daftar->keparahan?->value ?? ($daftar->keparahanBelum ? 'belum' : null),
+            'kanal' => $daftar->kanal?->value ?? ($daftar->kanalBelum ? 'belum' : null),
             'cari' => $daftar->cari,
         ]);
     @endphp
@@ -135,9 +138,9 @@
 
         <!-- Konsol Filter: Semua saringan dalam satu form. -->
         <form method="GET" action="{{ route('admin.pengaduan.index') }}" class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
-            {{-- Baris 1: Status Pengaduan (Lapis 1) & Status Investigasi (Lapis 2) --}}
+            {{-- Baris 1: Lapis 1, Lapis 2, Keparahan, Sumber --}}
             <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm">
-                <div class="md:col-span-5 flex flex-col gap-space-sm">
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
                     <label for="status" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-primary-container font-label-sm text-label-sm uppercase font-bold tracking-wide" style="color: rgb(149, 249, 166)">Lapis 1</span>
                         Status Pengaduan Humas
@@ -158,7 +161,7 @@
                     </div>
                 </div>
 
-                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
                     <label for="investigasi" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Lapis 2</span>
                         Status Investigasi di Unit
@@ -200,11 +203,33 @@
                         <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
                     </div>
                 </div>
+
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
+                    <label for="kanal" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-xs bg-info-light text-info font-label-sm text-label-sm uppercase font-bold tracking-wide">Sumber</span>
+                        Sumber Aduan
+                    </label>
+                    <div class="relative">
+                        <select
+                            id="kanal"
+                            name="kanal"
+                            onchange="this.form.submit()"
+                            class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                        >
+                            <option value="" @selected($daftar->kanal === null && ! $daftar->kanalBelum)>Semua Sumber ({{ number_format($daftar->jumlahKanal['semua'], 0, ',', '.') }})</option>
+                            @foreach (KanalPengaduan::cases() as $k)
+                                <option value="{{ $k->value }}" @selected($daftar->kanal === $k)>{{ $k->label() }} ({{ number_format($daftar->jumlahKanal[$k->value], 0, ',', '.') }})</option>
+                            @endforeach
+                            <option value="belum" @selected($daftar->kanalBelum)>Portal Web ({{ number_format($daftar->jumlahKanal['belum'], 0, ',', '.') }})</option>
+                        </select>
+                        <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                    </div>
+                </div>
             </div>
 
             {{-- Baris 2: Pencarian, Unit, Kategori --}}
             <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
-                <div class="md:col-span-5 relative flex items-center">
+                <div class="md:col-span-4 relative flex items-center">
                     <x-symbol nama="search" class="absolute left-3 text-outline text-[20px]" />
                     <input
                         type="search"
@@ -215,7 +240,7 @@
                     >
                 </div>
 
-                <div class="md:col-span-3 relative flex items-center">
+                <div class="md:col-span-4 relative flex items-center">
                     <x-symbol nama="domain" class="absolute left-3 text-outline text-[18px]" />
                     <select
                         name="unit"
@@ -313,13 +338,14 @@
                     {{-- Lebar kolom dikunci di sini supaya isi tiap kolom tidak
                          saling-desak, sedangkan tinggi baris tetap mengikuti isi. --}}
                     <colgroup>
-                        <col class="w-[13%]">
-                        <col class="w-[16%]">
-                        <col class="w-[19%]">
+                        <col class="w-[12%]">
+                        <col class="w-[15%]">
+                        <col class="w-[18%]">
+                        <col class="w-[8%]">
                         <col class="w-[12%]">
                         <col class="w-[17%]">
                         <col class="w-[14%]">
-                        <col class="w-[9%]">
+                        <col class="w-[8%]">
                     </colgroup>
 
                     <thead>
@@ -327,6 +353,7 @@
                             <th scope="col" class="py-space-sm px-space-md">No. Tiket &amp; Prioritas</th>
                             <th scope="col" class="py-space-sm px-space-md">Identitas Pelapor &amp; NRM</th>
                             <th scope="col" class="py-space-sm px-space-md">Pokok Keluhan &amp; Unit</th>
+                            <th scope="col" class="py-space-sm px-space-md">Sumber</th>
                             <th scope="col" class="py-space-sm px-space-md">Lapis 1: Status Utama</th>
                             <th scope="col" class="py-space-sm px-space-md">Lapis 2: Status di Unit</th>
                             <th scope="col" class="py-space-sm px-space-md">Monitoring SLA</th>
@@ -392,6 +419,17 @@
                                         <span class="text-on-surface-variant font-label-sm text-label-sm italic line-clamp-1 leading-snug">
                                             &ldquo;{{ Str::limit($baris['kutipan'], 96) }}&rdquo;
                                         </span>
+                                    </div>
+                                </td>
+
+                                <td class="py-space-sm px-space-md align-top">
+                                    <div class="flex items-center gap-1.5">
+                                        @if ($baris['kanal'])
+                                            <x-symbol :nama="$baris['kanal']->ikon()" class="text-[16px] text-on-surface-variant shrink-0" />
+                                            <span class="font-body-sm text-body-sm text-on-surface">{{ $baris['kanal']->label() }}</span>
+                                        @else
+                                            <span class="font-body-sm text-body-sm text-outline">Portal Web</span>
+                                        @endif
                                     </div>
                                 </td>
 
