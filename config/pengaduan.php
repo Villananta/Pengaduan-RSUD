@@ -77,6 +77,8 @@ return [
         'Instalasi Farmasi' => 'IFP-01',
         'Instalasi Radiologi' => 'IRS-03',
         'Instalasi Kamar Operasi (OK)' => 'IBT-04',
+        'Unit Kasir / Admisi' => 'ADM-08',
+        'Unit Ruang Ibu & Anak' => 'KSA-07',
     ],
 
     // Tahapan prosedur internal, batas dihitung dalam hari kerja.

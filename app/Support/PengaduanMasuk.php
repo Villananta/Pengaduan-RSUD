@@ -104,7 +104,7 @@ final class PengaduanMasuk
         $pengaduan = Pengaduan::buat(
             (new Collection($data))
                 ->except(['persetujuan', 'lampiran'])
-                ->put('master_unit_id', self::unitMaster($data['unit'] ?? null))
+                ->put('master_unit_id', self::unitMasterAdmin($data['unit'] ?? null))
                 ->put('kanal', $kanal)
                 ->all(),
             self::kodeTiketBaru(),
@@ -190,6 +190,27 @@ final class PengaduanMasuk
         }
 
         return $unit->id;
+    }
+
+    /**
+     * Terjemahkan label unit ke MASTER_UNITS untuk input admin.
+     *
+     * Berbeda dengan unitMaster(), ini hanya memerlukan unit aktif.
+     * Admin humas boleh menugaskan ke unit yang belum 'siap' (mis. PIC/WA
+     * belum lengkap) karena admin bertanggung jawab memastikan follow-up.
+     */
+    public static function unitMasterAdmin(?string $label): ?int
+    {
+        $peta = config('pengaduan.peta_unit', []);
+        $kode = $peta[$label] ?? null;
+
+        if ($kode === null) {
+            return null;
+        }
+
+        $unit = MasterUnit::where('kode', $kode)->where('aktif', true)->first();
+
+        return $unit?->id;
     }
 
     /**
