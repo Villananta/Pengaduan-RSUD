@@ -1,312 +1,155 @@
-# Panduan Gaya Kode Project Pengaduan RSUD
+# Style Guide — Pengaduan RSUD (Ringkas)
 
-Dokumen ini merangkum konvensi penulisan kode yang digunakan di project ini. Semua perubahan kode baru harus mengikuti pola ini.
+## PHP
+
+```php
+<?php
+namespace App\Models;
+use App\Enums\StatusPengaduan;
+use Illuminate\Database\Eloquent\Model;
+
+class Pengaduan extends Model
+{
+    use HasFactory;
+
+    /** Kenapa konstanta ini ada: jadi penanda baris riwayat kasus berat. */
+    public const CATATAN_KASUS_BERAT_AKTIF = 'Pengaduan ditandai sebagai kasus berat oleh admin humas.';
+
+    protected $fillable = ['kategori', 'nama_lengkap', 'nrm', 'email', 'status', 'kasus_berat', 'akses_token'];
+    protected $casts  = ['waktu_kejadian' => 'datetime', 'kasus_berat' => 'boolean', 'status' => StatusPengaduan::class];
+
+    public static function buat(array $data, string $kodeTiket, ?StatusPengaduan $status = null): self { ... }
+
+    public function pindahTahap(StatusPengaduan $tujuan, ?string $catatan = null, ?int $adminId = null): void
+    {
+        DB::transaction(function () use ($tujuan, $catatan, $adminId) {
+            $sebelumnya = $this->status;
+            $this->status = $tujuan;
+            $this->selesai_at = $tujuan->selesai() ? now() : null;
+            $this->save();
+            $this->riwayatStatus()->create(['dari' => $sebelumnya, 'ke' => $tujuan, 'catatan' => $catatan, 'admin_id' => $adminId]);
+        });
+    }
+
+    public function scopeSudahDiteruskanHumas(Builder $q): Builder { return $q->where('status', '!=', StatusPengaduan::Diterima->value); }
+}
+```
+
+**Aturan:**
+- `snake_case` Indonesia untuk variabel: `$kodeTiket`, `$jumlahNotifAdmin`
+- Docblock jelaskan *kenapa*, bukan *apa*
+- `DB::transaction` untuk operasi atomik
+- Rate limit per tiket (pakai `kode_tiket`), bukan per IP
+- Token akses: hash SHA-256 di DB, cookie HttpOnly 30 hari, rotasi saat verifikasi email
+- Enum key `TitleCase`, value `snake_case`
 
 ---
 
-## 1. Prinsip Umum
+## Blade
 
-| Aturan | Penjelasan |
-|--------|------------|
-| **Fungsi & logika tidak berubah** | Hanya format, spasi, urutan baris, dan komentar yang dirapikan |
-| **Bahasa Indonesia** | Nama variabel, method, komentar, `$fillable`, pesan validasi, teks UI |
-| **Komentar menjelaskan "kenapa", bukan "apa"** | Jangan ulang kode; tuliskan alasan keputusan dan risiko kalau diubah |
-| **Tulis seperti manusia** | Jangan memampatkan jadi satu baris; biarkan ritme natural |
-
----
-
-## 2. Blade Template
-
-### Struktur & Spasi
 ```blade
 <!DOCTYPE html>
-
 <html lang="id" class="scroll-smooth">
-
 <head>
-    ...
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@yield('title') — Portal Pengaduan Humas | RSUD Dr. Soetomo</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+<body class="bg-surface font-body-md text-on-surface min-h-screen">
 
-<body class="font-sans bg-brand-light text-ink antialiased">
+    <!-- Topbar -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-[0_2px_14px_rgba(26,26,46,0.08)]">
+        <div class="bg-white h-16 w-full px-margin flex items-center justify-between">
+            <!-- Baris Identitas -->
+        </div>
+        <!-- End of Baris Identitas -->
+        <nav class="bg-white border-b border-outline-variant h-12 w-full px-margin flex items-center">...</nav>
+    </header>
+    <!-- End of Topbar -->
 
-    <!-- Header -->
-    <header>...</header>
-    <!-- End of Header -->
+    <main class="w-full pt-28 bg-surface flex-1">@yield('content')</main>
 
-    <!-- Konten Halaman -->
-    <main>...</main>
-    <!-- End of Konten Halaman -->
+    <footer class="w-full bg-white border-t border-outline-variant mt-space-xl py-space-lg">...</footer>
 
-    <!-- Footer -->
-    <footer>...</footer>
-    <!-- End of Footer -->
-
+    <script>...</script>
     @stack('scripts')
-
 </body>
-
 </html>
 ```
 
-- Blank line setelah `<!DOCTYPE html>`, sebelum `<head>`, setelah `</head>`, sebelum `<body>`, sebelum `</body>`
-- Komentar pembuka/penutup pasangan untuk section besar:
-  ```blade
-  <!-- Sidebar -->
-  @include('layout.sidebar')
-  <!-- End of Sidebar -->
-  ```
-- Komentar satu baris untuk elemen tanpa pasangan: `<!-- Scroll to Top Button -->`
-- Tag pendek (1 elemen, 1 baris isi) → satu baris
-- Tag panjang (banyak atribut/class) → multi-baris, indent 4 spasi
-
-### Directive Blade
-```blade
-@php
-    // Komentar di sini
-    $variabel = 'nilai';
-@endphp
-
-@foreach ($items as $item)
-    ...
-@endforeach
-
-@if ($kondisi)
-    ...
-@endif
-```
-- Blank line sebelum `@php`, `@foreach`, `@if`
-- Blank line setelah `@endphp`, `@endforeach`, `@endif`
-
-### Section & Stack
-```blade
-@section('title', 'Judul Halaman')
-
-@section('content')
-    ...
-@endsection
-
-@push('scripts')
-    <script>...</script>
-@endpush
-```
-- `@stack('scripts')` tetap diletakkan sebelum `</body>`
+**Aturan:**
+- Blank line: setelah `<!DOCTYPE html>`, sebelum `<head>`, setelah `</head>`, sebelum `<body>`, sebelum `</body>`
+- Komentar berpasangan: `<!-- Topbar -->` ... `<!-- End of Topbar -->`
+- Class reusable di `@php` block atas form: `$input`, `$label`, `$errorClass`, `$stepBadge`
+- Pakai `<x-symbol nama="..." />` untuk ikon Material Symbols
+- **No** `href="#"` untuk fitur belum ada → pakai `span cursor-not-allowed` atau `button disabled`
 
 ---
 
-## 3. PHP Class & Method
+## CSS / Tailwind (app.css)
 
-### Docblock Kelas
-```php
-/**
- * Perhitungan Standar Pelayanan Minimal dalam hari kerja.
- *
- * Semua angka SLA pada halaman publik berasal dari sini, bukan dari
- * teks hardcoded, sehingga batas waktu dan tampilan selalu konsisten.
- */
-final class Sla
-{
-    ...
+```css
+@import 'tailwindcss';
+
+@theme {
+    /* Brand (Hijau Hutan) */
+    --color-brand-800: #0f7a3c;   /* tombol, link utama */
+    --color-brand-700: #158a4a;   /* hover */
+    --color-brand-600: #146c3e;   /* teks kecil */
+    --color-brand-150: #d7f5e3;   /* kartu, panel (mint) */
+    --color-brand-light: #f7fcf9; /* bg halaman */
+
+    /* Emas (penghargaan/peringatan) */
+    --color-gold-500: #d4af37;
+    --color-tertiary: #8a6a12;        /* badge peringatan */
+    --color-tertiary-container: #f5d876;
+
+    /* Surface (Material 3) */
+    --color-surface: #f7fbf9;
+    --color-on-surface: #1a1a2e;
+    --color-surface-container-low: #f2f8f5;
+    --color-outline-variant: #d3ddd6;
+
+    /* Primary/Secondary */
+    --color-primary: #0f7a3c;
+    --color-primary-container: #146c3e;
+    --color-secondary-container: #d7f5e3;
+
+    /* Status */
+    --color-error: #ba1a1a;
+    --color-warning: #d97706;
+    --color-info: #003ea8;
+
+    /* Spacing */
+    --spacing-space-xs: 0.25rem;  --spacing-space-md: 1rem;   --spacing-margin: 2rem;
+    --spacing-space-sm: 0.5rem;   --spacing-space-lg: 1.5rem; --spacing-gutter: 1.5rem;
+
+    /* Tipografi (Plus Jakarta Sans) */
+    --font-title-md: 'Plus Jakarta Sans', ...;  --text-title-md: 1rem;      --text-title-md--line-height: 1.375rem;
+    --font-body-md:  'Plus Jakarta Sans', ...;  --text-body-md: 0.875rem;   --text-body-md--line-height: 1.25rem;
+    --font-label-md: 'Plus Jakarta Sans', ...;  --text-label-md: 0.75rem;   --text-label-md--line-height: 1rem; --text-label-md--letter-spacing: 0.02em;
 }
-```
 
-### Docblock Method Publik
-```php
-/**
- * Nomor hari kerja yang sedang berjalan, dihitung inklusif.
- *
- * Tiket yang baru masuk pada hari kerja ini sudah berstatus hari ke-1,
- * belum hari ke-0. Angka inilah yang dipakai semua tampilan "Hari ke-N",
- * dan sisa hari kerja diturunkan dari angka yang sama supaya
- * "hari ke-N" ditambah "sisa M hari kerja" selalu sama dengan standar.
- */
-public static function hariKe(CarbonInterface $mulai, ?CarbonInterface $sekarang = null): int
-{
-    return self::hariKerjaLewat($mulai, $sekarang) + 1;
-}
-```
-
-### Method Sederhana (Nama Sudah Jelas)
-```php
-/** Batas respons awal dalam jam. */
-public static function responsAwalJam(): int
-{
-    return (int) config('pengaduan.sla.respons_awal_jam', 24);
-}
-```
-
-### Pisah Bagian dengan Blank Line + Label
-```php
-// Validasi Input
-$validated = $request->validate(...);
-
-// Proses Simpan
-$pengaduan = Pengaduan::buat(...);
-
-// Notifikasi
-$admins = User::where('peran', 'admin')->get();
-```
-
----
-
-## 4. Enum (PHP 8.1+)
-
-```php
-enum StatusPengaduan: string
-{
-    case Diterima = 'diterima';
-    case Diproses = 'diproses';
-    case Revisi = 'revisi';
-    case Selesai = 'selesai';
-
-    public function label(): string
-    {
-        return match ($this) {
-            self::Diterima => 'Diterima',
-            self::Diproses => 'Diproses',
-            self::Revisi => 'Perlu Revisi',
-            self::Selesai => 'Selesai',
-        };
-    }
-
-    /** Warna badge pada daftar dan detail tiket. */
-    public function badge(): string
-    {
-        return match ($this) {
-            self::Diterima => 'bg-brand-100 text-brand-800',
-            self::Diproses => 'bg-brand-700 text-white',
-            self::Revisi => 'bg-alert-light text-alert',
-            self::Selesai => 'bg-brand-800 text-white',
-        };
+@layer base {
+    .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-feature-settings: 'liga';  /* wajib untuk ligature */
+        line-height: 1;
     }
 }
 ```
-- Semua label, warna, ikon, logika transisi ada di enum
-- Gunakan `match` expression
-- Method bernama jelas: `label()`, `badge()`, `ikon()`, `tahap()`, `bisaBerpindahKe()`
+
+**Pemakaian:**
+- Warna: `bg-brand-800`, `text-on-surface-variant`, `border-outline-variant`, `bg-tertiary-container text-on-tertiary-container`
+- Spacing: `px-margin`, `gap-space-md`, `mt-space-xl`, `py-space-lg`
+- Tipografi: `font-title-md text-title-md`, `font-body-sm text-body-sm`, `font-label-sm text-label-sm`
+- Radius: `rounded-xl` (0.5rem), `rounded-full`, `rounded-sm`
+- Ikon: `<x-symbol nama="notifications" class="text-[24px]" />`
 
 ---
 
-## 5. Support Class (App\Support\*)
-
-- Semua query dan perhitungan di sini, **bukan di Blade**
-- Class `final` dengan property `public readonly` untuk data transfer
-- Method static untuk kalkulasi murni (Sla, Statistik)
-- Constructor dengan docblock parameter array shape
-
-```php
-final class Dashboard
-{
-    public function __construct(
-        public readonly array $perTahap,
-        public readonly ?float $kepatuhan,
-        public readonly LengthAwarePaginator $perluTindakan,
-        ...
-    ) {}
-}
-```
-
----
-
-## 6. Controller
-
-- Gunakan FormRequest atau inline validation dengan class Support
-- Redirect dengan `route()` helper
-- Rate limiting manual via `RateLimiter` facade
-- Session untuk state verifikasi (bukan URL)
-
-```php
-public function store(Request $request): RedirectResponse
-{
-    $validated = $request->validate(
-        PengaduanMasuk::aturan(),
-        PengaduanMasuk::pesanValidasi(),
-    );
-
-    $pengaduan = PengaduanMasuk::simpan($validated, $request->file('lampiran', []) ?? []);
-
-    // Pesan pembuka otomatis...
-    $pengaduan->pesan()->create([...]);
-
-    StatistikDashboard::lupaCache();
-
-    $request->session()->put(self::SESI_TERVERIFIKASI, ['kode' => $pengaduan->kode_tiket]);
-
-    return redirect()->route('pengaduan.sukses');
-}
-```
-
----
-
-## 7. Model Eloquent
-
-### $fillable & $casts
-```php
-protected $fillable = [
-    'kategori',
-    'nama_lengkap',
-    'nrm',
-    'no_wa',
-    'email',
-    // ...
-];
-
-protected $casts = [
-    'waktu_kejadian' => 'datetime',
-    'selesai_at' => 'datetime',
-    'kasus_berat' => 'boolean',
-    'kategori' => KategoriPengaduan::class,
-    'status' => StatusPengaduan::class,
-];
-```
-
-### Method Factory (Kode Tiket Dibuat Sistem)
-```php
-/**
- * Buat pengaduan baru dengan kode tiket yang dibuat di dalam sistem.
- *
- * Kode tiket sengaja tidak ada di $fillable sehingga tidak bisa
- * diisi massal dari input pengguna; kode dibuat di dalam sistem.
- */
-public static function buat(array $data, string $kodeTiket, ?StatusPengaduan $status = null): self
-{
-    $pengaduan = new self;
-    $pengaduan->fill($data);
-    $pengaduan->kode_tiket = $kodeTiket;
-    $pengaduan->status = $status ?? StatusPengaduan::Diterima;
-    $pengaduan->save();
-
-    return $pengaduan;
-}
-```
-
-### Scope Query
-```php
-public function scopeSudahDiteruskanHumas(Builder $query): Builder
-{
-    return $query->where('status', '!=', StatusPengaduan::Diterima->value);
-}
-```
-
-### Accessor/Method Domain
-```php
-public function namaUnit(): string
-{
-    return $this->masterUnit?->namaLengkap() ?? $this->unit;
-}
-
-public function zonaSla(): ZonaSla
-{
-    return Sla::zona($this->created_at, $this->selesai_at, $this->kasus_berat);
-}
-```
-
----
-
-## 8. Config (config/pengaduan.php)
-
-- Semua angka SLA, daftar unit, peta unit, prosedur, SPM di sini
-- Komentar menjelaskan **kenapa** nilai tersebut dipakai
-- Array asosiatif dengan key deskriptif
+## Config SLA (config/pengaduan.php)
 
 ```php
 'sla' => [
@@ -314,197 +157,40 @@ public function zonaSla(): ZonaSla
     'respons_awal_jam' => 24,
     'peringatan_hari_kerja' => 2,
     'investigasi_hari_kerja' => 5,
-    'kasus_berat_hari_kerja' => 8,
+    'kasus_berat_hari_kerja' => 8,  // tambahan untuk kasus berat
 ],
-
-'units' => [
-    'Instalasi Rawat Jalan (Poliklinik)',
-    'Instalasi Rawat Inap',
-    ...
-],
-
-'peta_unit' => [
-    'Instalasi Rawat Jalan (Poliklinik)' => 'IRJ-05',
-    ...
+'prosedur' => [
+    ['batas' => 2, 'judul' => 'Verifikasi Administratif'],
+    ['batas' => 5, 'judul' => 'Investigasi Internal'],
+    ['batas' => 9, 'judul' => 'Klarifikasi'],
+    ['batas' => 12, 'judul' => 'Jawaban Resmi'],
 ],
 ```
 
----
-
-## 9. Tailwind CSS & Design Tokens (resources/css/app.css)
-
-### Palet Warna (CSS Custom Properties)
-```css
-@theme {
-    --color-brand-800: #0f7a3c;   /* Hijau merek utama */
-    --color-brand-150: #d7f5e3;   /* Mint untuk kartu/panel */
-    --color-brand-light: #f7fcf9; /* Background halaman publik */
-
-    /* Material 3 Surface tokens untuk admin console */
-    --color-surface: #f7fbf9;
-    --color-surface-container-lowest: #ffffff;
-    --color-surface-container: #ecf4ef;
-    ...
-
-    --color-primary: #0f7a3c;
-    --color-secondary: #146c3e;
-    --color-tertiary: #8a6a12;    /* Emas untuk badge SLA */
-    --color-error: #ba1a1a;
-
-    /* Spacing tokens */
-    --spacing-space-md: 1rem;
-    --spacing-margin: 2rem;
-    --spacing-gutter: 1.5rem;
-
-    /* Typography tokens */
-    --font-display-lg: 'Plus Jakarta Sans', ...;
-    --text-body-md: 0.875rem;
-    --text-label-md: 0.75rem;
-}
-```
-
-### Class Utility Khusus
-```css
-.material-symbols-outlined {
-    font-family: 'Material Symbols Outlined';
-    font-feature-settings: 'liga';
-    ...
-}
-
-[x-cloak] { display: none !important; }
-
-html.kontras-tinggi { filter: contrast(1.3); }
-```
-
-### Penggunaan di Blade
-```blade
-<!-- Warna brand -->
-<button class="bg-brand-800 text-white hover:bg-brand-700">Kirim</button>
-
-<!-- Material 3 surface -->
-<div class="bg-surface-container-lowest p-space-md shadow-sm">
-
-<!-- Badge status dari enum -->
-<span class="{{ $pengaduan->status->badge() }}">{{ $pengaduan->status->label() }}</span>
-
-<!-- Ikon Material Symbols -->
-<x-symbol nama="notifications" class="text-[24px]" />
-```
+**App\Support\Sla** ambil semua angka dari config — **no hardcode**.
 
 ---
 
-## 10. Komponen Blade (resources/views/components)
+## Larangan (Jangan)
 
-```blade
-<!-- components/brand-logo.blade.php -->
-<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="{{ $class ?? '' }}">
-    <rect width="32" height="32" rx="6" fill="#0F7A3C"/>
-    <path d="M8 16L14 22L24 10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+1. Komentar bahasa Inggris
+2. Tambah dependensi tanpa approval
+3. Ubah skema DB tanpa migrasi
+4. Tambah route tanpa diminta
+5. Ubah angka SLA / daftar unit / teks SPM di config
+6. Query di Blade
+7. `href="#"` untuk fitur belum ada
+8. `kode_tiket` di `$fillable` (mass assignment)
+9. Ganti nama token warna (`brand-800`, dll)
+10. `declare(strict_types=1)`
+
+---
+
+## Verifikasi
+
+```bash
+vendor/bin/pint --dirty --format agent   # format PHP
+php artisan test --compact --filter=...  # test
+php artisan route:list --except-vendor   # cek route
+php artisan config:show pengaduan.sla    # cek nilai SLA
 ```
-
-Penggunaan:
-```blade
-<x-brand-logo class="h-9 w-9 object-contain rounded-sm bg-surface-container-low p-0.5" />
-```
-
----
-
-## 11. JavaScript (Inline di Blade @push('scripts'))
-
-```blade
-@push('scripts')
-<script>
-    const selectKategori = document.getElementById('kategori');
-    const wrapDeskripsi = document.getElementById('kategori-deskripsi');
-
-    if (selectKategori && wrapDeskripsi) {
-        const deskripsi = wrapDeskripsi.querySelectorAll('[data-kategori-deskripsi]');
-
-        function refreshDeskripsi() {
-            deskripsi.forEach(function (item) {
-                item.classList.toggle('hidden', item.dataset.kategoriDeskripsi !== selectKategori.value);
-            });
-        }
-
-        selectKategori.addEventListener('change', refreshDeskripsi);
-        refreshDeskripsi();
-    }
-</script>
-@endpush
-```
-
-- Vanilla JS, tidak pakai framework
-- `const` untuk referensi DOM
-- Function declaration (bukan arrow) untuk readability
-- Event listener pasang setelah cek element exists
-
----
-
-## 12. Test (tests/Feature/)
-
-```php
-class PengaduanTest extends TestCase
-{
-    use RefreshDatabase;
-
-    private function form(array $ubah = []): array
-    {
-        return array_merge([
-            'kategori' => 'fasilitas',
-            'nama_lengkap' => 'Budi Santoso',
-            'nrm' => '12-34-56-78',
-            ...
-        ], $ubah);
-    }
-
-    public function test_pengaduan_dapat_disimpan(): void
-    {
-        $this->post(route('pengaduan.store'), $this->form())
-            ->assertRedirect();
-
-        $this->assertDatabaseCount('pengaduan', 1);
-        $pengaduan = Pengaduan::first();
-        $this->assertSame(KategoriPengaduan::Fasilitas, $pengaduan->kategori);
-        $this->assertStringStartsWith('ADUAN-', $pengaduan->kode_tiket);
-    }
-}
-```
-
-- Helper method `form()` untuk data valid default
-- Nama test: `test_<fitur>_<kondisi>_<hasil>`
-- Assert database state, bukan hanya response
-- Gunakan `Carbon::setTestNow()` untuk test waktu
-
----
-
-## 13. Larangan (Yang Tidak Boleh Dilakukan)
-
-| Larangan | Alasan |
-|----------|--------|
-| Tambah komentar bahasa Indonesia | Konsistensi project |
-| Tambah dependensi baru tanpa diminta | Hindari bloat |
-| Ubah skema database tanpa migrasi | Integritas data |
-| Tambah route tanpa diminta | Konsistensi routing |
-| Ubah angka SLA di config/pengaduan.php | Sumber kebenaran tunggal |
-| Query langsung di Blade | Separation of concerns |
-| Tautan palsu `href="#"` untuk fitur belum ada | Test memeriksa hal ini; pakai `span.cursor-not-allowed` |
-| Jadikan `kode_tiket` mass assignable | Keamanan: kode dibuat sistem |
-
----
-
-## 14. Checklist Sebelum Commit
-
-- [ ] Kode mengikuti indent 4 spasi (Pint/PSR-12)
-- [ ] Komentar bahasa Indonesia, menjelaskan "kenapa"
-- [ ] Tidak ada query di Blade
-- [ ] Enum dipakai untuk status, warna, ikon, label
-- [ ] Config SLA tidak di-hardcode
-- [ ] Kode tiket tidak di-$fillable
-- [ ] Rate limiting & validasi ada
-- [ ] Test lulus (`php artisan test`)
-- [ ] Pint bersih (`./vendor/bin/pint`)
-
----
-
-*Dokumen ini dihasilkan dari analisis codebase pada tanggal 16 Oktober 2026.*
