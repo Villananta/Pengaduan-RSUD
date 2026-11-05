@@ -4,292 +4,201 @@ namespace App\Support;
 
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
+use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * Data tampilan untuk halaman Monitor Disposisi & SLA Unit.
  *
- * Halaman ini melihat satu sisi dari proses pengaduan, yaitu sisi unit:
- * apakah sebuah tiket yang sudah ditugaskan ke instalasi masih belum
- * dibuka, sedang ditelusuri, sudah dijawab dan tinggal diracik, atau
- * sudah ditutup. Karena itu semua query di sini dibatasi ke pengaduan
- * yang benar-benar tertaut ke MASTER_UNITS, sedangkan pengaduan yang
- * ditangani humas langsung tidak pernah ikut dihitung.
+ * Rebuilt v2: Unit-centric table + Priority queue tab.
+ * - Unit Table: shows systemic load per unit with traffic lights
+ * - Priority Queue: single actionable list sorted by urgency
  *
- * Angka batas hari kerja tidak ditulis ulang di kelas ini. Semuanya
- * diambil dari App\Support\Sla dan config pengaduan supaya halaman ini
- * tidak menjadi sumber ketiga yang bisa berbeda dari beranda dan daftar.
- *
- * Kolom "Menunggu Diproses Humas" sengaja dipisah dari "Sedang Investigasi"
- * meski keduanya berasal dari status investigasi yang sama. Enum
- * StatusInvestigasi tidak ditambah casenya supaya tab Lapis 2 pada
- * daftar pengaduan tidak ikut berubah bentuknya.
+ * All queries restricted to active units with tickets. Excludes
+ * Humas-direct tickets (no master_unit_id).
  */
 final class MonitorDisposisi
 {
-    /**
-     * Jumlah tiket yang tampil langsung pada tiap kolom kanban.
-     *
-     * Sisanya tetap dikirim ke view, tapi disembunyikan sampai petugas
-     * menekan tautan "tiket lainnya" pada kolom itu, sehingga papan tidak
-     * membanjir kartu sekaligus namun tidak ada tiket yang benar-benar
-     * hilang dari pandangan.
-     */
-    private const KARTU_PER_KOLOM = 4;
+    private const BATAS_OVERDUE = 0;      // hari sisa ≤ 0
+    private const BATAS_AT_RISK = 2;      // hari sisa 1-2 (config: peringatan_hari_kerja)
+    private const MAX_PRIORITY_QUEUE = 50; // batas antrian prioritas
 
     /**
-     * Batas tiket yang dimuat untuk satu kolom.
-     *
-     * Kolom "Jawaban di Humas" memuat semua tiket yang pernah ditutup, jadi
-     * jumlahnya terus bertambah dan suatu saat tidak lagi masuk akal untuk
-     * dirender sekaligus. Sisa di atas batas ini dibuka lewat daftar
-     * pengaduan dengan filter yang sama, bukan ditumpuk di papan.
-     */
-    private const MAKS_KARTU = 100;
-
-    /**
-     * @param  array<int, array<string, mixed>>  $papan  Kolom kanban status disposisi unit.
+     * @param  array<int, array<string, mixed>>  $unitTable  Ringkasan per unit
+     * @param  array<int, array<string, mixed>>  $priorityQueue  Antrian prioritas
+     * @param  int  $totalDitugaskan  Total tiket ke unit aktif (termasuk selesai)
+     * @param  int  $hariInvestigasi  Batas investigasi unit (hari kerja)
      */
     public function __construct(
-        public readonly array $papan,
-        /** Total tiket yang sudah ditugaskan ke unit (termasuk selesai). */
-        public readonly int $ditugaskan,
+        public readonly array $unitTable,
+        public readonly array $priorityQueue,
+        public readonly int $totalDitugaskan,
         public readonly int $hariInvestigasi,
     ) {}
 
     /**
-     * Susun papan monitor.
-     *
-     * Halaman ini tidak punya filter query sendiri. Semua yang tampil
-     * ditentukan oleh status tiket, jadi tidak ada parameter URL yang
-     * perlu dibaca.
+     * Susun data monitor dari request (tanpa filter URL).
      */
     public static function dariRequest(): self
     {
+        $dasar = fn (): Builder => Pengaduan::query()
+            ->whereNotNull('master_unit_id')
+            ->whereHas('masterUnit', fn (Builder $q): Builder => $q->where('aktif', true))
+            ->with('masterUnit');
+
         return new self(
-            papan: self::papan(),
-            // Menghitung SEMUA tiket yang sudah ditugaskan ke unit AKTIF (termasuk
-            // yang sudah selesai). Unit non-aktif tidak boleh mendapat tiket baru,
-            // dan tiket lama ke unit yang dinonaktifkan tidak muncul di monitor.
-            ditugaskan: Pengaduan::query()
-                ->whereNotNull('master_unit_id')
-                ->whereHas('masterUnit', fn (Builder $q): Builder => $q->where('aktif', true))
-                ->count(),
+            unitTable: self::unitTable($dasar),
+            priorityQueue: self::priorityQueue($dasar),
+            totalDitugaskan: (clone $dasar())->count(),
             hariInvestigasi: Sla::hariInvestigasi(),
         );
     }
 
     /**
-     * Empat kolom kanban status disposisi unit.
-     *
-     * Keempat kolom harus saling lepas dan mencakup semua tiket yang sudah
-     * ditugaskan. Kalau tidak, satu tiket bisa muncul di dua kolom atau hilang
-     * dari papan, sehingga angka di monitor dan di halaman lain tidak sama.
-     * Pembagiannya berurutan dari lifecycle tiket:
-     *
-     * 1. Sudah selesai, apa pun isi pesannya, masuk Jawaban di Humas. Tiket
-     *    bisa ditutup tanpa balasan apa pun karena tombol Selesaikan memang
-     *    tidak memaksa pesan.
-     * 2. Masih Diterima dan belum ada jawaban unit, masuk Menunggu Diproses
-     *    Humas. Pelapor boleh menunjuk unitnya sejak awal, tapi tiket baru
-     *    benar-benar jadi beban unit setelah Humas memprosesnya.
-     * 3. Sudah ada jawaban PIC unit, masuk Menunggu Racikan. Syarat ini yang
-     *    mencegah tiket Diterima muncul di kolom pertama sekaligus ketiga.
-     *    Balasan humas tidak dihitung, karena humas menulis justru tanpa
-     *    menunggu unit selesai menelusuri.
-     * 4. Sisanya sudah ditelusuri unit tapi belum menjawab, masuk Sedang
-     *    Investigasi.
-     *
-     * WithExists di bawah tetap dipakai untuk menandai kartu mana yang sudah
-     * dibaca PIC, bukan untuk menghitung kolom.
+     * Ringkasan per unit (Option A: Unit Table).
      *
      * @return array<int, array<string, mixed>>
      */
-    private static function papan(): array
+    private static function unitTable(Builder $dasar): array
     {
-        $dasar = fn (): Builder => Pengaduan::query()
-            ->whereNotNull('master_unit_id')
-            ->whereHas('masterUnit', fn (Builder $q): Builder => $q->where('aktif', true))
-            ->with('masterUnit')
-            ->withExists(['pesan as unit_menjawab' => fn (Builder $q): Builder => $q->jawabanUnit()]);
+        // Ambil unit yang punya tiket aktif
+        $unitIds = (clone $dasar())->aktif()->pluck('master_unit_id')->unique();
 
-        $unitMenjawab = fn (Builder $q): Builder => $q->whereHas(
-            'pesan',
-            fn (Builder $p): Builder => $p->jawabanUnit()
-        );
-        $unitBelumMenjawab = fn (Builder $q): Builder => $q->whereDoesntHave(
-            'pesan',
-            fn (Builder $p): Builder => $p->jawabanUnit()
-        );
+        $units = MasterUnit::query()
+            ->whereIn('id', $unitIds)
+            ->where('aktif', true)
+            ->get()
+            ->keyBy('id');
 
-        $kolom = [
-            [
-                'kunci' => 'menunggu_diproses',
-                'judul' => 'Menunggu Diproses Humas',
-                'ringkas' => 'Pelapor sudah menunjuk unitnya, Humas belum meneruskan tiket.',
-                'ikon' => 'inbox',
-                'titik' => 'bg-error',
-                'latar' => 'bg-error-container/40',
-                'nadaJudul' => 'text-on-error-container',
-                'nadaAngka' => 'bg-error text-on-error',
-                'syarat' => fn (): Builder => $unitBelumMenjawab(
-                    $dasar()->aktif()->where('status', StatusPengaduan::Diterima->value)
-                ),
-                'filter' => [
-                    'status' => StatusPengaduan::Diterima->value,
-                    'investigasi' => StatusInvestigasi::SedangInvestigasi->value,
-                ],
-                'urutan' => fn (Builder $q): Builder => $q->orderBy('created_at'),
-            ],
-            [
-                'kunci' => 'sedang_investigasi',
-                'judul' => 'Sedang Investigasi',
-                'ringkas' => 'Unit sedang menelusuri kronologi dan berkas.',
-                'ikon' => 'biotech',
-                'titik' => 'bg-secondary',
-                'latar' => 'bg-secondary-container/40',
-                'nadaJudul' => 'text-on-secondary-container',
-                'nadaAngka' => 'bg-secondary text-on-secondary',
-                'syarat' => fn (): Builder => $unitBelumMenjawab(
-                    $dasar()->aktif()->whereIn('status', [
-                        StatusPengaduan::Diproses->value,
-                        StatusPengaduan::Revisi->value,
-                    ])
-                ),
-                // Tab investigasi pada daftar tidak bisa memuat dua status
-                // sekaligus, jadi tautan sisanya memakai tab yang sama dan
-                // ikut menampilkan tiket Diterima. Isinya sedikit lebih luas
-                // daripada kolom ini, bukan daftar tiket yang berbeda.
-                'filter' => [
-                    'investigasi' => StatusInvestigasi::SedangInvestigasi->value,
-                ],
-                'urutan' => fn (Builder $q): Builder => $q->orderBy('created_at'),
-            ],
-            [
-                'kunci' => 'menunggu_racikan',
-                'judul' => 'Menunggu Racikan',
-                'ringkas' => 'Unit sudah menjawab, humas tinggal menyusun jawaban resmi.',
-                'ikon' => 'edit_note',
-                'titik' => 'bg-tertiary-fixed-dim',
-                'latar' => 'bg-tertiary-container/30',
-                'nadaJudul' => 'text-tertiary',
-                'nadaAngka' => 'bg-tertiary-fixed-dim text-on-tertiary-fixed',
-                'syarat' => fn (): Builder => $unitMenjawab($dasar()->aktif()),
-                'filter' => [
-                    'investigasi' => StatusInvestigasi::MenungguRacikan->value,
-                ],
-                'urutan' => fn (Builder $q): Builder => $q->orderBy('created_at'),
-            ],
-            [
-                'kunci' => 'jawaban_unit',
-                'judul' => 'Jawaban di Humas',
-                'ringkas' => 'Arsip unit tersimpan, tiket ditutup dengan jawaban resmi.',
-                'ikon' => 'task_alt',
-                'titik' => 'bg-primary-container',
-                'latar' => 'bg-surface-container-high',
-                'nadaJudul' => 'text-on-surface',
-                'nadaAngka' => 'bg-primary-container text-on-primary',
-                'syarat' => fn (): Builder => $dasar()->selesai(),
-                'filter' => [
-                    'investigasi' => StatusInvestigasi::JawabanUnit->value,
-                ],
-                // Arsip dibaca dari yang paling baru ditutup. Kalau dibiarkan
-                // urut lama-ke-baru, batas muat akan menyisakan tiket lama
-                // dan menyembunyikan yang baru saja selesai.
-                'urutan' => fn (Builder $q): Builder => $q
-                    ->orderByDesc('selesai_at')
-                    ->orderByDesc('created_at'),
-            ],
-        ];
+        $rows = [];
 
-        return collect($kolom)
-            ->map(function (array $data) {
-                $syarat = $data['syarat'];
-                $urutan = $data['urutan'];
+        foreach ($unitIds as $unitId) {
+            $unit = $units[$unitId];
 
-                unset($data['syarat'], $data['urutan']);
+            $queryUnit = fn (bool $hanyaAktif = true): Builder => (clone $dasar())
+                ->where('master_unit_id', $unitId)
+                ->when($hanyaAktif, fn (Builder $q): Builder => $q->aktif());
 
-                // Satu baris lebih dari batas dipakai sebagai penanda bahwa
-                // masih ada sisa, sehingga count() terpisah baru dijalankan
-                // saat kolomnya benar-benar panjang.
-                $daftar = $urutan($syarat())
-                    ->limit(self::MAKS_KARTU + 1)
-                    ->get();
+            // Total tiket aktif di unit ini
+            $totalAktif = $queryUnit()->count();
 
-                $adaSisa = $daftar->count() > self::MAKS_KARTU;
-                $daftar = $daftar->take(self::MAKS_KARTU);
-                $total = $adaSisa ? $syarat()->count() : $daftar->count();
+            // Breakdown by SLA zone (hanya tiket aktif)
+            $breakdown = $queryUnit()->get()
+                ->groupBy(function (Pengaduan $p): string {
+                    if ($p->status->selesai()) {
+                        return 'selesai';
+                    }
+                    $sisa = $p->sisaHariSla();
+                    if ($sisa <= self::BATAS_OVERDUE) {
+                        return 'overdue';
+                    }
+                    if ($sisa <= self::BATAS_AT_RISK) {
+                        return 'at_risk';
+                    }
+                    return 'on_track';
+                });
 
-                // Sisa di atas batas muat tidak mungkin dibuka di tempat,
-                // jadi kolomnya menautkan daftar pengaduan dengan filter
-                // yang sama supaya tiketnya tetap bisa dijangkau.
-                $tautanSisa = $adaSisa
-                    ? route('admin.pengaduan.index', $data['filter'])
-                    : null;
+            $overdue = $breakdown->get('overdue', collect())->count();
+            $atRisk = $breakdown->get('at_risk', collect())->count();
+            $onTrack = $breakdown->get('on_track', collect())->count();
+            $selesai = $breakdown->get('selesai', collect())->count();
 
-                unset($data['filter']);
+            // Rata-rata hari kerja tiket aktif
+            $avgHari = $totalAktif > 0
+                ? $queryUnit()->get()->avg(fn (Pengaduan $p): int => Sla::hariKe($p->created_at))
+                : 0;
 
-                return [
-                    ...$data,
-                    'total' => $total,
-                    'sisa' => max(0, $daftar->count() - self::KARTU_PER_KOLOM),
-                    'batas' => self::KARTU_PER_KOLOM,
-                    'tautanSisa' => $tautanSisa,
-                    'sisaDiLuar' => $total - $daftar->count(),
-                    'tiket' => $daftar
-                        ->map(fn (Pengaduan $pengaduan): array => self::kartuTiket($pengaduan))
-                        ->all(),
-                ];
-            })
-            ->all();
+            // Urgency score unit (untuk sorting): overdue*10 + at_risk*3
+            $urgencyScore = $overdue * 10 + $atRisk * 3;
+
+            $rows[] = [
+                'unit_id' => $unit->id,
+                'kode' => $unit->kode,
+                'nama' => $unit->nama,
+                'pic' => $unit->pic,
+                'wa' => $unit->kontak_wa,
+                'total_aktif' => $totalAktif,
+                'total_selesai' => $selesai,
+                'overdue' => $overdue,
+                'at_risk' => $atRisk,
+                'on_track' => $onTrack,
+                'avg_hari' => round($avgHari, 1),
+                'urgency_score' => $urgencyScore,
+                'bisa_ditugaskan' => $unit->bisaDitugaskan(),
+                'koneksi_aktif' => $unit->koneksiAktif(),
+                'url' => route('admin.pengaduan.index', ['unit' => $unit->kode]),
+            ];
+        }
+
+        // Sort: highest urgency first, then by overdue count
+        usort($rows, fn (array $a, array $b): int => $b['urgency_score'] <=> $a['urgency_score'] ?: $b['overdue'] <=> $a['overdue']);
+
+        return $rows;
     }
 
     /**
-     * Satu kartu tiket di dalam kolom kanban.
+     * Antrian prioritas flat (Option B: Priority Queue).
      *
-     * Kedua tombol di sini menuju halaman yang benar-benar ada. Tautan
-     * "Lihat Tiket Unit" membuka daftar pengaduan yang sudah tersaring ke
-     * unit tiket ini, jadi admin bisa melihat seluruh beban unit tanpa
-     * berpindah-pindah halaman detail.
+     * Urgency = days_overdue * 10 + (kasus_berat ? 50 : 0) + status_weight
+     * status_weight: Diterima=1, Diproses=3, Revisi=5, Menunggu Racikan=2
      *
-     * @return array<string, mixed>
+     * @return array<int, array<string, mixed>>
      */
-    private static function kartuTiket(Pengaduan $pengaduan): array
+    private static function priorityQueue(Builder $dasar): array
     {
-        $unitMenjawab = (bool) $pengaduan->unit_menjawab;
-        $lewat = $pengaduan->lewatInvestigasiUnit();
-        $unit = $pengaduan->masterUnit;
+        $tickets = (clone $dasar())->aktif()
+            ->with('masterUnit')
+            ->get()
+            ->map(function (Pengaduan $p) {
+                $sisa = $p->sisaHariSla();
+                $hariKe = Sla::hariKe($p->created_at);
+                $lewat = $sisa <= 0 ? abs($sisa) : 0;
 
-        return [
-            'kode' => $pengaduan->kode_tiket,
-            'unit' => $pengaduan->namaUnit(),
-            'pelapor' => $pengaduan->nama_lengkap,
-            'subjek' => $pengaduan->subjek,
-            'kasus_berat' => (bool) $pengaduan->kasus_berat,
-            'hari' => Sla::hariKe($pengaduan->created_at),
-            'posisi' => $lewat
-                ? 'Hari ke-'.Sla::hariKe($pengaduan->created_at).' Lewat Batas Unit'
-                : 'Hari ke-'.Sla::hariKe($pengaduan->created_at).' dari '.Sla::hariKerja().' hari kerja',
-            'nadaPosisi' => $lewat ? 'bg-error-container text-on-error-container' : 'bg-surface-container text-on-surface',
-            'nadaGaris' => $lewat ? 'bg-error' : 'bg-outline-variant',
-            'catatan' => StatusInvestigasi::dariPengaduan($pengaduan, $unitMenjawab)->ringkas(),
-            'tombol' => [
-                [
-                    'label' => 'Buka Detail',
-                    'ikon' => 'visibility',
-                    'nada' => 'bg-primary-container text-on-primary',
-                    'url' => route('admin.pengaduan.show', $pengaduan->kode_tiket),
-                ],
-                [
-                    'label' => 'Lihat Tiket Unit',
-                    'ikon' => 'list_alt',
-                    'nada' => 'bg-surface-container-high text-on-surface-variant',
-                    'url' => $unit === null
-                        ? null
-                        : route('admin.pengaduan.index', ['unit' => $unit->kode]),
-                ],
-            ],
-        ];
+                // Status weight: later in process = higher urgency when overdue
+                $statusWeight = match ($p->status) {
+                    StatusPengaduan::Diterima => 1,
+                    StatusPengaduan::Diproses => 3,
+                    StatusPengaduan::Revisi => 5,
+                    StatusPengaduan::Selesai => 0,
+                };
+
+                $urgency = $lewat * 10 + ($p->kasus_berat ? 50 : 0) + $statusWeight;
+
+                // Traffic light
+                $zona = Sla::zona($p->created_at, null, $p->kasus_berat);
+                $slaBadge = match ($zona->value) {
+                    'terlambat' => ['label' => '🔴 TERLAMBAT', 'class' => 'bg-error-container text-on-error-container'],
+                    'mendek' => ['label' => '🟡 MENDEKATI BATAS', 'class' => 'bg-warning-container text-on-warning-container'],
+                    'tepat_waktu' => ['label' => '🟢 SESUAI JADWAL', 'class' => 'bg-success-container text-on-success-container'],
+                    default => ['label' => '—', 'class' => 'bg-surface-container text-on-surface-variant'],
+                };
+
+                return [
+                    'kode' => $p->kode_tiket,
+                    'unit' => $p->masterUnit?->namaLengkap() ?? $p->unit,
+                    'unit_kode' => $p->masterUnit?->kode,
+                    'pelapor' => $p->nama_lengkap,
+                    'subjek' => $p->subjek,
+                    'status' => $p->status->label(),
+                    'status_investigasi' => StatusInvestigasi::dariPengaduan($p, $p->unit_menjawab ?? false)->label(),
+                    'hari_ke' => $hariKe,
+                    'sisa_hari' => max(0, $sisa),
+                    'lewat' => $lewat,
+                    'kasus_berat' => $p->kasus_berat,
+                    'urgency' => $urgency,
+                    'sla_badge' => $slaBadge,
+                    'created_at' => $p->created_at->translatedFormat('d M Y'),
+                    'url_detail' => route('admin.pengaduan.show', $p->kode_tiket),
+                    'url_unit' => $p->masterUnit ? route('admin.pengaduan.index', ['unit' => $p->masterUnit->kode]) : null,
+                ];
+            })
+            ->sortByDesc('urgency')
+            ->take(self::MAX_PRIORITY_QUEUE)
+            ->values()
+            ->all();
+
+        return $tickets;
     }
 }
