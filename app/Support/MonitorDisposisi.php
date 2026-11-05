@@ -69,11 +69,13 @@ final class MonitorDisposisi
     {
         return new self(
             papan: self::papan(),
-            // Menghitung SEMUA tiket yang sudah ditugaskan ke unit (termasuk
-            // yang sudah selesai). Jumlah ini sekarang cocok dengan total
-            // empat kolom kanban: Menunggu Diproses + Sedang Investigasi +
-            // Menunggu Racikan + Jawaban di Humas.
-            ditugaskan: Pengaduan::query()->whereNotNull('master_unit_id')->count(),
+            // Menghitung SEMUA tiket yang sudah ditugaskan ke unit AKTIF (termasuk
+            // yang sudah selesai). Unit non-aktif tidak boleh mendapat tiket baru,
+            // dan tiket lama ke unit yang dinonaktifkan tidak muncul di monitor.
+            ditugaskan: Pengaduan::query()
+                ->whereNotNull('master_unit_id')
+                ->whereHas('masterUnit', fn (Builder $q): Builder => $q->where('aktif', true))
+                ->count(),
             hariInvestigasi: Sla::hariInvestigasi(),
         );
     }
@@ -108,6 +110,7 @@ final class MonitorDisposisi
     {
         $dasar = fn (): Builder => Pengaduan::query()
             ->whereNotNull('master_unit_id')
+            ->whereHas('masterUnit', fn (Builder $q): Builder => $q->where('aktif', true))
             ->with('masterUnit')
             ->withExists(['pesan as unit_menjawab' => fn (Builder $q): Builder => $q->jawabanUnit()]);
 
