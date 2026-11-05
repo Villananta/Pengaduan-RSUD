@@ -375,37 +375,47 @@
 @push('scripts')
     <script>
         // Tab switching
+        function activateTab(tabId) {
+            var tabBtn = document.getElementById(tabId);
+            var panel = document.getElementById(tabBtn.dataset.tabTarget);
+            if (!tabBtn || !panel) return;
+
+            document.querySelectorAll('[role="tabpanel"]').forEach(function (p) {
+                p.classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-btn').forEach(function (b) {
+                b.classList.remove('bg-primary-container', 'text-on-primary');
+                b.classList.add('text-on-surface-variant', 'hover:text-on-surface', 'hover:bg-surface-container');
+                b.setAttribute('aria-selected', 'false');
+            });
+
+            panel.classList.remove('hidden');
+            tabBtn.classList.add('bg-primary-container', 'text-on-primary');
+            tabBtn.classList.remove('text-on-surface-variant', 'hover:text-on-surface', 'hover:bg-surface-container');
+            tabBtn.setAttribute('aria-selected', 'true');
+        }
+
         document.querySelectorAll('.tab-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                var targetId = this.dataset.tabTarget;
-                var panel = document.getElementById(targetId);
-                if (!panel) return;
-
-                // Hide all panels
-                document.querySelectorAll('[role="tabpanel"]').forEach(function (p) {
-                    p.classList.add('hidden');
-                });
-                // Deactivate all tabs
-                document.querySelectorAll('.tab-btn').forEach(function (b) {
-                    b.classList.remove('bg-primary-container', 'text-on-primary');
-                    b.classList.add('text-on-surface-variant', 'hover:text-on-surface', 'hover:bg-surface-container');
-                    b.setAttribute('aria-selected', 'false');
-                });
-
-                // Show target
-                panel.classList.remove('hidden');
-                this.classList.add('bg-primary-container', 'text-on-primary');
-                this.classList.remove('text-on-surface-variant', 'hover:text-on-surface', 'hover:bg-surface-container');
-                this.setAttribute('aria-selected', 'true');
+                activateTab(this.id);
             });
         });
+
+        // Auto-activate Priority Queue tab if page parameter exists or hash is set
+        (function () {
+            var urlParams = new URLSearchParams(window.location.search);
+            var hasPageParam = urlParams.has('page');
+            var hasPriorityHash = window.location.hash === '#panel-priority-queue';
+
+            if (hasPageParam || hasPriorityHash) {
+                activateTab('tab-priority-queue');
+            }
+        })();
 
         // Auto-refresh priority queue every 60s
         var refreshTimer = setInterval(function () {
             var activeTab = document.querySelector('.tab-btn[aria-selected="true"]');
             if (activeTab && activeTab.id === 'tab-priority-queue') {
-                // Only refresh if priority queue tab is active
-                // For now just reload page; could be enhanced with fetch
                 window.location.reload();
             }
         }, 60000);
