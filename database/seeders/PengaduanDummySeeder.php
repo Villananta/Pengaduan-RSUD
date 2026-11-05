@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\KanalPengaduan;
 use App\Enums\KategoriPengaduan;
 use App\Enums\StatusPengaduan;
 use App\Enums\TingkatKeparahan;
@@ -14,14 +15,16 @@ use App\Support\StatistikPengaduan;
 use App\Support\StatistikUnit;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
- * 150 pengaduan contoh yang menyebar ke seluruh fitur konsol.
+ * 150 pengaduan contoh yang disebar rata ke seluruh fitur konsol.
  *
- * Sebarannya ditetapkan lebih dulu, bukan diundi satu per satu. Dengan cara
- * itu jumlah tiap status, kategori, dan zona SLA selalu sama setiap kali
- * seeder dijalankan, sehingga kartu dashboard, tab status, dan banner
- * keterlambatan punya isi yang benar-benar bisa diperiksa.
+ * Komposisi tiap dimensi ditetapkan lebih dulu, bukan diundi satu per satu,
+ * supaya angka pada chip filter, kartu dashboard, dan tab investigasi selalu
+ * sama setiap kali seeder dijalankan. Tiap unit mendapat porsi tiket yang
+ * sama besar, dan semua pilihan status, kategori, keparahan, kanal, serta
+ * zona SLA kebagian isi.
  *
  * Benih acaknya dipatok agar nama, cerita, dan tanggal tidak berubah antar
  * percobaan. Lampiran dan notifikasi lonceng sengaja tidak dibuat di sini:
@@ -32,16 +35,20 @@ class PengaduanDummySeeder extends Seeder
 {
     private const JUMLAH_TIKET = 150;
 
-    private const JUMLAH_FASILITAS = 75;
+    /** Jatah tiket bertaut unit untuk tiap instalasi. */
+    private const TIKET_PER_UNIT = 15;
+
+    /** Tiket tanpa unit agar tab "Ditangani Langsung Humas" ada isinya. */
+    private const TIKET_LANGSUNG_HUMAS = 15;
 
     private const JUMLAH_KASUS_BERAT = 12;
 
     public function run(): void
     {
         // Benih tetap: urutan acak dan isi cerita konsisten antar percobaan.
-        mt_srand(20261028);
+        mt_srand(20261106);
 
-        $units = MasterUnit::query()->orderBy('id')->get();
+        $units = MasterUnit::query()->where('aktif', true)->orderBy('id')->get();
 
         if ($units->isEmpty()) {
             $this->command?->warn('Master unit kosong; jalankan MasterUnitSeeder lebih dulu.');
@@ -51,28 +58,35 @@ class PengaduanDummySeeder extends Seeder
 
         $admin = User::query()->where('peran', 'admin')->orderBy('id')->first();
 
-        $rencana = $this->rencanaStatus();
+        $rencana = $this->rencana($units);
+        $this->sebarKategori($rencana);
+        $this->sebarKanal($rencana);
+        $this->tandaiKasusBerat($rencana);
+        $this->sebarKeparahan($rencana);
+
+        // Urutan baris diacak supaya daftar tidak mengelompok per unit atau
+        // per status. Semua dimensi sudah menempel pada barisnya, jadi
+        // pengacakan tidak mengubah komposisi.
         shuffle($rencana);
 
-        // Kategori dibagi setelah urutan diacak supaya kedua kategori ikut
-        // tersebar ke semua status dan unit, bukan mengumpul di satu blok.
-        foreach ($rencana as $nomor => &$baris) {
-            $baris['kategori'] = $nomor < self::JUMLAH_FASILITAS
-                ? KategoriPengaduan::Fasilitas
-                : KategoriPengaduan::Medis;
-        }
-        unset($baris);
+        $jumlahSelesai = $this->hitungBaris(
+            $rencana,
+            fn (array $baris): bool => $baris['status']->selesai(),
+        );
 
-        $this->tandaiKasusBerat($rencana);
+        $jumlahTerlambat = $this->hitungBaris(
+            $rencana,
+            fn (array $baris): bool => ! $baris['status']->selesai() && $baris['zona'] === 'terlambat',
+        );
 
-        $keparahan = $this->sebaranKeparahan($rencana);
+        $hitung = ['selesai' => 0, 'terlambat' => 0];
         $kodeTerpakai = [];
 
         foreach ($rencana as $nomor => $baris) {
-            $unit = $units[$nomor % $units->count()];
             $kasusBerat = $baris['kasus_berat'];
+            $unit = $baris['unit'];
 
-            [$dibuat, $selesai] = $this->tanggal($baris['status'], $baris['zona'], $kasusBerat);
+            [$dibuat, $selesai] = $this->tanggal($baris, $hitung, $jumlahSelesai, $jumlahTerlambat);
 
             $kode = $this->kodeTiket($dibuat, $kodeTerpakai);
             [$terverifikasi, $otp, $otpKedaluwarsa] = $this->statusEmail($nomor, $dibuat);
@@ -92,14 +106,15 @@ class PengaduanDummySeeder extends Seeder
                     'email_otp_expires_at' => $otpKedaluwarsa,
                     'alamat' => $this->alamatAcak(),
                     'waktu_kejadian' => $dibuat->copy()->subDays(mt_rand(1, 5))->setTime(mt_rand(6, 21), mt_rand(0, 59)),
-                    'unit' => $unit->nama,
-                    'master_unit_id' => $unit->id,
+                    'unit' => $unit?->nama ?? 'Hubungan Masyarakat',
+                    'master_unit_id' => $unit?->id,
                     'subjek' => $subjek,
                     'deskripsi' => $deskripsi,
+                    'kanal' => $baris['kanal'],
                     'lampiran' => [],
                     'status' => $baris['status'],
                     'kasus_berat' => $kasusBerat,
-                    'tingkat_keparahan' => $keparahan[$nomor],
+                    'tingkat_keparahan' => $baris['keparahan'],
                     'draf_jawaban' => $this->drafJawaban($baris['status'], $nomor),
                     'akses_token' => $token,
                     'akses_token_expires_at' => $tokenKedaluwarsa,
@@ -107,7 +122,8 @@ class PengaduanDummySeeder extends Seeder
             );
 
             // Waktu terima, waktu tutup, dan penanda kasus berat ditulis
-            // terpisah karena tidak masuk daftar kolom yang boleh diisi massal.
+            // terpisah karena tidak masuk daftar kolom yang boleh diisi
+            // massal.
             $pengaduan->forceFill([
                 'created_at' => $dibuat,
                 'updated_at' => $selesai ?? $dibuat->copy()->addHours(6),
@@ -115,8 +131,8 @@ class PengaduanDummySeeder extends Seeder
                 'kasus_berat_at' => $kasusBerat ? $dibuat->copy()->addDay() : null,
             ])->saveQuietly();
 
-            $this->isiPercakapan($pengaduan, $baris['status'], $dibuat, $selesai);
-            $this->isiRiwayat($pengaduan, $baris['status'], $kasusBerat, $dibuat, $selesai, $admin?->id, $nomor);
+            $this->isiPercakapan($pengaduan, $baris['status'], $baris['jawaban_unit'], $dibuat, $selesai);
+            $this->isiRiwayat($pengaduan, $baris, $dibuat, $selesai, $admin?->id, $nomor);
         }
 
         StatistikDashboard::lupaCache();
@@ -127,50 +143,149 @@ class PengaduanDummySeeder extends Seeder
     }
 
     /**
-     * Rencana status beserta zona SLA yang ingin dicapai.
+     * Susun komposisi tiket sebelum diacak.
      *
-     * Zona ikut ditetapkan di sini karena usia tiket menentukan warna SLA.
-     * "Mendekati" sengaja hanya memakai satu titik (total-1) supaya
-     * pergeseran satu hari kerja saat perhitungan tidak melempar tiket ke
-     * zona terlambat.
+     * Lima belas tiket per unit dipakai supaya kesembilan instalasi
+     * mendapat porsi yang sama. Lima belas tiket sisanya tidak ditautkan
+     * ke unit mana pun agar tab investigasi "Ditangani Langsung Humas"
+     * ikut terisi.
      *
-     * @return array<int, array{status: StatusPengaduan, zona: string, kasus_berat: bool, kategori?: KategoriPengaduan}>
+     * @param  Collection<int, MasterUnit>  $units
+     * @return array<int, array<string, mixed>>
      */
-    private function rencanaStatus(): array
+    private function rencana(Collection $units): array
     {
+        // Tiap unit memakai pola yang sama: 3 menunggu, 4 diproses,
+        // 4 perlu revisi, dan 4 selesai. Di dalamnya sudah ditentukan
+        // zona SLA dan apakah unit sudah membalas, sehingga susunan
+        // tab investigasi tiap unit juga sebanding.
+        $pola = [
+            [StatusPengaduan::Diterima, 'tepat', false],
+            [StatusPengaduan::Diterima, 'tepat', false],
+            [StatusPengaduan::Diterima, 'tepat', false],
+            [StatusPengaduan::Diproses, 'tepat', true],
+            [StatusPengaduan::Diproses, 'mendek', true],
+            [StatusPengaduan::Diproses, 'mendek', false],
+            [StatusPengaduan::Diproses, 'terlambat', false],
+            [StatusPengaduan::Revisi, 'tepat', true],
+            [StatusPengaduan::Revisi, 'mendek', true],
+            [StatusPengaduan::Revisi, 'mendek', false],
+            [StatusPengaduan::Revisi, 'terlambat', false],
+            [StatusPengaduan::Selesai, 'tepat', true],
+            [StatusPengaduan::Selesai, 'tepat', true],
+            [StatusPengaduan::Selesai, 'terlambat', true],
+            [StatusPengaduan::Selesai, 'terlambat', true],
+        ];
+
         $rencana = [];
 
-        $this->tambahRencana($rencana, StatusPengaduan::Diterima, 'tepat', 35);
+        foreach ($units as $unit) {
+            foreach ($pola as [$status, $zona, $jawabanUnit]) {
+                $rencana[] = [
+                    'status' => $status,
+                    'unit' => $unit,
+                    'zona' => $zona,
+                    'jawaban_unit' => $jawabanUnit,
+                    'kategori' => null,
+                    'kanal' => null,
+                    'keparahan' => null,
+                    'kasus_berat' => false,
+                ];
+            }
+        }
 
-        $this->tambahRencana($rencana, StatusPengaduan::Diproses, 'tepat', 20);
-        $this->tambahRencana($rencana, StatusPengaduan::Diproses, 'mendekati', 14);
-        $this->tambahRencana($rencana, StatusPengaduan::Diproses, 'terlambat', 16);
+        // Sebelas tiket Diterima dipindahkan ke jalur humas supaya total
+        // tiap tahap tetap 38/38/37/37. Dua tiket Diproses tanpa unit
+        // dipakai agar kartu "diproses humas" pada dashboard tidak nol.
+        $langsungHumas = array_merge(
+            array_fill(0, 11, [StatusPengaduan::Diterima, 'tepat']),
+            [
+                [StatusPengaduan::Diproses, 'tepat'],
+                [StatusPengaduan::Diproses, 'terlambat'],
+                [StatusPengaduan::Revisi, 'terlambat'],
+                [StatusPengaduan::Selesai, 'tepat'],
+            ],
+        );
 
-        $this->tambahRencana($rencana, StatusPengaduan::Revisi, 'tepat', 8);
-        $this->tambahRencana($rencana, StatusPengaduan::Revisi, 'mendekati', 8);
-        $this->tambahRencana($rencana, StatusPengaduan::Revisi, 'terlambat', 4);
-
-        $this->tambahRencana($rencana, StatusPengaduan::Selesai, 'tepat', 27);
-        $this->tambahRencana($rencana, StatusPengaduan::Selesai, 'terlambat', 18);
+        foreach ($langsungHumas as [$status, $zona]) {
+            $rencana[] = [
+                'status' => $status,
+                'unit' => null,
+                'zona' => $zona,
+                'jawaban_unit' => false,
+                'kategori' => null,
+                'kanal' => null,
+                'keparahan' => null,
+                'kasus_berat' => false,
+            ];
+        }
 
         return $rencana;
     }
 
-    /** @param array<int, array<string, mixed>> $rencana */
-    private function tambahRencana(array &$rencana, StatusPengaduan $status, string $zona, int $jumlah): void
+    /**
+     * Bagi kategori tepat 75 fasilitas dan 75 medis.
+     *
+     * @param  array<int, array<string, mixed>>  $rencana
+     */
+    private function sebarKategori(array &$rencana): void
     {
-        for ($i = 0; $i < $jumlah; $i++) {
-            $rencana[] = [
-                'status' => $status,
-                'zona' => $zona,
-                'kasus_berat' => false,
-            ];
+        $setengah = intdiv(self::JUMLAH_TIKET, 2);
+
+        $nilai = array_merge(
+            array_fill(0, $setengah, KategoriPengaduan::Fasilitas),
+            array_fill(0, $setengah, KategoriPengaduan::Medis),
+        );
+
+        shuffle($nilai);
+
+        foreach ($rencana as $nomor => &$baris) {
+            $baris['kategori'] = $nilai[$nomor];
         }
+
+        unset($baris);
     }
 
     /**
-     * Tandai sebagian tiket medis yang masih berjalan sebagai kasus berat.
+     * Bagi kanal rata ke lima pilihan enum ditambah Portal Web.
      *
+     * Portal Web diwakili nilai null karena tiket dari formulir web tidak
+     * mengisi kolom kanal; filter di konsol menampilkannya dengan nama itu.
+     *
+     * @param  array<int, array<string, mixed>>  $rencana
+     */
+    private function sebarKanal(array &$rencana): void
+    {
+        $pilihan = [
+            null,
+            KanalPengaduan::Telepon,
+            KanalPengaduan::Whatsapp,
+            KanalPengaduan::TatapMuka,
+            KanalPengaduan::Email,
+            KanalPengaduan::Sms,
+        ];
+
+        $perKanal = intdiv(self::JUMLAH_TIKET, count($pilihan));
+        $nilai = [];
+
+        foreach ($pilihan as $kanal) {
+            $nilai = array_merge($nilai, array_fill(0, $perKanal, $kanal));
+        }
+
+        shuffle($nilai);
+
+        foreach ($rencana as $nomor => &$baris) {
+            $baris['kanal'] = $nilai[$nomor];
+        }
+
+        unset($baris);
+    }
+
+    /**
+     * Tandai kasus berat pada tiket medis yang masih berjalan.
+     *
+     * Dua belas tiket diambil bergiliran dari tiap unit supaya panel
+     * prioritas di monitor disposisi tidak menumpuk di satu instalasi.
      * Kasus berat tidak pernah berstatus selesai karena aturannya harus
      * melewati telaah komite lebih dulu.
      *
@@ -181,92 +296,180 @@ class PengaduanDummySeeder extends Seeder
         $kandidat = [];
 
         foreach ($rencana as $nomor => $baris) {
-            if ($baris['kategori'] === KategoriPengaduan::Medis
-                && in_array($baris['status'], [StatusPengaduan::Diproses, StatusPengaduan::Revisi], true)) {
-                $kandidat[] = $nomor;
+            if ($baris['unit'] === null
+                || $baris['kategori'] !== KategoriPengaduan::Medis
+                || ! in_array($baris['status'], [StatusPengaduan::Diproses, StatusPengaduan::Revisi], true)) {
+                continue;
             }
+
+            $kandidat[$baris['unit']->id][] = $nomor;
         }
 
-        shuffle($kandidat);
+        $terpilih = [];
+        $putaran = 0;
 
-        foreach (array_slice($kandidat, 0, self::JUMLAH_KASUS_BERAT) as $nomor) {
+        while (count($terpilih) < self::JUMLAH_KASUS_BERAT) {
+            $adaBarisBaru = false;
+
+            foreach ($kandidat as $daftar) {
+                if (! isset($daftar[$putaran])) {
+                    continue;
+                }
+
+                $adaBarisBaru = true;
+                $terpilih[] = $daftar[$putaran];
+
+                if (count($terpilih) >= self::JUMLAH_KASUS_BERAT) {
+                    break;
+                }
+            }
+
+            // Semua unit sudah kehabisan kandidat sebelum target tercapai;
+            // hentikan supaya tidak berputar tanpa akhir.
+            if (! $adaBarisBaru) {
+                break;
+            }
+
+            $putaran++;
+        }
+
+        foreach ($terpilih as $nomor) {
             $rencana[$nomor]['kasus_berat'] = true;
         }
     }
 
     /**
-     * Sebaran keparahan untuk tiket yang sudah ditelaah admin.
+     * Tetapkan keparahan merata untuk tiket yang sudah ditelaah admin.
      *
-     * Tiket yang masih "Diterima" belum punya keparahan karena admin belum
-     * menetapkannya. Kasus berat selalu berlabel berat.
+     * Tiap unit mendapat empat ringan, empat sedang, dan empat berat.
+     * Tiket yang masih Diterima belum ditelaah sehingga kolomnya kosong.
+     * Kasus berat selalu berlabel berat, jadi sisa kuota berat dihitung
+     * setelah penandaan kasus berat.
      *
      * @param  array<int, array<string, mixed>>  $rencana
-     * @return array<int, ?TingkatKeparahan>
      */
-    private function sebaranKeparahan(array $rencana): array
+    private function sebarKeparahan(array &$rencana): void
     {
-        $nilai = array_merge(
-            array_fill(0, 30, TingkatKeparahan::Ringan),
-            array_fill(0, 55, TingkatKeparahan::Sedang),
-            array_fill(0, 30, TingkatKeparahan::Berat),
-        );
-
-        shuffle($nilai);
-
-        $hasil = [];
-        $urutan = 0;
+        $kelompok = [];
 
         foreach ($rencana as $nomor => $baris) {
             if ($baris['status']->diterima()) {
-                $hasil[$nomor] = null;
-
                 continue;
             }
 
-            $hasil[$nomor] = $baris['kasus_berat']
-                ? TingkatKeparahan::Berat
-                : $nilai[$urutan++];
+            // Tiket langsung humas memakai kunci 0 supaya ikut mendapat
+            // porsi, tetapi dengan komposisi yang lebih kecil.
+            $kelompok[$baris['unit']?->id ?? 0][] = $nomor;
         }
 
-        return $hasil;
+        foreach ($kelompok as $kunci => $daftar) {
+            $tetap = [];
+            $bebas = [];
+
+            foreach ($daftar as $nomor) {
+                if ($rencana[$nomor]['kasus_berat']) {
+                    $tetap[] = $nomor;
+                } else {
+                    $bebas[] = $nomor;
+                }
+            }
+
+            // Unit: 4 ringan, 4 sedang, 4 berat. Langsung humas hanya
+            // punya empat tiket yang sudah ditelaah, jadi 2/1/1.
+            [$ringan, $sedang, $berat] = $kunci === 0
+                ? [2, 1, 1]
+                : [4, 4, 4];
+
+            $nilai = array_merge(
+                array_fill(0, max(0, $berat - count($tetap)), TingkatKeparahan::Berat),
+                array_fill(0, $sedang, TingkatKeparahan::Sedang),
+                array_fill(0, $ringan, TingkatKeparahan::Ringan),
+            );
+
+            shuffle($nilai);
+
+            foreach ($bebas as $urutan => $nomor) {
+                $rencana[$nomor]['keparahan'] = $nilai[$urutan];
+            }
+
+            foreach ($tetap as $nomor) {
+                $rencana[$nomor]['keparahan'] = TingkatKeparahan::Berat;
+            }
+        }
+
+        foreach ($rencana as &$baris) {
+            if ($baris['status']->diterima()) {
+                $baris['keparahan'] = null;
+            }
+        }
+
+        unset($baris);
     }
 
     /**
      * Tanggal masuk dan, bila sudah selesai, tanggal tutup tiket.
      *
-     * Usia dipilih menurut zona yang sudah direncanakan, lalu dihitung
-     * mundur dalam hari kerja supaya `Sla::zona()` membaca hasil yang sama
-     * dengan yang dimaksud. Tiket yang belum selesai tidak pernah diberi
-     * tanggal lebih tua dari 50 hari agar daftar tidak penuh tiket mangkrak.
+     * Tiket selesai disebar sepanjang enam bulan terakhir supaya kartu
+     * "selesai bulan ini" dan filter rentang tanggal sama-sama punya isi.
+     * Tiket aktif yang terlambat ikut disebar, sedangkan tiket yang masih
+     * aman atau mendekati batas tidak mungkin tua karena zona itu memang
+     * dihitung dari umur tiket.
      *
+     * @param  array<string, mixed>  $baris
+     * @param  array{selesai: int, terlambat: int}  $hitung
      * @return array{0: Carbon, 1: ?Carbon}
      */
-    private function tanggal(StatusPengaduan $status, string $zona, bool $kasusBerat): array
+    private function tanggal(array $baris, array &$hitung, int $jumlahSelesai, int $jumlahTerlambat): array
     {
-        $total = Sla::totalHariKerja($kasusBerat);
+        $status = $baris['status'];
+        $total = Sla::totalHariKerja($baris['kasus_berat']);
 
-        if ($status->selesai()) {
-            $lamaSelesai = $zona === 'tepat'
-                ? mt_rand(1, max(1, $total - 3))
-                : mt_rand($total + 1, $total + 8);
+        // Titik hitung dimundurkan ke hari kerja terdekat supaya subWeekdays()
+        // selalu berakhir di hari kerja dan selisih hari kerja dengan
+        // Sla::zona() tidak meleset satu hari.
+        $dasar = now()->copy();
 
-            $dibuat = now()->subWeekdays($lamaSelesai + mt_rand(2, 60));
-            $selesai = $dibuat->copy()->addWeekdays($lamaSelesai)->setTime(mt_rand(13, 17), mt_rand(0, 59));
-
-            return [$this->jamMasuk($dibuat), $selesai];
+        if ($dasar->isWeekend()) {
+            $dasar->previousWeekday();
         }
 
         if ($status->diterima()) {
             return [now()->subHours(mt_rand(1, 48)), null];
         }
 
-        $hari = match ($zona) {
-            'mendekati' => $total - 1,
-            'terlambat' => mt_rand($total + 2, $total + 15),
-            default => mt_rand(2, max(2, $total - 3)),
-        };
+        if ($status->selesai()) {
+            $usia = 2 + intdiv($hitung['selesai'] * 175, max(1, $jumlahSelesai - 1));
+            $hitung['selesai']++;
 
-        return [$this->jamMasuk(now()->subWeekdays($hari)), null];
+            $selesai = $dasar->copy()->subDays($usia);
+
+            if ($selesai->isWeekend()) {
+                $selesai->previousWeekday();
+            }
+
+            $selesai->setTime(mt_rand(13, 17), mt_rand(0, 59));
+
+            $lama = $baris['zona'] === 'tepat'
+                ? mt_rand(1, max(1, $total - 3))
+                : mt_rand($total + 1, $total + 8);
+
+            $dibuat = $selesai->copy()->subWeekdays($lama);
+
+            return [$this->jamMasuk($dibuat), $selesai];
+        }
+
+        if ($baris['zona'] === 'mendek') {
+            return [$this->jamMasuk($dasar->copy()->subWeekdays($total - 1)), null];
+        }
+
+        if ($baris['zona'] === 'terlambat') {
+            $usia = $total + 2 + intdiv($hitung['terlambat'] * 120, max(1, $jumlahTerlambat - 1));
+            $hitung['terlambat']++;
+
+            return [$this->jamMasuk($dasar->copy()->subWeekdays($usia)), null];
+        }
+
+        return [$this->jamMasuk($dasar->copy()->subWeekdays(mt_rand(2, max(2, $total - 3)))), null];
     }
 
     /** Jam masuk dibuat pagi supaya selisih hari tidak terpotong pembulatan. */
@@ -352,12 +555,17 @@ class PengaduanDummySeeder extends Seeder
     /**
      * Isi percakapan mengikuti sejauh mana tiket berjalan.
      *
-     * Pesan pembuka selalu ada, jalur unit diisi hanya untuk tiket yang sudah
-     * diteruskan, dan tiket selesai ditutup dengan kalimat penutup pada waktu
-     * yang sama dengan `selesai_at`.
+     * Pesan pembuka selalu ada, jalur unit diisi hanya untuk tiket yang
+     * sudah diteruskan dan unitnya benar-benar membalas, dan tiket selesai
+     * ditutup dengan kalimat penutup pada waktu yang sama dengan selesai_at.
      */
-    private function isiPercakapan(Pengaduan $pengaduan, StatusPengaduan $status, Carbon $dibuat, ?Carbon $selesai): void
-    {
+    private function isiPercakapan(
+        Pengaduan $pengaduan,
+        StatusPengaduan $status,
+        bool $jawabanUnit,
+        Carbon $dibuat,
+        ?Carbon $selesai,
+    ): void {
         $pengaduan->pesan()->delete();
 
         $daftar = [
@@ -374,8 +582,11 @@ class PengaduanDummySeeder extends Seeder
             $daftar[] = [
                 'kanal' => 'pelapor',
                 'peran' => 'admin',
-                'isi' => 'Laporan sudah kami teruskan ke '.$pengaduan->namaUnit()
-                    .' untuk ditelusuri. Perkembangan akan kami kabarkan lewat halaman ini.',
+                'isi' => $pengaduan->master_unit_id === null
+                    ? 'Laporan ini ditangani langsung oleh tim Humas tanpa disposisi ke unit teknis. '
+                        .'Perkembangan akan kami kabarkan lewat halaman ini.'
+                    : 'Laporan sudah kami teruskan ke '.$pengaduan->namaUnit()
+                        .' untuk ditelusuri. Perkembangan akan kami kabarkan lewat halaman ini.',
                 'waktu' => $dibuat->copy()->addHours(5),
             ];
         }
@@ -406,7 +617,7 @@ class PengaduanDummySeeder extends Seeder
             ];
         }
 
-        if (! $status->diterima()) {
+        if ($jawabanUnit) {
             $daftar[] = [
                 'kanal' => 'unit',
                 'peran' => 'admin',
@@ -441,11 +652,12 @@ class PengaduanDummySeeder extends Seeder
      * Selain perpindahan tahap, sebagian tiket diberi baris penetapan
      * kategori, keparahan, dan nudge supaya halaman riwayat menampilkan
      * keempat jenis aksi, bukan hanya disposisi.
+     *
+     * @param  array<string, mixed>  $baris
      */
     private function isiRiwayat(
         Pengaduan $pengaduan,
-        StatusPengaduan $status,
-        bool $kasusBerat,
+        array $baris,
         Carbon $dibuat,
         ?Carbon $selesai,
         ?int $adminId,
@@ -453,12 +665,17 @@ class PengaduanDummySeeder extends Seeder
     ): void {
         $pengaduan->riwayatStatus()->delete();
 
+        $status = $baris['status'];
+        $kasusBerat = $baris['kasus_berat'];
+
         $tahapan = [[StatusPengaduan::Diterima, null, $dibuat]];
 
         if (! $status->diterima()) {
             $tahapan[] = [
                 StatusPengaduan::Diproses,
-                'Disposisi diteruskan ke '.$pengaduan->namaUnit().' untuk investigasi.',
+                $baris['unit'] === null
+                    ? 'Ditangani langsung oleh Humas tanpa disposisi unit teknis.'
+                    : 'Disposisi diteruskan ke '.$pengaduan->namaUnit().' untuk investigasi.',
                 $dibuat->copy()->addDay(),
             ];
         }
@@ -538,6 +755,16 @@ class PengaduanDummySeeder extends Seeder
                 'updated_at' => $dibuat->copy()->addDay()->addHours(3),
             ]);
         }
+    }
+
+    /**
+     * Hitung baris yang lolos syarat tanpa mengubah array rencana.
+     *
+     * @param  array<int, array<string, mixed>>  $rencana
+     */
+    private function hitungBaris(array $rencana, callable $syarat): int
+    {
+        return count(array_filter($rencana, $syarat));
     }
 
     private function pilihNama(): string

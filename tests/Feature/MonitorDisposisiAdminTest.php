@@ -2,18 +2,24 @@
 
 namespace Tests\Feature;
 
-use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use App\Models\User;
 use App\Support\MonitorDisposisi;
-use App\Support\StatistikDashboard;
+use App\Support\Sla;
 use Database\Seeders\MasterUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 use Tests\TestCase;
 
+/**
+ * Uji halaman Monitor Disposisi & SLA Unit.
+ *
+ * Halaman ini punya dua panel: tabel beban per unit dan antrian prioritas
+ * yang dipaginasi. Keduanya hanya boleh memuat tiket yang benar-benar
+ * sudah didisposisikan ke unit aktif, jadi sebagian besar uji di sini
+ * memeriksa batas itu.
+ */
 class MonitorDisposisiAdminTest extends TestCase
 {
     use RefreshDatabase;
@@ -24,8 +30,10 @@ class MonitorDisposisiAdminTest extends TestCase
     {
         parent::setUp();
 
+        // Tanggal dipatok supaya perhitungan hari kerja dan zona SLA tidak
+        // bergeser mengikuti hari test dijalankan.
+        $this->travelTo('2026-11-06 09:00:00');
         $this->seed(MasterUnitSeeder::class);
-        StatistikDashboard::lupaCache();
 
         $this->admin = $this->masukSebagaiAdmin();
     }
@@ -34,10 +42,8 @@ class MonitorDisposisiAdminTest extends TestCase
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        Pengaduan::factory()->create([
+        $this->tiket($unit, [
             'kode_tiket' => 'ADUAN-MONITOR-01',
-            'master_unit_id' => $unit->id,
-            'unit' => $unit->nama,
             'nama_lengkap' => 'Slamet Riyadi',
         ]);
 
@@ -49,8 +55,7 @@ class MonitorDisposisiAdminTest extends TestCase
 
         $this->get(route('admin.monitor.index'))
             ->assertOk()
-            ->assertSee('Monitor Disposisi &amp; SLA Unit', false)
-            ->assertSee('Ringkasan Status Disposisi Unit Aktif (Lapis 2)')
+            ->assertSee('Monitor Disposisi & SLA Unit', false)
             ->assertSee('ADUAN-MONITOR-01')
             ->assertSee('Slamet Riyadi');
     }
@@ -66,76 +71,241 @@ class MonitorDisposisiAdminTest extends TestCase
     {
         $this->get(route('admin.monitor.index'))
             ->assertOk()
-            ->assertSee('Tidak ada tiket pada kolom ini');
+            ->assertSee('Tidak ada unit dengan tiket aktif')
+            ->assertSee('Tidak ada tiket aktif');
     }
 
     public function test_tiket_tanpa_disposisi_unit_tidak_ikut_dihitung(): void
     {
         // Pengaduan yang ditangani humas langsung tidak pernah menyentuh
-        // MASTER_UNITS, jadi tidak boleh muncul di papan disposisi unit.
+        // master unit, jadi tidak boleh muncul di papan disposisi unit.
         Pengaduan::factory()->create([
             'kode_tiket' => 'ADUAN-LANGSUNG-01',
             'master_unit_id' => null,
             'unit' => 'Instalasi Rawat Jalan (Poliklinik)',
         ]);
 
+        $monitor = MonitorDisposisi::dariRequest(1, 50);
+
+        $this->assertSame([], $monitor->unitTable);
+        $this->assertSame([], $monitor->priorityQueue);
+        $this->assertSame(0, $monitor->totalDitugaskan);
+
         $this->get(route('admin.monitor.index'))
             ->assertOk()
             ->assertDontSee('ADUAN-LANGSUNG-01');
     }
 
-    public function test_menunggu_diproses_humas_dipisah_dari_sedang_investigasi(): void
+    public function test_unit_nonaktif_tidak_ikut_ditampilkan(): void
+    {
+        // Tiket yang menempel pada unit nonaktif menggantung tanpa pihak
+        // yang bisa ditagih, jadi tidak boleh masuk hitungan monitor.
+        $unit = MasterUnit::factory()->nonaktif()->create();
+
+        $this->tiket($unit, ['kode_tiket' => 'ADUAN-UNIT-MATI']);
+
+        $monitor = MonitorDisposisi::dariRequest(1, 50);
+
+        $this->assertSame([], $monitor->unitTable);
+        $this->assertSame([], $monitor->priorityQueue);
+        $this->assertSame(0, $monitor->totalDitugaskan);
+    }
+
+    public function test_unit_yang_semua_tiketnya_selesai_keluar_dari_tabel_unit(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        Pengaduan::factory()->status(StatusPengaduan::Diterima)->create([
-            'kode_tiket' => 'ADUAN-BELUM-DIBUKA',
+        Pengaduan::factory()->selesai()->create([
+            'kode_tiket' => 'ADUAN-SUDAH-TUTUP',
             'master_unit_id' => $unit->id,
             'unit' => $unit->nama,
         ]);
 
-        $tampilan = $this->get(route('admin.monitor.index'))
-            ->assertOk()
-            ->assertSee('Menunggu Diproses Humas')
-            ->assertSee('ADUAN-BELUM-DIBUKA')
-            ->getContent();
+        $monitor = MonitorDisposisi::dariRequest(1, 50);
 
-        // Tiket Diterima tetap berstatus investigasi 'Sedang Investigasi'
-        // pada tab Lapis 2 di daftar pengaduan, jadi pemisahan hanya boleh
-        // terjadi di papan monitor ini.
-        $this->assertStringNotContainsString('ADUAN-BELUM-DIBUKA', $this->dariTab('Sedang Investigasi', $tampilan));
+        // Tabel unit hanya menghitung unit yang masih punya pekerjaan aktif,
+        // tetapi KPI "Total Ditugaskan" tetap menjumlahkan tiket yang sudah
+        // ditutup karena halaman ini juga mengawasi arsipnya.
+        $this->assertSame([], $monitor->unitTable);
+        $this->assertSame([], $monitor->priorityQueue);
+        $this->assertSame(1, $monitor->totalDitugaskan);
     }
 
-    public function test_tiket_yang_lewat_batas_ditandai_di_kanban(): void
-    {
-        $unit = MasterUnit::where('kode', 'IRS-03')->firstOrFail();
-
-        // Tanggal dibuat mundur supaya diffInWeekdays benar-benar melewati
-        // batas investigasi unit tanpa bergantung jam eksekusi test.
-        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
-            'kode_tiket' => 'ADUAN-LEWAT-BATAS',
-            'master_unit_id' => $unit->id,
-            'unit' => $unit->nama,
-            'created_at' => now()->subWeeks(4),
-            'updated_at' => now()->subWeeks(4),
-        ]);
-
-        $this->get(route('admin.monitor.index'))
-            ->assertOk()
-            ->assertSee('ADUAN-LEWAT-BATAS')
-            ->assertSee('Lewat Batas Unit');
-    }
-
-    public function test_kanban_menautkan_ke_halaman_yang_benar_benar_ada(): void
+    public function test_tabel_unit_menghitung_tiket_aktif_selesai_dan_zona_sla(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
-        Pengaduan::factory()->status(StatusPengaduan::Diproses)->create([
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-TEPAT',
+            'created_at' => now(),
+        ]);
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-MENDEK',
+            'created_at' => now()->subWeekdays(10),
+        ]);
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-TELAT',
+            'created_at' => now()->subWeekdays(13),
+        ]);
+
+        Pengaduan::factory()->selesai(now()->subDays(3))->create([
+            'kode_tiket' => 'ADUAN-TUTUP',
+            'master_unit_id' => $unit->id,
+            'unit' => $unit->nama,
+            'created_at' => now()->subWeekdays(5),
+        ]);
+
+        $baris = collect(MonitorDisposisi::dariRequest(1, 50)->unitTable)
+            ->firstWhere('kode', 'IFP-01');
+
+        $this->assertNotNull($baris);
+        $this->assertSame(3, $baris['total_aktif']);
+        $this->assertSame(1, $baris['total_selesai']);
+        $this->assertSame(1, $baris['overdue']);
+        $this->assertSame(1, $baris['at_risk']);
+        $this->assertSame(1, $baris['on_track']);
+
+        // Hari ke-1, ke-11, dan ke-14 dirata-rata menjadi 8,7 hari kerja.
+        $this->assertSame(8.7, $baris['avg_hari']);
+    }
+
+    public function test_tabel_unit_diurutkan_dari_beban_paling_mendesak(): void
+    {
+        $sibuk = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+        $santai = MasterUnit::where('kode', 'IRS-03')->firstOrFail();
+
+        $this->tiket($santai, [
+            'kode_tiket' => 'ADUAN-SANTAI-01',
+            'created_at' => now(),
+        ]);
+
+        $this->tiket($sibuk, [
+            'kode_tiket' => 'ADUAN-SIBUK-01',
+            'created_at' => now()->subWeekdays(13),
+        ]);
+        $this->tiket($sibuk, [
+            'kode_tiket' => 'ADUAN-SIBUK-02',
+            'created_at' => now()->subWeekdays(14),
+        ]);
+
+        $urutan = array_column(MonitorDisposisi::dariRequest(1, 50)->unitTable, 'kode');
+
+        $this->assertSame(['IFP-01', 'IRS-03'], $urutan);
+    }
+
+    public function test_antrian_prioritas_mengurutkan_kasus_berat_dan_terlambat_lebih_dulu(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        // Enam kelompok prioritas, semuanya aktif dan sudah didisposisikan.
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-BERAT-TELAT',
+            'status' => StatusPengaduan::Diproses,
+            'kasus_berat' => true,
+            'created_at' => now()->subWeekdays(21),
+        ]);
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-BERAT-TEPAT',
+            'status' => StatusPengaduan::Diproses,
+            'kasus_berat' => true,
+            'created_at' => now()->subWeekdays(5),
+        ]);
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-SEDANG-TELAT',
+            'status' => StatusPengaduan::Diproses,
+            'created_at' => now()->subWeekdays(13),
+        ]);
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-SEDANG-TEPAT',
+            'status' => StatusPengaduan::Revisi,
+            'created_at' => now(),
+        ]);
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-RINGAN-TELAT',
+            'status' => StatusPengaduan::Diterima,
+            'created_at' => now()->subWeekdays(13),
+        ]);
+        $this->tiket($unit, [
+            'kode_tiket' => 'ADUAN-RINGAN-TEPAT',
+            'status' => StatusPengaduan::Diterima,
+            'created_at' => now(),
+        ]);
+
+        $antrian = MonitorDisposisi::dariRequest(1, 50)->priorityQueue;
+
+        $this->assertSame([
+            'ADUAN-BERAT-TELAT',
+            'ADUAN-BERAT-TEPAT',
+            'ADUAN-SEDANG-TELAT',
+            'ADUAN-SEDANG-TEPAT',
+            'ADUAN-RINGAN-TELAT',
+            'ADUAN-RINGAN-TEPAT',
+        ], array_column($antrian, 'kode'));
+
+        $this->assertSame([1, 2, 3, 4, 5, 6], array_column($antrian, 'priority_group'));
+    }
+
+    public function test_antrian_prioritas_hanya_memuat_tiket_aktif_berunit(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $this->tiket($unit, ['kode_tiket' => 'ADUAN-MASIH-JALAN']);
+
+        Pengaduan::factory()->selesai()->create([
+            'kode_tiket' => 'ADUAN-SELESAI',
+            'master_unit_id' => $unit->id,
+            'unit' => $unit->nama,
+        ]);
+
+        Pengaduan::factory()->create([
+            'kode_tiket' => 'ADUAN-TANPA-UNIT',
+            'master_unit_id' => null,
+        ]);
+
+        $monitor = MonitorDisposisi::dariRequest(1, 50);
+
+        $this->assertSame(['ADUAN-MASIH-JALAN'], array_column($monitor->priorityQueue, 'kode'));
+        $this->assertSame(1, $monitor->priorityTotal);
+    }
+
+    public function test_antrian_prioritas_dipaginasi_dan_totalnya_tetap_jujur(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        Pengaduan::factory()->count(60)->create([
+            'master_unit_id' => $unit->id,
+            'unit' => $unit->nama,
+            'status' => StatusPengaduan::Diproses,
+        ]);
+
+        $halamanKedua = MonitorDisposisi::dariRequest(2, 50);
+
+        $this->assertSame(60, $halamanKedua->priorityTotal);
+        $this->assertCount(10, $halamanKedua->priorityQueue);
+        $this->assertSame(2, $halamanKedua->priorityCurrentPage);
+        $this->assertSame(50, $halamanKedua->priorityPerPage);
+
+        // Nilai per_page di luar pilihan yang didukung jatuh kembali ke 50,
+        // supaya URL yang dikarang tidak bisa memaksa render ratusan baris.
+        $this->assertSame(50, MonitorDisposisi::dariRequest(1, 7)->priorityPerPage);
+    }
+
+    public function test_batas_investigasi_diambil_dari_konfigurasi_sla(): void
+    {
+        $this->assertSame(
+            Sla::hariInvestigasi(),
+            MonitorDisposisi::dariRequest(1, 50)->hariInvestigasi,
+        );
+    }
+
+    public function test_monitor_menautkan_ke_halaman_yang_benar_benar_ada(): void
+    {
+        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
+
+        $this->tiket($unit, [
             'kode_tiket' => 'ADUAN-AKSI-01',
-            'master_unit_id' => $unit->id,
-            'unit' => $unit->nama,
-            'created_at' => now()->subWeeks(4),
-            'updated_at' => now()->subWeeks(4),
+            'status' => StatusPengaduan::Diproses,
+            'created_at' => now()->subWeekdays(13),
         ]);
 
         $tampilan = $this->get(route('admin.monitor.index'))
@@ -144,164 +314,20 @@ class MonitorDisposisiAdminTest extends TestCase
             ->assertSee('href="'.route('admin.pengaduan.index', ['unit' => $unit->kode]).'"', false)
             ->getContent();
 
-        // Tidak ada lagi tombol fitur yang dipalsukan dengan href="#".
+        // Tidak ada tombol fitur yang dipalsukan dengan href="#".
         $this->assertStringNotContainsString('href="#"', $tampilan);
     }
 
-    public function test_permintaan_keputusan_menautkan_ke_endpoint_tahap_yang_benar(): void
+    /**
+     * Satu tiket di unit tujuan.
+     *
+     * @param  array<string, mixed>  $atribut
+     */
+    private function tiket(MasterUnit $unit, array $atribut): Pengaduan
     {
-        $unit = MasterUnit::where('kode', 'DFR-02')->firstOrFail();
-
-        Pengaduan::factory()->status(StatusPengaduan::Revisi)->create([
-            'kode_tiket' => 'ADUAN-REVISI-01',
+        return Pengaduan::factory()->create($atribut + [
             'master_unit_id' => $unit->id,
             'unit' => $unit->nama,
         ]);
-
-        $this->get(route('admin.monitor.index'))
-            ->assertOk()
-            ->assertDontSee('Permintaan Keputusan Humas')
-            ->assertSee('ADUAN-REVISI-01');
-    }
-
-    /**
-     * Jumlah tiket pada tiap kolom papan disposisi.
-     *
-     * Dipakai untuk memastikan keempat kolom saling lepas dan mencakup
-     * semua tiket yang sudah ditugaskan. Kalau tidak, satu tiket bisa
-     * muncul di dua kolom atau hilang dari papan.
-     *
-     * @return Collection<string, int>
-     */
-    private function kolomPapan(): Collection
-    {
-        $papan = (new \ReflectionMethod(MonitorDisposisi::class, 'papan'))->invoke(null);
-
-        return collect($papan)->pluck('total', 'kunci');
-    }
-
-    /** Satu tiket di unit tujuan dengan tahap dan ada-tidaknya balasan unit. */
-    private function tiketUnit(MasterUnit $unit, StatusPengaduan $status, bool $dibalas): Pengaduan
-    {
-        $pengaduan = Pengaduan::factory()->status($status)->create([
-            'master_unit_id' => $unit->id,
-            'unit' => $unit->nama,
-        ]);
-
-        if ($dibalas) {
-            // Kolom Menunggu Racikan hanya dibuka oleh jawaban PIC unit,
-            // bukan oleh balasan humas yang memakai peran admin.
-            $pengaduan->pesan()->create([
-                'peran' => 'unit',
-                'isi' => 'Klarifikasi dari PIC unit.',
-            ]);
-        }
-
-        return $pengaduan;
-    }
-
-    public function test_kolom_papan_saling_lepas_dan_mencakup_semua_tiket(): void
-    {
-        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
-
-        // Seluruh kombinasi tahap dan ada-tidaknya balasan unit, supaya
-        // ada tiket yang harus di tiap kolom dan ada yang terbuang dari
-        // semua kolom kalau syaratnya salah.
-        $tiket = [
-            $this->tiketUnit($unit, StatusPengaduan::Diterima, false),
-            $this->tiketUnit($unit, StatusPengaduan::Diterima, true),
-            $this->tiketUnit($unit, StatusPengaduan::Diproses, false),
-            $this->tiketUnit($unit, StatusPengaduan::Diproses, true),
-            $this->tiketUnit($unit, StatusPengaduan::Selesai, false),
-        ];
-
-        $kolom = $this->kolomPapan();
-
-        $this->assertSame(1, $kolom['menunggu_diproses'], 'Diterima tanpa balasan unit.');
-        $this->assertSame(2, $kolom['menunggu_racikan'], 'Sudah dibalas unit, tahap apa pun.');
-        $this->assertSame(1, $kolom['sedang_investigasi'], 'Diproses tanpa balasan unit.');
-        $this->assertSame(1, $kolom['jawaban_unit'], 'Selesai tanpa pesan tetap tampil.');
-
-        $this->assertSame(count($tiket), $kolom->sum());
-    }
-
-    public function test_kolom_papan_sejalan_dengan_status_investigasi_lapis_dua(): void
-    {
-        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
-
-        $this->tiketUnit($unit, StatusPengaduan::Diterima, false);
-        $this->tiketUnit($unit, StatusPengaduan::Diterima, true);
-        $this->tiketUnit($unit, StatusPengaduan::Diproses, false);
-        $this->tiketUnit($unit, StatusPengaduan::Diproses, true);
-        $this->tiketUnit($unit, StatusPengaduan::Selesai, false);
-
-        $kolom = $this->kolomPapan();
-        $hitung = fn (StatusInvestigasi $status): int => $status->terapkan(Pengaduan::query())->count();
-
-        // Monitor memecah kelompok yang di tab Lapis 2 masih satu status,
-        // jadi angkanya boleh berbeda satu tiket, tapi tidak boleh nol.
-        $this->assertSame(
-            $kolom['menunggu_diproses'] + $kolom['sedang_investigasi'],
-            $hitung(StatusInvestigasi::SedangInvestigasi),
-        );
-        $this->assertSame($kolom['menunggu_racikan'], $hitung(StatusInvestigasi::MenungguRacikan));
-        $this->assertSame($kolom['jawaban_unit'], $hitung(StatusInvestigasi::JawabanUnit));
-    }
-
-    /**
-     * Kolom arsip memuat semua tiket yang pernah ditutup, jadi halamannya
-     * dibatasi. Angka totalnya tetap jujur, kartu yang dirender berhenti di
-     * batas muat, dan sisanya punya jalan keluar ke daftar pengaduan.
-     */
-    public function test_kolom_arsip_dibatasi_dan_sisanya_ditautkan_ke_daftar(): void
-    {
-        $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
-
-        Pengaduan::factory()
-            ->count(105)
-            ->selesai(now()->subDays(2))
-            ->create([
-                'master_unit_id' => $unit->id,
-                'unit' => $unit->nama,
-            ]);
-
-        // Tiket yang baru ditutup harus tetap terlihat walau kolomnya penuh,
-        // karena urutan arsip dibaca dari yang paling baru.
-        Pengaduan::factory()->selesai()->create([
-            'kode_tiket' => 'ADUAN-ARSIP-BARU',
-            'master_unit_id' => $unit->id,
-            'unit' => $unit->nama,
-        ]);
-
-        $kolom = collect(MonitorDisposisi::dariRequest()->papan)->firstWhere('kunci', 'jawaban_unit');
-
-        $this->assertSame(106, $kolom['total']);
-        $this->assertCount(100, $kolom['tiket']);
-        $this->assertSame(6, $kolom['sisaDiLuar']);
-        $this->assertSame('ADUAN-ARSIP-BARU', $kolom['tiket'][0]['kode']);
-        $this->assertSame(
-            route('admin.pengaduan.index', ['investigasi' => StatusInvestigasi::JawabanUnit->value]),
-            $kolom['tautanSisa'],
-        );
-    }
-
-    /**
-     * Isi satu kolom papan disposisi, diukur dari judulnya.
-     *
-     * Dipakai untuk memastikan sebuah tiket tidak bocor ke kolom yang
-     * salah, karena kedua kolom itu hanya dibedakan oleh sub-status
-     * yang tidak terlihat dari teks luar tabel.
-     */
-    private function dariTab(string $judul, string $tampilan): string
-    {
-        $awal = strpos($tampilan, '>'.$judul.'<');
-
-        if ($awal === false) {
-            return '';
-        }
-
-        $akhir = strpos($tampilan, 'End of Papan Disposisi', $awal);
-
-        return $akhir === false ? substr($tampilan, $awal) : substr($tampilan, $awal, $akhir - $awal);
     }
 }
