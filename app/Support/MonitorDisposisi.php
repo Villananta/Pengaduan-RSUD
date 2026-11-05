@@ -49,8 +49,8 @@ final class MonitorDisposisi
             ->with('masterUnit');
 
         return new self(
-            unitTable: self::unitTable($dasar),
-            priorityQueue: self::priorityQueue($dasar),
+            unitTable: self::unitTable($dasar()),
+            priorityQueue: self::priorityQueue($dasar()),
             totalDitugaskan: (clone $dasar())->count(),
             hariInvestigasi: Sla::hariInvestigasi(),
         );
@@ -59,12 +59,13 @@ final class MonitorDisposisi
     /**
      * Ringkasan per unit (Option A: Unit Table).
      *
+     * @param  Builder  $dasar  Query dasar sudah difilter unit aktif
      * @return array<int, array<string, mixed>>
      */
     private static function unitTable(Builder $dasar): array
     {
         // Ambil unit yang punya tiket aktif
-        $unitIds = (clone $dasar())->aktif()->pluck('master_unit_id')->unique();
+        $unitIds = (clone $dasar)->aktif()->pluck('master_unit_id')->unique();
 
         $units = MasterUnit::query()
             ->whereIn('id', $unitIds)
@@ -77,7 +78,7 @@ final class MonitorDisposisi
         foreach ($unitIds as $unitId) {
             $unit = $units[$unitId];
 
-            $queryUnit = fn (bool $hanyaAktif = true): Builder => (clone $dasar())
+            $queryUnit = fn (bool $hanyaAktif = true): Builder => (clone $dasar)
                 ->where('master_unit_id', $unitId)
                 ->when($hanyaAktif, fn (Builder $q): Builder => $q->aktif());
 
@@ -144,11 +145,12 @@ final class MonitorDisposisi
      * Urgency = days_overdue * 10 + (kasus_berat ? 50 : 0) + status_weight
      * status_weight: Diterima=1, Diproses=3, Revisi=5, Menunggu Racikan=2
      *
+     * @param  Builder  $dasar  Query dasar sudah difilter unit aktif
      * @return array<int, array<string, mixed>>
      */
     private static function priorityQueue(Builder $dasar): array
     {
-        $tickets = (clone $dasar())->aktif()
+        $tickets = (clone $dasar)->aktif()
             ->with('masterUnit')
             ->get()
             ->map(function (Pengaduan $p) {
