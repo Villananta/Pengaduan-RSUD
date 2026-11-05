@@ -49,6 +49,13 @@ class DashboardController extends Controller
     {
         $ringkasan = StatistikUnit::ringkasan($unit);
 
+        // Sort dan pagination untuk tabel "Pengaduan Terbaru"
+        $urut = in_array($request->query('urut'), ['asc', 'desc']) ? $request->query('urut') : 'desc';
+        $perHalaman = in_array((int) $request->query('per_halaman'), [10, 25, 50, 100]) ? (int) $request->query('per_halaman') : 10;
+        $halaman = (int) $request->query('halaman_terbaru', 1);
+
+        $terbaruPaginated = StatistikUnit::terbaruPaginated($unit, $perHalaman, $urut, $halaman);
+
         return view('unit.dashboard', [
             'unit' => $unit,
             'notifikasiUnit' => new NotifikasiUnit($unit, $request->user()),
@@ -62,9 +69,11 @@ class DashboardController extends Controller
                 rataRataHariKerja: $ringkasan['rata_rata_hari_kerja'],
                 selesaiBulanIni: $ringkasan['selesai_bulan_ini'],
                 mendesak: StatistikUnit::mendesak($unit),
-                terbaru: StatistikUnit::terbaru($unit, 8),
+                terbaru: $terbaruPaginated,
                 hariKerja: Sla::hariKerja(),
                 hariInvestigasi: Sla::hariInvestigasi(),
+                terbaruUrut: $urut,
+                terbaruPerHalaman: $perHalaman,
             ),
         ]);
     }

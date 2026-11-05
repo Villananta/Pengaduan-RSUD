@@ -413,14 +413,47 @@
                     <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Pengaduan Terbaru</h2>
                 </div>
 
-                <a
-                    href="{{ $dashboard->urlLihatSemua() }}"
-                    class="px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm flex items-center gap-space-xs hover:bg-secondary/90 transition-colors self-start md:self-auto"
-                    title="Buka seluruh disposisi milik unit ini"
-                >
-                    <x-symbol nama="open_in_new" class="text-[16px]" />
-                    Lihat Semua
-                </a>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <a
+                        href="{{ $dashboard->urlLihatSemua() }}"
+                        class="px-space-md py-2 rounded-sm bg-secondary text-on-secondary font-label-sm text-label-sm font-bold shadow-sm flex items-center gap-space-xs hover:bg-secondary/90 transition-colors self-start md:self-auto"
+                        title="Buka seluruh disposisi milik unit ini"
+                    >
+                        <x-symbol nama="open_in_new" class="text-[16px]" />
+                        Lihat Semua
+                    </a>
+
+                    {{-- Sort dropdown --}}
+                    <form method="GET" class="flex items-center gap-2">
+                        <input type="hidden" name="per_halaman" value="{{ $dashboard->terbaruPerHalaman }}">
+                        <input type="hidden" name="halaman_terbaru" value="1">
+                        <div class="relative">
+                            <x-symbol nama="sort" class="absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                            <select
+                                name="urut"
+                                onchange="this.form.submit()"
+                                class="w-auto pl-9 pr-8 py-2 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                            >
+                                <option value="desc" @selected($dashboard->terbaruUrut === 'desc')>Terbaru (Desc)</option>
+                                <option value="asc" @selected($dashboard->terbaruUrut === 'asc')>Terlama (Asc)</option>
+                            </select>
+                        </div>
+
+                        {{-- Per halaman dropdown --}}
+                        <div class="relative">
+                            <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                            <select
+                                name="per_halaman"
+                                onchange="this.form.submit()"
+                                class="w-auto pl-9 pr-8 py-2 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                            >
+                                @foreach ([10, 25, 50, 100] as $pp)
+                                    <option value="{{ $pp }}" @selected($dashboard->terbaruPerHalaman === $pp)>{{ $pp }} per halaman</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <div class="overflow-x-auto w-full">
@@ -452,7 +485,15 @@
                     </thead>
 
                     <tbody class="divide-y divide-outline-variant/20 text-body-sm text-on-surface">
-                        @forelse ($dashboard->terbaru as $pengaduan)
+                        @php
+                            $terbaruItems = $dashboard->terbaru instanceof \Illuminate\Pagination\LengthAwarePaginator
+                                ? $dashboard->terbaru->getCollection()
+                                : $dashboard->terbaru;
+                            $startNumber = $dashboard->terbaru instanceof \Illuminate\Pagination\LengthAwarePaginator
+                                ? ($dashboard->terbaru->currentPage() - 1) * $dashboard->terbaru->perPage()
+                                : 0;
+                        @endphp
+                        @forelse ($terbaruItems as $i => $pengaduan)
 
                             @php $baris = $dashboard->barisTerbaru($pengaduan); @endphp
 
@@ -463,7 +504,9 @@
                             ])>
                                 <td class="py-space-sm px-space-md align-top">
                                     <div class="flex flex-col gap-1">
-                                        <span class="font-title-sm text-title-sm font-bold text-on-surface">{{ $baris['kode'] }}</span>
+                                        <span class="font-title-sm text-title-sm font-bold text-on-surface">
+                                            #{{ $startNumber + $i + 1 }}
+                                        </span>
                                         <span class="text-outline font-label-sm text-label-sm">{{ $baris['tanggal'] }} WIB</span>
                                     </div>
                                 </td>
@@ -526,6 +569,42 @@
                         @endforelse
                     </tbody>
                 </table>
+
+                {{-- Pagination --}}
+                @if ($dashboard->terbaru instanceof \Illuminate\Pagination\LengthAwarePaginator && $dashboard->terbaru->lastPage() > 1)
+                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 text-sm text-on-surface-variant">
+                            <span>Menampilkan {{ ($dashboard->terbaru->currentPage() - 1) * $dashboard->terbaru->perPage() + 1 }}–{{ min($dashboard->terbaru->currentPage() * $dashboard->terbaru->perPage(), $dashboard->terbaru->total()) }} dari {{ $dashboard->terbaru->total() }} tiket</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            @if ($dashboard->terbaru->currentPage() > 1)
+                                <a href="{{ $dashboard->terbaru->previousPageUrl() }}" class="px-3 py-1.5 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">
+                                    <x-symbol nama="chevron_left" class="text-[18px]" />
+                                </a>
+                            @else
+                                <span class="px-3 py-1.5 rounded-sm bg-surface-container text-on-surface-variant cursor-not-allowed">
+                                    <x-symbol nama="chevron_left" class="text-[18px]" />
+                                </span>
+                            @endif
+                            @foreach ($dashboard->terbaru->getUrlRange(1, $dashboard->terbaru->lastPage()) as $page => $url)
+                                @if ($page === $dashboard->terbaru->currentPage())
+                                    <span class="px-3 py-1.5 rounded-sm bg-primary text-on-primary font-semibold">{{ $page }}</span>
+                                @else
+                                    <a href="{{ $url }}" class="px-3 py-1.5 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">{{ $page }}</a>
+                                @endif
+                            @endforeach
+                            @if ($dashboard->terbaru->currentPage() < $dashboard->terbaru->lastPage())
+                                <a href="{{ $dashboard->terbaru->nextPageUrl() }}" class="px-3 py-1.5 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">
+                                    <x-symbol nama="chevron_right" class="text-[18px]" />
+                                </a>
+                            @else
+                                <span class="px-3 py-1.5 rounded-sm bg-surface-container text-on-surface-variant cursor-not-allowed">
+                                    <x-symbol nama="chevron_right" class="text-[18px]" />
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
         <!-- End of Pengaduan Terbaru Unit -->

@@ -7,6 +7,7 @@ use App\Enums\StatusPengaduan;
 use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -22,7 +23,7 @@ final class DashboardUnit
     /**
      * @param  array<string, int>  $perTahap
      * @param  Collection<int, Pengaduan>  $mendesak
-     * @param  Collection<int, Pengaduan>  $terbaru
+     * @param  Collection<int, Pengaduan>|LengthAwarePaginator  $terbaru
      */
     public function __construct(
         public readonly MasterUnit $unit,
@@ -34,9 +35,11 @@ final class DashboardUnit
         public readonly ?float $rataRataHariKerja,
         public readonly int $selesaiBulanIni,
         public readonly Collection $mendesak,
-        public readonly Collection $terbaru,
+        public readonly Collection|LengthAwarePaginator $terbaru,
         public readonly int $hariKerja,
         public readonly int $hariInvestigasi,
+        public readonly string $terbaruUrut = 'desc',
+        public readonly int $terbaruPerHalaman = 10,
     ) {}
 
     /** Jumlah pengaduan pada satu tahap. */

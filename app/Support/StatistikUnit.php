@@ -6,6 +6,8 @@ use App\Enums\StatusPengaduan;
 use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -210,14 +212,46 @@ final class StatistikUnit
      */
     public static function terbaru(MasterUnit $unit, int $jumlah = 8): Collection
     {
+        return self::terbaruQuery($unit)
+            ->take($jumlah)
+            ->get();
+    }
+
+    /**
+     * Query dasar untuk pengaduan terbaru, tanpa limit.
+     *
+     * Dipakai oleh versi paginated supaya logika query tidak duplikat.
+     *
+     * @return Builder
+     */
+    public static function terbaruQuery(MasterUnit $unit): Builder
+    {
         return Pengaduan::query()
             ->where('master_unit_id', $unit->id)
             ->sudahDiteruskanHumas()
             ->with('masterUnit')
             ->withExists(['pesan as unit_menjawab' => fn ($q) => $q->jawabanUnit()])
             ->orderByRaw('case when status = ? then 1 else 0 end', [StatusPengaduan::Selesai->value])
-            ->latest('created_at')
-            ->take($jumlah)
-            ->get();
+            ->latest('created_at');
+    }
+
+    /**
+     * Pengaduan terbaru milik unit dengan pagination dan sort.
+     *
+     * @param  string  $urut  'asc' atau 'desc' (default: desc)
+     * @return LengthAwarePaginator
+     */
+    public static function terbaruPaginated(
+        MasterUnit $unit,
+        int $perHalaman = 10,
+        string $urut = 'desc',
+        int $halaman = 1,
+    ): LengthAwarePaginator {
+        $orderDirection = $urut === 'asc' ? 'asc' : 'desc';
+
+        return self::terbaruQuery($unit)
+            ->orderBy('created_at', $orderDirection)
+            ->paginate($perHalaman, ['*'], 'halaman_terbaru', $halaman)
+            ->withQueryString();
     }
 }
