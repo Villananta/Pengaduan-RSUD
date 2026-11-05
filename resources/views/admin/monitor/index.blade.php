@@ -218,7 +218,7 @@
             <div role="tabpanel" id="panel-priority-queue" aria-labelledby="tab-priority-queue" class="p-space-md hidden">
                 <div class="mb-4 flex items-center justify-between gap-2">
                     <p class="font-body-sm text-body-sm text-on-surface-variant">
-                        Menampilkan {{ count($monitor->priorityQueue) }} tiket paling urgent (maks. 50). Diurutkan: overdue hari × 10 + kasus berat bonus + bobot status.
+                        Menampilkan {{ count($monitor->priorityQueue) }} tiket prioritas (maks. 50). Urutan: 1) Telat & Berat → 2) Berat & Tidak Telat → 3) Telat & Sedang → 4) Sedang & Tidak Telat → 5) Telat & Ringan → 6) Ringan & Tidak Telat.
                     </p>
                     <span class="font-label-sm text-label-sm px-2 py-1 rounded-full bg-surface-container text-on-surface-variant">
                         Auto-refresh: 60s
@@ -242,11 +242,32 @@
                         </thead>
                         <tbody class="divide-y divide-outline-variant">
                             @forelse ($monitor->priorityQueue as $i => $t)
+                                @php
+                                    $priorityLabels = [
+                                        1 => '🔴 Telat + Berat',
+                                        2 => '🟠 Berat + Tidak Telat',
+                                        3 => '🟡 Telat + Sedang',
+                                        4 => '🟢 Sedang + Tidak Telat',
+                                        5 => '🔵 Telat + Ringan',
+                                        6 => '⚪ Ringan + Tidak Telat',
+                                    ];
+                                    $priorityColors = [
+                                        1 => 'bg-error-container text-on-error-container',
+                                        2 => 'bg-warning-container text-on-warning-container',
+                                        3 => 'bg-warning-container text-on-warning-container',
+                                        4 => 'bg-success-container text-on-success-container',
+                                        5 => 'bg-info-container text-on-info-container',
+                                        6 => 'bg-surface-container text-on-surface-variant',
+                                    ];
+                                @endphp
                                 <tr class="hover:bg-surface-container transition-colors {{ $t['lewat'] > 0 ? 'bg-error-container/15' : ($t['sisa_hari'] <= 2 && $t['sisa_hari'] > 0 ? 'bg-warning-container/15' : '') }}">
                                     <td class="px-3 py-2 font-mono text-on-surface">
                                         #{{ $i + 1 }}
+                                        <span class="ml-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold {{ $priorityColors[$t['priority_group']] }}">
+                                            {{ $priorityLabels[$t['priority_group']] }}
+                                        </span>
                                         @if ($t['kasus_berat'])
-                                            <span class="ml-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-fixed text-primary-container">
+                                            <span class="ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-fixed text-primary-container">
                                                 <x-symbol nama="shield" class="text-[10px]" />
                                                 BERAT
                                             </span>

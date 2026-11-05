@@ -164,15 +164,31 @@ final class MonitorDisposisi
                 $lewat = max(0, $hariKe - $totalHari); // actual days overdue (positive)
                 $sisa = max(0, $totalHari - $hariKe);  // remaining days (0 if overdue)
 
-                // Status weight: later in process = higher urgency when overdue
-                $statusWeight = match ($p->status) {
-                    StatusPengaduan::Diterima => 1,
-                    StatusPengaduan::Diproses => 3,
-                    StatusPengaduan::Revisi => 5,
-                    StatusPengaduan::Selesai => 0,
-                };
+                // Determine priority group (1-6) per user spec:
+                // 1. Telat + Berat
+                // 2. Berat + Tidak Telat
+                // 3. Telat + Sedang (Diproses/Revisi)
+                // 4. Sedang + Tidak Telat
+                // 5. Telat + Ringan (Diterima)
+                // 6. Ringan + Tidak Telat
+                $isBerat = $p->kasus_berat;
+                $isTelat = $lewat > 0;
+                $isSedang = in_array($p->status, [StatusPengaduan::Diproses, StatusPengaduan::Revisi]);
+                $isRingan = $p->status === StatusPengaduan::Diterima;
 
-                $urgency = $lewat * 10 + ($p->kasus_berat ? 50 : 0) + $statusWeight;
+                if ($isTelat && $isBerat) {
+                    $priorityGroup = 1;
+                } elseif (!$isTelat && $isBerat) {
+                    $priorityGroup = 2;
+                } elseif ($isTelat && $isSedang) {
+                    $priorityGroup = 3;
+                } elseif (!$isTelat && $isSedang) {
+                    $priorityGroup = 4;
+                } elseif ($isTelat && $isRingan) {
+                    $priorityGroup = 5;
+                } else {
+                    $priorityGroup = 6;
+                }
 
                 // Traffic light
                 $zona = Sla::zona($p->created_at, null, $p->kasus_berat);
@@ -195,14 +211,17 @@ final class MonitorDisposisi
                     'sisa_hari' => $sisa,
                     'lewat' => $lewat,
                     'kasus_berat' => $p->kasus_berat,
-                    'urgency' => $urgency,
+                    'priority_group' => $priorityGroup,
                     'sla_badge' => $slaBadge,
                     'created_at' => $p->created_at->translatedFormat('d M Y'),
                     'url_detail' => route('admin.pengaduan.show', $p->kode_tiket),
                     'url_unit' => $p->masterUnit ? route('admin.pengaduan.index', ['unit' => $p->masterUnit->kode]) : null,
                 ];
             })
-            ->sortByDesc('urgency')
+            ->sortBy(function ($t) {
+                // Sort by priority group first, then by days overdue (desc), then by hari_ke (desc)
+                return [$t['priority_group'], -$t['lewat'], -$t['hari_ke']];
+            })
             ->take(self::MAX_PRIORITY_QUEUE)
             ->values()
             ->all();
