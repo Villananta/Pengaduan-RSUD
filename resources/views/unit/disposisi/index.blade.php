@@ -4,6 +4,7 @@
 
 @use('App\Enums\KategoriPengaduan')
 @use('App\Enums\StatusInvestigasi')
+@use('App\Enums\TingkatKeparahan')
 @use('App\Support\DaftarPengaduan')
 
 @section('content')
@@ -148,7 +149,68 @@
                 </div>
             </div>
 
-            {{-- Baris 2: Pencarian & Kategori --}}
+            {{-- Baris 2: Keparahan & Rentang Waktu --}}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
+                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                    <label for="keparahan" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-xs bg-error-container text-on-error-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Keparahan</span>
+                        Tingkat Keparahan
+                    </label>
+                    <div class="relative">
+                        <select
+                            id="keparahan"
+                            name="keparahan"
+                            onchange="this.form.submit()"
+                            class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                        >
+                            <option value="" @selected($daftar->keparahan === null && ! $daftar->keparahanBelum)>Semua ({{ number_format($daftar->jumlahKeparahan['semua'], 0, ',', '.') }})</option>
+                            @foreach (TingkatKeparahan::cases() as $tingkat)
+                                <option value="{{ $tingkat->value }}" @selected($daftar->keparahan === $tingkat)>{{ $tingkat->label() }} ({{ number_format($daftar->jumlahKeparahan[$tingkat->value], 0, ',', '.') }})</option>
+                            @endforeach
+                            <option value="belum" @selected($daftar->keparahanBelum)>Belum Ditetapkan ({{ number_format($daftar->jumlahKeparahan['belum'], 0, ',', '.') }})</option>
+                        </select>
+                        <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                    </div>
+                </div>
+
+                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                    <label for="tanggal_mulai" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-xs bg-info-light text-info font-label-sm text-label-sm uppercase font-bold tracking-wide">Waktu</span>
+                        Tanggal Mulai
+                    </label>
+                    <div class="relative">
+                        <input
+                            type="date"
+                            id="tanggal_mulai"
+                            name="tanggal_mulai"
+                            value="{{ $daftar->tanggalMulai?->format('Y-m-d') }}"
+                            onchange="this.form.submit()"
+                            class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                        >
+                        <x-symbol nama="calendar_month" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                    </div>
+                </div>
+
+                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                    <label for="tanggal_akhir" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-xs bg-info-light text-info font-label-sm text-label-sm uppercase font-bold tracking-wide">Waktu</span>
+                        Tanggal Akhir
+                    </label>
+                    <div class="relative">
+                        <input
+                            type="date"
+                            id="tanggal_akhir"
+                            name="tanggal_akhir"
+                            value="{{ $daftar->tanggalAkhir?->format('Y-m-d') }}"
+                            onchange="this.form.submit()"
+                            class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                        >
+                        <x-symbol nama="calendar_month" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                    </div>
+                </div>
+            </div>
+
+            {{-- Baris 3: Pencarian & Kategori --}}
             <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
                 <div class="md:col-span-6 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                     <x-symbol nama="search" class="text-[18px] text-outline" />
@@ -180,7 +242,7 @@
                 </div>
 
                 <div class="md:col-span-2 flex items-center gap-space-xs">
-                    @if ($daftar->investigasi !== null || $daftar->kategori !== null || $daftar->cari !== '')
+                    @if ($daftar->investigasi !== null || $daftar->kategori !== null || $daftar->cari !== '' || $daftar->keparahan !== null || $daftar->keparahanBelum || $daftar->tanggalMulai !== null || $daftar->tanggalAkhir !== null)
                         <a
                             href="{{ route('unit.disposisi.index', $unit) }}"
                             class="w-full px-space-md py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold text-center transition-colors"

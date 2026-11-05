@@ -14,6 +14,7 @@ use App\Models\PesanPengaduan;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -69,6 +70,8 @@ final class DaftarPengaduan
         public readonly string $ruteTiket = 'admin.pengaduan.show',
         public readonly array $parameterRute = [],
         public readonly string $urut = 'desc',
+        public readonly ?Carbon $tanggalMulai = null,
+        public readonly ?Carbon $tanggalAkhir = null,
     ) {}
 
     /**
@@ -106,17 +109,21 @@ final class DaftarPengaduan
         $perHalaman = self::perHalaman($request->query('per_halaman'));
         $urut = in_array($request->query('urut'), ['asc', 'desc']) ? $request->query('urut') : 'desc';
 
-        // Filter keparahan hanya ada di konsol humas. Parameter yang sama
-        // diabaikan di halaman unit supaya PIC tidak menyaring tiket dengan
-        // penanda yang kewenangannya ada di tangan humas.
+        // Filter keparahan sekarang tersedia di konsol humas DAN halaman unit.
         $keparahanMentah = $request->query('keparahan');
-        $keparahan = $terkunci === null ? TingkatKeparahan::dariNilai($keparahanMentah) : null;
-        $keparahanBelum = $terkunci === null && $keparahanMentah === 'belum';
+        $keparahan = TingkatKeparahan::dariNilai($keparahanMentah);
+        $keparahanBelum = $keparahanMentah === 'belum';
 
         // Filter kanal hanya ada di konsol humas.
         $kanalMentah = $request->query('kanal');
         $kanal = $terkunci === null ? KanalPengaduan::tryFrom($kanalMentah ?? '') : null;
         $kanalBelum = $terkunci === null && $kanalMentah === 'belum';
+
+        // Filter waktu (rentang created_at) - tersedia di konsol humas DAN halaman unit.
+        $tanggalMulaiMentah = $request->query('tanggal_mulai');
+        $tanggalAkhirMentah = $request->query('tanggal_akhir');
+        $tanggalMulai = $tanggalMulaiMentah ? Carbon::parse($tanggalMulaiMentah)->startOfDay() : null;
+        $tanggalAkhir = $tanggalAkhirMentah ? Carbon::parse($tanggalAkhirMentah)->endOfDay() : null;
 
         // Closure ini adalah query dasar tanpa filter dimensinya sendiri,
         // dipakai ulang untuk menghitung tiap tab dan untuk menarik baris.
@@ -143,7 +150,10 @@ final class DaftarPengaduan
             // pelapor sudah mengisinya sejak tiket masih 'Diterima'.
             ->when($terkunci !== null, fn (Builder $q): Builder => $q->sudahDiteruskanHumas())
             ->when($kategori !== null, fn (Builder $q): Builder => $q->where('kategori', $kategori->value))
-            ->when($kategoriBelum, fn (Builder $q): Builder => $q->whereNull('kategori'));
+            ->when($kategoriBelum, fn (Builder $q): Builder => $q->whereNull('kategori'))
+            // Filter waktu pada created_at
+            ->when($tanggalMulai !== null, fn (Builder $q): Builder => $q->where('created_at', '>=', $tanggalMulai))
+            ->when($tanggalAkhir !== null, fn (Builder $q): Builder => $q->where('created_at', '<=', $tanggalAkhir));
 
         // Filter tiap dimensi disimpan sebagai closure karena dipakai dua kali:
         // sekali untuk menarik baris tabel, sekali lagi untuk menghitung chip
@@ -160,6 +170,10 @@ final class DaftarPengaduan
             ->when($keparahan !== null, fn (Builder $q): Builder => $q->where('tingkat_keparahan', $keparahan->value))
             ->when($keparahanBelum, fn (Builder $q): Builder => $q->whereNull('tingkat_keparahan'));
 
+        $filterWaktu = fn (Builder $query): Builder => $query
+            ->when($tanggalMulai !== null, fn (Builder $q): Builder => $q->where('created_at', '>=', $tanggalMulai))
+            ->when($tanggalAkhir !== null, fn (Builder $q): Builder => $q->where('created_at', '<=', $tanggalAkhir));
+
         $filterKanal = fn (Builder $query): Builder => $query
             ->when($kanal !== null, fn (Builder $q): Builder => $q->where('kanal', $kanal->value))
             ->when($kanalBelum, fn (Builder $q): Builder => $q->whereNull('kanal'));
@@ -169,7 +183,7 @@ final class DaftarPengaduan
         // bisa menawarkan angka yang tidak pernah tercapai: misalnya "Belum
         // Ditetapkan (35)" berubah jadi tabel kosong begitu diklik, karena tab
         // investigasi dari langkah sebelumnya masih menempel di URL.
-        $jumlahTahap = self::hitungTahap($filterInvestigasi($filterKeparahan($filterKanal($dasar()))));
+        $jumlahTahap = self::hitungTahap($filterInvestigasi($filterKeparahan($filterKanal($filterWaktu($dasar())))));
 
         // Syarat "unit sudah menjawab" diambil dari agregat pesan per tiket,
         // jadi aturan yang sama tidak perlu ditulis ulang di PHP.
@@ -179,15 +193,15 @@ final class DaftarPengaduan
             ->groupBy('pengaduan_id');
 
         $jumlahInvestigasi = self::hitungInvestigasi(
-            $filterStatus($filterKeparahan($filterKanal($dasar()))),
+            $filterStatus($filterKeparahan($filterKanal($filterWaktu($dasar())))),
             $subJawabanUnit,
         );
 
-        $jumlahKeparahan = self::hitungKeparahan($filterStatus($filterInvestigasi($filterKanal($dasar()))));
+        $jumlahKeparahan = self::hitungKeparahan($filterStatus($filterInvestigasi($filterKanal($filterWaktu($dasar())))));
 
-        $jumlahKanal = self::hitungKanal($filterStatus($filterInvestigasi($filterKeparahan($dasar()))));
+        $jumlahKanal = self::hitungKanal($filterStatus($filterInvestigasi($filterKeparahan($filterWaktu($dasar())))));
 
-        $daftar = $filterKanal($filterKeparahan($filterInvestigasi($filterStatus($dasar()))))
+        $daftar = $filterKanal($filterKeparahan($filterInvestigasi($filterStatus($filterWaktu($dasar())))))
             ->with('masterUnit')
             // Hanya jawaban PIC unit yang dihitung untuk kalimat "N balasan
             // unit masuk". Pesan pembuka, balasan pelapor, dan obrolan humas
@@ -237,6 +251,8 @@ final class DaftarPengaduan
             ruteTiket: $ruteTiket,
             parameterRute: $terkunci !== null ? ['unit' => $terkunci->kode] : [],
             urut: $urut,
+            tanggalMulai: $tanggalMulai,
+            tanggalAkhir: $tanggalAkhir,
         );
     }
 
@@ -251,7 +267,9 @@ final class DaftarPengaduan
             || $this->keparahan !== null
             || $this->keparahanBelum
             || $this->kanal !== null
-            || $this->kanalBelum;
+            || $this->kanalBelum
+            || $this->tanggalMulai !== null
+            || $this->tanggalAkhir !== null;
     }
 
     /**
