@@ -70,11 +70,11 @@
             <div class="flex items-center justify-between gap-space-sm">
                 <div class="flex items-center gap-space-xs">
                     <x-symbol nama="view_kanban" class="text-secondary text-[22px]" />
-                    <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Ringkasan Status Disposisi Unit Aktif (Lapis 2)</h2>
+                    <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Ringkasan Status Disposisi Unit (Termasuk Selesai)</h2>
                 </div>
 
                 <span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-space-sm py-1 rounded-xl">
-                    Total Ditugaskan: {{ number_format($monitor->ditugaskan, 0, ',', '.') }} Pengaduan Aktif
+                    Total Ditugaskan: {{ number_format($monitor->ditugaskan, 0, ',', '.') }} Pengaduan (Termasuk Selesai)
                 </span>
             </div>
 

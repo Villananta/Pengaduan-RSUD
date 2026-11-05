@@ -53,6 +53,7 @@ final class MonitorDisposisi
      */
     public function __construct(
         public readonly array $papan,
+        /** Total tiket yang sudah ditugaskan ke unit (termasuk selesai). */
         public readonly int $ditugaskan,
         public readonly int $hariInvestigasi,
     ) {}
@@ -68,10 +69,11 @@ final class MonitorDisposisi
     {
         return new self(
             papan: self::papan(),
-            // Angka ini hanya menghitung tiket aktif yang sudah ditautkan ke
-            // unit, karena papan kanban ini tidak memuat tiket yang masih
-            // di tangan humas dan belum punya unit tujuan.
-            ditugaskan: Pengaduan::query()->aktif()->whereNotNull('master_unit_id')->count(),
+            // Menghitung SEMUA tiket yang sudah ditugaskan ke unit (termasuk
+            // yang sudah selesai). Jumlah ini sekarang cocok dengan total
+            // empat kolom kanban: Menunggu Diproses + Sedang Investigasi +
+            // Menunggu Racikan + Jawaban di Humas.
+            ditugaskan: Pengaduan::query()->whereNotNull('master_unit_id')->count(),
             hariInvestigasi: Sla::hariInvestigasi(),
         );
     }
