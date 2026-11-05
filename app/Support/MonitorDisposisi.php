@@ -85,20 +85,25 @@ final class MonitorDisposisi
             // Total tiket aktif di unit ini
             $totalAktif = $queryUnit()->count();
 
-            // Breakdown by SLA zone (hanya tiket aktif)
-            $breakdown = $queryUnit()->get()
+            // Total tiket selesai di unit ini
+            $totalSelesai = (clone $dasar)
+                ->where('master_unit_id', $unitId)
+                ->where('status', 'selesai')
+                ->count();
+
+            // Breakdown by SLA zone (semua tiket: aktif + selesai)
+            $breakdown = $queryUnit(false)->get()
                 ->groupBy(function (Pengaduan $p): string {
                     if ($p->status->selesai()) {
                         return 'selesai';
                     }
-                    $sisa = $p->sisaHariSla();
-                    if ($sisa <= self::BATAS_OVERDUE) {
-                        return 'overdue';
-                    }
-                    if ($sisa <= self::BATAS_AT_RISK) {
-                        return 'at_risk';
-                    }
-                    return 'on_track';
+                    $zona = Sla::zona($p->created_at, null, $p->kasus_berat);
+                    return match ($zona) {
+                        \App\Enums\ZonaSla::Terlambat => 'overdue',
+                        \App\Enums\ZonaSla::Mendek => 'at_risk',
+                        \App\Enums\ZonaSla::TepatWaktu => 'on_track',
+                        default => 'on_track',
+                    };
                 });
 
             $overdue = $breakdown->get('overdue', collect())->count();
@@ -154,9 +159,10 @@ final class MonitorDisposisi
             ->with('masterUnit')
             ->get()
             ->map(function (Pengaduan $p) {
-                $sisa = $p->sisaHariSla();
                 $hariKe = Sla::hariKe($p->created_at);
-                $lewat = $sisa <= 0 ? abs($sisa) : 0;
+                $totalHari = Sla::totalHariKerja($p->kasus_berat);
+                $lewat = max(0, $hariKe - $totalHari); // actual days overdue (positive)
+                $sisa = max(0, $totalHari - $hariKe);  // remaining days (0 if overdue)
 
                 // Status weight: later in process = higher urgency when overdue
                 $statusWeight = match ($p->status) {
@@ -186,7 +192,7 @@ final class MonitorDisposisi
                     'status' => $p->status->label(),
                     'status_investigasi' => StatusInvestigasi::dariPengaduan($p, $p->unit_menjawab ?? false)->label(),
                     'hari_ke' => $hariKe,
-                    'sisa_hari' => max(0, $sisa),
+                    'sisa_hari' => $sisa,
                     'lewat' => $lewat,
                     'kasus_berat' => $p->kasus_berat,
                     'urgency' => $urgency,
