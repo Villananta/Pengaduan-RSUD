@@ -21,38 +21,51 @@ use Illuminate\Support\Collection;
  */
 final class MonitorDisposisi
 {
-    private const BATAS_OVERDUE = 0;      // hari sisa ≤ 0
-    private const BATAS_AT_RISK = 2;      // hari sisa 1-2 (config: peringatan_hari_kerja)
-    private const MAX_PRIORITY_QUEUE = 50; // batas antrian prioritas
+    private const BATAS_OVERDUE = 0; // hari sisa ≤ 0
+    private const BATAS_AT_RISK = 2; // hari sisa 1-2 (config: peringatan_hari_kerja)
 
     /**
      * @param  array<int, array<string, mixed>>  $unitTable  Ringkasan per unit
-     * @param  array<int, array<string, mixed>>  $priorityQueue  Antrian prioritas
+     * @param  array<int, array<string, mixed>>  $priorityQueue  Antrian prioritas (halaman saat ini)
      * @param  int  $totalDitugaskan  Total tiket ke unit aktif (termasuk selesai)
      * @param  int  $hariInvestigasi  Batas investigasi unit (hari kerja)
+     * @param  int  $priorityTotal  Total tiket di antrian prioritas (all pages)
+     * @param  int  $priorityPerPage  Jumlah per halaman
+     * @param  int  $priorityCurrentPage  Halaman saat ini
      */
     public function __construct(
         public readonly array $unitTable,
         public readonly array $priorityQueue,
         public readonly int $totalDitugaskan,
         public readonly int $hariInvestigasi,
+        public readonly int $priorityTotal,
+        public readonly int $priorityPerPage,
+        public readonly int $priorityCurrentPage,
     ) {}
 
     /**
-     * Susun data monitor dari request (tanpa filter URL).
+     * Susun data monitor dari request dengan pagination antrian prioritas.
      */
-    public static function dariRequest(): self
+    public static function dariRequest(?int $page = null, int $perPage = 50): self
     {
+        $page = $page ?? (request()->query('page') ?? 1);
+        $perPage = in_array($perPage, [50, 100, 150, 200]) ? $perPage : 50;
+
         $dasar = fn (): Builder => Pengaduan::query()
             ->whereNotNull('master_unit_id')
             ->whereHas('masterUnit', fn (Builder $q): Builder => $q->where('aktif', true))
             ->with('masterUnit');
 
+        $priorityData = self::priorityQueue($dasar(), $page, $perPage);
+
         return new self(
             unitTable: self::unitTable($dasar()),
-            priorityQueue: self::priorityQueue($dasar()),
+            priorityQueue: $priorityData['data'],
             totalDitugaskan: (clone $dasar())->count(),
             hariInvestigasi: Sla::hariInvestigasi(),
+            priorityTotal: $priorityData['total'],
+            priorityPerPage: $perPage,
+            priorityCurrentPage: $page,
         );
     }
 
@@ -145,32 +158,32 @@ final class MonitorDisposisi
     }
 
     /**
-     * Antrian prioritas flat (Option B: Priority Queue).
+     * Antrian prioritas flat dengan pagination (Option B: Priority Queue).
      *
-     * Urgency = days_overdue * 10 + (kasus_berat ? 50 : 0) + status_weight
-     * status_weight: Diterima=1, Diproses=3, Revisi=5, Menunggu Racikan=2
+     * Prioritas: 1) Telat+Berat 2) Berat+TidakTelat 3) Telat+Sedang
+     * 4) Sedang+TidakTelat 5) Telat+Ringan 6) Ringan+TidakTelat
      *
      * @param  Builder  $dasar  Query dasar sudah difilter unit aktif
-     * @return array<int, array<string, mixed>>
+     * @param  int  $page  Halaman (1-based)
+     * @param  int  $perPage  Jumlah per halaman (kelipatan 50)
+     * @return array{data: array<int, array<string, mixed>>, total: int}
      */
-    private static function priorityQueue(Builder $dasar): array
+    private static function priorityQueue(Builder $dasar, int $page, int $perPage): array
     {
-        $tickets = (clone $dasar)->aktif()
-            ->with('masterUnit')
+        $query = (clone $dasar)->aktif()->with('masterUnit');
+
+        // Get total count before pagination
+        $total = $query->count();
+
+        // Get paginated results
+        $tickets = $query
             ->get()
             ->map(function (Pengaduan $p) {
                 $hariKe = Sla::hariKe($p->created_at);
                 $totalHari = Sla::totalHariKerja($p->kasus_berat);
-                $lewat = max(0, $hariKe - $totalHari); // actual days overdue (positive)
-                $sisa = max(0, $totalHari - $hariKe);  // remaining days (0 if overdue)
+                $lewat = max(0, $hariKe - $totalHari);
+                $sisa = max(0, $totalHari - $hariKe);
 
-                // Determine priority group (1-6) per user spec:
-                // 1. Telat + Berat
-                // 2. Berat + Tidak Telat
-                // 3. Telat + Sedang (Diproses/Revisi)
-                // 4. Sedang + Tidak Telat
-                // 5. Telat + Ringan (Diterima)
-                // 6. Ringan + Tidak Telat
                 $isBerat = $p->kasus_berat;
                 $isTelat = $lewat > 0;
                 $isSedang = in_array($p->status, [StatusPengaduan::Diproses, StatusPengaduan::Revisi]);
@@ -190,7 +203,6 @@ final class MonitorDisposisi
                     $priorityGroup = 6;
                 }
 
-                // Traffic light
                 $zona = Sla::zona($p->created_at, null, $p->kasus_berat);
                 $slaBadge = match ($zona->value) {
                     'terlambat' => ['label' => '🔴 TERLAMBAT', 'class' => 'bg-error-container text-on-error-container'],
@@ -219,13 +231,17 @@ final class MonitorDisposisi
                 ];
             })
             ->sortBy(function ($t) {
-                // Sort by priority group first, then by days overdue (desc), then by hari_ke (desc)
                 return [$t['priority_group'], -$t['lewat'], -$t['hari_ke']];
             })
-            ->take(self::MAX_PRIORITY_QUEUE)
-            ->values()
-            ->all();
+            ->values();
 
-        return $tickets;
+        // Manual pagination since we sorted in PHP
+        $offset = ($page - 1) * $perPage;
+        $data = $tickets->slice($offset, $perPage)->values()->all();
+
+        return [
+            'data' => $data,
+            'total' => $total,
+        ];
     }
 }

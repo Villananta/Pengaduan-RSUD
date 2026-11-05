@@ -216,9 +216,9 @@
 
             {{-- Panel: Antrian Prioritas --}}
             <div role="tabpanel" id="panel-priority-queue" aria-labelledby="tab-priority-queue" class="p-space-md hidden">
-                <div class="mb-4 flex items-center justify-between gap-2">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <p class="font-body-sm text-body-sm text-on-surface-variant">
-                        Menampilkan {{ count($monitor->priorityQueue) }} tiket prioritas (maks. 50). Urutan: 1) Telat & Berat → 2) Berat & Tidak Telat → 3) Telat & Sedang → 4) Sedang & Tidak Telat → 5) Telat & Ringan → 6) Ringan & Tidak Telat.
+                        Total {{ $monitor->priorityTotal }} tiket prioritas. Urutan: 1) Berat & Terlambat → 2) Berat & Tepat waktu → 3) Sedang & Terlambat → 4) Sedang & Tepat waktu → 5) Ringan & Terlambat → 6) Ringan & Tepat waktu.
                     </p>
                     <span class="font-label-sm text-label-sm px-2 py-1 rounded-full bg-surface-container text-on-surface-variant">
                         Auto-refresh: 60s
@@ -244,12 +244,12 @@
                             @forelse ($monitor->priorityQueue as $i => $t)
                                 @php
                                     $priorityLabels = [
-                                        1 => '🔴 Telat + Berat',
-                                        2 => '🟠 Berat + Tidak Telat',
-                                        3 => '🟡 Telat + Sedang',
-                                        4 => '🟢 Sedang + Tidak Telat',
-                                        5 => '🔵 Telat + Ringan',
-                                        6 => '⚪ Ringan + Tidak Telat',
+                                        1 => '🔴 Berat + Terlambat',
+                                        2 => '🟠 Berat + Tepat waktu',
+                                        3 => '🟡 Sedang + Terlambat',
+                                        4 => '🟢 Sedang + Tepat waktu',
+                                        5 => '🔵 Ringan + Terlambat',
+                                        6 => '⚪ Ringan + Tepat waktu',
                                     ];
                                     $priorityColors = [
                                         1 => 'bg-error-container text-on-error-container',
@@ -263,15 +263,10 @@
                                 <tr class="hover:bg-surface-container transition-colors {{ $t['lewat'] > 0 ? 'bg-error-container/15' : ($t['sisa_hari'] <= 2 && $t['sisa_hari'] > 0 ? 'bg-warning-container/15' : '') }}">
                                     <td class="px-3 py-2 font-mono text-on-surface">
                                         #{{ $i + 1 }}
-                                        <span class="ml-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold {{ $priorityColors[$t['priority_group']] }}">
+                                        <span class="ml-1.5 inline-flex items-center gap-1 px-10 py-0.5 rounded text-[10px] font-bold {{ $priorityColors[$t['priority_group']] }}">
                                             {{ $priorityLabels[$t['priority_group']] }}
                                         </span>
-                                        @if ($t['kasus_berat'])
-                                            <span class="ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-fixed text-primary-container">
-                                                <x-symbol nama="shield" class="text-[10px]" />
-                                                BERAT
-                                            </span>
-                                        @endif
+                        
                                     </td>
                                     <td class="px-3 py-2">
                                         <a href="{{ $t['url_detail'] }}" class="font-medium text-primary hover:underline">{{ $t['kode'] }}</a>
@@ -320,6 +315,55 @@
                             @endforelse
                         </tbody>
                     </table>
+
+                {{-- Pagination --}}
+                @php
+                    $totalPages = ceil($monitor->priorityTotal / $monitor->priorityPerPage);
+                    $currentPage = $monitor->priorityCurrentPage;
+                    $baseUrl = route('admin.monitor.index');
+                @endphp
+                @if ($totalPages > 1)
+                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 text-sm text-on-surface-variant">
+                            <span>Menampilkan {{ ($currentPage - 1) * $monitor->priorityPerPage + 1 }}–{{ min($currentPage * $monitor->priorityPerPage, $monitor->priorityTotal) }} dari {{ $monitor->priorityTotal }} tiket</span>
+                            <span class="px-2 py-1 rounded bg-surface-container">
+                                per halaman:
+                                <select id="perPageSelect" class="ml-2 px-2 py-1 text-sm border rounded bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-secondary/40">
+                                    @foreach ([50, 100, 150, 200] as $pp)
+                                        <option value="{{ $pp }}" @selected($monitor->priorityPerPage === $pp)>{{ $pp }}</option>
+                                    @endforeach
+                                </select>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            @if ($currentPage > 1)
+                                <a href="{{ $baseUrl }}?page={{ $currentPage - 1 }}&per_page={{ $monitor->priorityPerPage }}#panel-priority-queue" class="px-3 py-1.5 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">
+                                    <x-symbol nama="chevron_left" class="text-[18px]" />
+                                </a>
+                            @else
+                                <span class="px-3 py-1.5 rounded-sm bg-surface-container text-on-surface-variant cursor-not-allowed">
+                                    <x-symbol nama="chevron_left" class="text-[18px]" />
+                                </span>
+                            @endif
+                            @for ($p = max(1, $currentPage - 2); $p <= min($totalPages, $currentPage + 2); $p++)
+                                @if ($p === $currentPage)
+                                    <span class="px-3 py-1.5 rounded-sm bg-primary text-on-primary font-semibold">{{ $p }}</span>
+                                @else
+                                    <a href="{{ $baseUrl }}?page={{ $p }}&per_page={{ $monitor->priorityPerPage }}#panel-priority-queue" class="px-3 py-1.5 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">{{ $p }}</a>
+                                @endif
+                            @endfor
+                            @if ($currentPage < $totalPages)
+                                <a href="{{ $baseUrl }}?page={{ $currentPage + 1 }}&per_page={{ $monitor->priorityPerPage }}#panel-priority-queue" class="px-3 py-1.5 rounded-sm bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">
+                                    <x-symbol nama="chevron_right" class="text-[18px]" />
+                                </a>
+                            @else
+                                <span class="px-3 py-1.5 rounded-sm bg-surface-container text-on-surface-variant cursor-not-allowed">
+                                    <x-symbol nama="chevron_right" class="text-[18px]" />
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
                 </div>
             </div>
         </div>
@@ -370,5 +414,17 @@
         window.addEventListener('beforeunload', function () {
             clearInterval(refreshTimer);
         });
+
+        // Per-page select handler
+        var perPageSelect = document.getElementById('perPageSelect');
+        if (perPageSelect) {
+            perPageSelect.addEventListener('change', function () {
+                var url = new URL(window.location.href);
+                url.searchParams.set('per_page', this.value);
+                url.searchParams.set('page', '1');
+                url.hash = 'panel-priority-queue';
+                window.location.href = url.toString();
+            });
+        }
     </script>
 @endpush

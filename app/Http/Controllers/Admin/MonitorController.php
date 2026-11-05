@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Support\MonitorDisposisi;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MonitorController extends Controller
@@ -19,10 +20,13 @@ class MonitorController extends Controller
      * Seluruh query dan penyusunan kalimat diserahkan ke
      * App\Support\MonitorDisposisi, jadi template ini tidak memakai query.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        $page = $request->query('page', 1);
+        $perPage = $request->query('per_page', 50);
+
         return view('admin.monitor.index', [
-            'monitor' => MonitorDisposisi::dariRequest(),
+            'monitor' => MonitorDisposisi::dariRequest($page, $perPage),
         ]);
     }
 }
