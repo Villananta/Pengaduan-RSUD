@@ -68,6 +68,7 @@ final class DaftarPengaduan
         public readonly string $ruteDaftar = 'admin.pengaduan.index',
         public readonly string $ruteTiket = 'admin.pengaduan.show',
         public readonly array $parameterRute = [],
+        public readonly string $urut = 'desc',
     ) {}
 
     /**
@@ -103,6 +104,7 @@ final class DaftarPengaduan
         // seperti "12 34 56 78" tetap menemukan tiketnya.
         $nrmCari = Pengaduan::normalisasiNrm($cari);
         $perHalaman = self::perHalaman($request->query('per_halaman'));
+        $urut = in_array($request->query('urut'), ['asc', 'desc']) ? $request->query('urut') : 'desc';
 
         // Filter keparahan hanya ada di konsol humas. Parameter yang sama
         // diabaikan di halaman unit supaya PIC tidak menyaring tiket dengan
@@ -195,9 +197,9 @@ final class DaftarPengaduan
             // jadi tanpa penyaring ini minimal selalu kelebihan satu.
             ->withCount(['pesan as pesan_count' => fn (Builder $q): Builder => $q->jawabanUnit()])
             ->withExists(['pesan as unit_menjawab' => fn (Builder $q): Builder => $q->jawabanUnit()])
-            // Tiket yang belum ditutup didahulukan, lalu yang terbaru.
+            // Tiket yang belum ditutup didahulukan, lalu urutkan created_at.
             ->orderByRaw('case when status = ? then 1 else 0 end', [StatusPengaduan::Selesai->value])
-            ->latest('created_at')
+            ->orderBy('created_at', $urut === 'asc' ? 'asc' : 'desc')
             ->paginate($perHalaman)
             ->withQueryString();
 
@@ -234,6 +236,7 @@ final class DaftarPengaduan
             ruteDaftar: $ruteDaftar,
             ruteTiket: $ruteTiket,
             parameterRute: $terkunci !== null ? ['unit' => $terkunci->kode] : [],
+            urut: $urut,
         );
     }
 

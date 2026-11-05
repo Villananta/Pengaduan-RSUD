@@ -227,7 +227,7 @@
                 </div>
             </div>
 
-            {{-- Baris 2: Pencarian, Unit, Kategori --}}
+            {{-- Baris 2: Pencarian, Unit, Kategori, Urutkan --}}
             <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
                 <div class="md:col-span-4 relative flex items-center">
                     <x-symbol nama="search" class="absolute left-3 text-outline text-[20px]" />
@@ -240,7 +240,7 @@
                     >
                 </div>
 
-                <div class="md:col-span-4 relative flex items-center">
+                <div class="md:col-span-3 relative flex items-center">
                     <x-symbol nama="domain" class="absolute left-3 text-outline text-[18px]" />
                     <select
                         name="unit"
@@ -275,7 +275,20 @@
                     <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
                 </div>
 
-                <div class="md:col-span-2 flex items-center gap-2">
+                <div class="md:col-span-2 relative flex items-center">
+                    <x-symbol nama="sort" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                    <select
+                        name="urut"
+                        onchange="this.form.submit()"
+                        class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                    >
+                        <option value="desc" @selected($daftar->urut === 'desc')>Terbaru (Desc)</option>
+                        <option value="asc" @selected($daftar->urut === 'asc')>Terlama (Asc)</option>
+                    </select>
+                    <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
+                </div>
+
+                <div class="md:col-span-1 flex items-center gap-2">
                     @if ($daftar->adaFilterLain() || $daftar->cari !== '')
                         <a
                             href="{{ route('admin.pengaduan.index') }}"
