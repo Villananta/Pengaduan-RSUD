@@ -241,28 +241,29 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant">
+                            @php
+                                $priorityLabels = [
+                                    1 => '🔴 Berat + Terlambat',
+                                    2 => '🟠 Berat + Tepat waktu',
+                                    3 => '🟡 Sedang + Terlambat',
+                                    4 => '🟢 Sedang + Tepat waktu',
+                                    5 => '🔵 Ringan + Terlambat',
+                                    6 => '⚪ Ringan + Tepat waktu',
+                                ];
+                                $priorityColors = [
+                                    1 => 'bg-error-container text-on-error-container',
+                                    2 => 'bg-warning-container text-on-warning-container',
+                                    3 => 'bg-warning-container text-on-warning-container',
+                                    4 => 'bg-success-container text-on-success-container',
+                                    5 => 'bg-info-container text-on-info-container',
+                                    6 => 'bg-surface-container text-on-surface-variant',
+                                ];
+                                $startNumber = ($monitor->priorityCurrentPage - 1) * $monitor->priorityPerPage;
+                            @endphp
                             @forelse ($monitor->priorityQueue as $i => $t)
-                                @php
-                                    $priorityLabels = [
-                                        1 => '🔴 Berat + Terlambat',
-                                        2 => '🟠 Berat + Tepat waktu',
-                                        3 => '🟡 Sedang + Terlambat',
-                                        4 => '🟢 Sedang + Tepat waktu',
-                                        5 => '🔵 Ringan + Terlambat',
-                                        6 => '⚪ Ringan + Tepat waktu',
-                                    ];
-                                    $priorityColors = [
-                                        1 => 'bg-error-container text-on-error-container',
-                                        2 => 'bg-warning-container text-on-warning-container',
-                                        3 => 'bg-warning-container text-on-warning-container',
-                                        4 => 'bg-success-container text-on-success-container',
-                                        5 => 'bg-info-container text-on-info-container',
-                                        6 => 'bg-surface-container text-on-surface-variant',
-                                    ];
-                                @endphp
                                 <tr class="hover:bg-surface-container transition-colors {{ $t['lewat'] > 0 ? 'bg-error-container/15' : ($t['sisa_hari'] <= 2 && $t['sisa_hari'] > 0 ? 'bg-warning-container/15' : '') }}">
                                     <td class="px-3 py-2 font-mono text-on-surface">
-                                        #{{ $i + 1 }}
+                                        #{{ $startNumber + $i + 1 }}
                                         <span class="ml-1.5 inline-flex items-center gap-1 px-10 py-0.5 rounded text-[10px] font-bold {{ $priorityColors[$t['priority_group']] }}">
                                             {{ $priorityLabels[$t['priority_group']] }}
                                         </span>
