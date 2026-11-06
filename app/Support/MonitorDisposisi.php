@@ -38,6 +38,7 @@ final class MonitorDisposisi
      * @param  int  $selesaiTepatTotal  Total tiket selesai tepat waktu (SLA penuh)
      * @param  int  $selesaiTerlambatTotal  Total tiket selesai terlambat (SLA penuh)
      * @param  int  $investigasiLewatTotal  Total tiket aktif lewat batas investigasi (5 hari kerja)
+     * @param  string  $prioritasStatusFilter  Filter status antrian prioritas
      */
     public function __construct(
         public readonly array $unitTable,
@@ -50,22 +51,28 @@ final class MonitorDisposisi
         public readonly int $selesaiTepatTotal,
         public readonly int $selesaiTerlambatTotal,
         public readonly int $investigasiLewatTotal,
+        public readonly string $prioritasStatusFilter,
     ) {}
 
     /**
      * Susun data monitor dari request dengan pagination antrian prioritas.
      */
-    public static function dariRequest(?int $page = null, int $perPage = 50): self
+    public static function dariRequest(?int $page = null, int $perPage = 50, ?string $statusFilter = null): self
     {
         $page = $page ?? (request()->query('page') ?? 1);
         $perPage = in_array($perPage, [50, 100, 150, 200]) ? $perPage : 50;
+        $statusFilter = $statusFilter ?? request()->query('status');
+
+        // Validasi status filter: hanya terima status aktif yang valid
+        $allowedStatuses = ['semua_aktif', StatusPengaduan::Diterima->value, StatusPengaduan::Diproses->value, StatusPengaduan::Revisi->value];
+        $statusFilter = in_array($statusFilter, $allowedStatuses) ? $statusFilter : 'semua_aktif';
 
         $dasar = fn (): Builder => Pengaduan::query()
             ->whereNotNull('master_unit_id')
             ->whereHas('masterUnit', fn (Builder $q): Builder => $q->where('aktif', true))
             ->with('masterUnit');
 
-        $priorityData = self::priorityQueue($dasar(), $page, $perPage);
+        $priorityData = self::priorityQueue($dasar(), $page, $perPage, $statusFilter);
 
         // Agregat SLA tiket selesai & investigasi lewat (semua unit)
         $selesaiTepatTotal = 0;
@@ -89,6 +96,7 @@ final class MonitorDisposisi
             selesaiTepatTotal: $selesaiTepatTotal,
             selesaiTerlambatTotal: $selesaiTerlambatTotal,
             investigasiLewatTotal: $investigasiLewatTotal,
+            prioritasStatusFilter: $statusFilter,
         );
     }
 
@@ -209,11 +217,20 @@ final class MonitorDisposisi
      * @param  Builder  $dasar  Query dasar sudah difilter unit aktif
      * @param  int  $page  Halaman (1-based)
      * @param  int  $perPage  Jumlah per halaman (kelipatan 50)
+     * @param  string  $statusFilter  Filter status: 'semua_aktif', 'diterima', 'diproses', 'revisi'
      * @return array{data: array<int, array<string, mixed>>, total: int}
      */
-    private static function priorityQueue(Builder $dasar, int $page, int $perPage): array
+    private static function priorityQueue(Builder $dasar, int $page, int $perPage, string $statusFilter): array
     {
-        $query = (clone $dasar)->aktif()->with('masterUnit');
+        $query = (clone $dasar)->with('masterUnit');
+
+        // Apply status filter
+        match ($statusFilter) {
+            StatusPengaduan::Diterima->value => $query->where('status', StatusPengaduan::Diterima->value),
+            StatusPengaduan::Diproses->value => $query->where('status', StatusPengaduan::Diproses->value),
+            StatusPengaduan::Revisi->value => $query->where('status', StatusPengaduan::Revisi->value),
+            default => $query->aktif(), // 'semua_aktif' - semua status aktif (diterima, diproses, revisi)
+        };
 
         // Get total count before pagination
         $total = $query->count();

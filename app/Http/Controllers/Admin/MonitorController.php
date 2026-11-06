@@ -24,9 +24,10 @@ class MonitorController extends Controller
     {
         $page = $request->query('page', 1);
         $perPage = $request->query('per_page', 50);
+        $statusFilter = $request->query('status');
 
         return view('admin.monitor.index', [
-            'monitor' => MonitorDisposisi::dariRequest($page, $perPage),
+            'monitor' => MonitorDisposisi::dariRequest($page, $perPage, $statusFilter),
         ]);
     }
 }
