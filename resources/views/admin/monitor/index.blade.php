@@ -58,11 +58,11 @@
         <!-- End of Strip Konteks -->
 
         {{-- KPI Cards --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-space-md">
             <div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm border-l-4 border-error">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="font-label-sm text-label-sm text-on-surface-variant">Tiket Overdue</p>
+                        <p class="font-label-sm text-label-sm text-on-surface-variant">Overdue SLA (12/20 HR)</p>
                         <p class="font-headline-md text-headline-md font-bold text-error mt-1">
                             {{ array_sum(array_column($monitor->unitTable, 'overdue')) }}
                         </p>
@@ -74,7 +74,7 @@
             <div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm border-l-4 border-warning">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="font-label-sm text-label-sm text-on-surface-variant">Mendekati Batas</p>
+                        <p class="font-label-sm text-label-sm text-on-surface-variant">Mendekati Batas SLA</p>
                         <p class="font-headline-md text-headline-md font-bold text-warning mt-1">
                             {{ array_sum(array_column($monitor->unitTable, 'at_risk')) }}
                         </p>
@@ -86,12 +86,48 @@
             <div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm border-l-4 border-success">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="font-label-sm text-label-sm text-on-surface-variant">Sesuai Jadwal</p>
+                        <p class="font-label-sm text-label-sm text-on-surface-variant">Sesuai Jadwal SLA</p>
                         <p class="font-headline-md text-headline-md font-bold text-success mt-1">
                             {{ array_sum(array_column($monitor->unitTable, 'on_track')) }}
                         </p>
                     </div>
                     <x-symbol nama="check_circle" class="text-[32px] text-success/60" />
+                </div>
+            </div>
+
+            <div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm border-l-4 border-info">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-label-sm text-label-sm text-on-surface-variant">Lewat Investigasi (5 HR)</p>
+                        <p class="font-headline-md text-headline-md font-bold text-info mt-1">
+                            {{ $monitor->investigasiLewatTotal }}
+                        </p>
+                    </div>
+                    <x-symbol nama="timer" class="text-[32px] text-info/60" />
+                </div>
+            </div>
+
+            <div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm border-l-4 border-success">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-label-sm text-label-sm text-on-surface-variant">Selesai Tepat Waktu</p>
+                        <p class="font-headline-md text-headline-md font-bold text-success mt-1">
+                            {{ $monitor->selesaiTepatTotal }}
+                        </p>
+                    </div>
+                    <x-symbol nama="check_circle_outline" class="text-[32px] text-success/60" />
+                </div>
+            </div>
+
+            <div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm border-l-4 border-error">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-label-sm text-label-sm text-on-surface-variant">Selesai Terlambat</p>
+                        <p class="font-headline-md text-headline-md font-bold text-error mt-1">
+                            {{ $monitor->selesaiTerlambatTotal }}
+                        </p>
+                    </div>
+                    <x-symbol nama="schedule" class="text-[32px] text-error/60" />
                 </div>
             </div>
 
@@ -145,9 +181,12 @@
                             <tr class="bg-surface-container text-on-surface-variant font-semibold">
                                 <th class="px-3 py-2 text-left">Unit</th>
                                 <th class="px-3 py-2 text-center">Total Aktif</th>
-                                <th class="px-3 py-2 text-center">🔴 Overdue</th>
+                                <th class="px-3 py-2 text-center">🔴 Overdue SLA</th>
                                 <th class="px-3 py-2 text-center">🟡 At Risk</th>
                                 <th class="px-3 py-2 text-center">🟢 On Track</th>
+                                <th class="px-3 py-2 text-center">⏱ Lewat Investigasi</th>
+                                <th class="px-3 py-2 text-center">✅ Selesai Tepat</th>
+                                <th class="px-3 py-2 text-center">⏰ Selesai Terlambat</th>
                                 <th class="px-3 py-2 text-center">Rata-rata Hari</th>
                                 <th class="px-3 py-2 text-center">PIC / WA</th>
                                 <th class="px-3 py-2 text-center">Status</th>
@@ -167,6 +206,9 @@
                                     <td class="px-3 py-2 text-center font-bold text-error">{{ $u['overdue'] }}</td>
                                     <td class="px-3 py-2 text-center font-bold text-warning">{{ $u['at_risk'] }}</td>
                                     <td class="px-3 py-2 text-center font-bold text-success">{{ $u['on_track'] }}</td>
+                                    <td class="px-3 py-2 text-center font-bold text-info">{{ $u['investigasi_lewat'] }}</td>
+                                    <td class="px-3 py-2 text-center font-bold text-success">{{ $u['selesai_tepat'] }}</td>
+                                    <td class="px-3 py-2 text-center font-bold text-error">{{ $u['selesai_terlambat'] }}</td>
                                     <td class="px-3 py-2 text-center font-mono text-on-surface-variant">{{ $u['avg_hari'] }} hari</td>
                                     <td class="px-3 py-2 text-center text-on-surface-variant">
                                         @if ($u['pic'])
@@ -197,7 +239,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-3 py-8 text-center text-on-surface-variant">
+                                    <td colspan="12" class="px-3 py-8 text-center text-on-surface-variant">
                                         Tidak ada unit dengan tiket aktif
                                     </td>
                                 </tr>
@@ -210,6 +252,10 @@
                 <div class="mt-4 pt-4 border-t border-outline-variant flex flex-wrap items-center justify-between gap-2 text-sm text-on-surface-variant">
                     <span>Total unit aktif: {{ count($monitor->unitTable) }}</span>
                     <span>Total tiket aktif: {{ array_sum(array_column($monitor->unitTable, 'total_aktif')) }}</span>
+                    <span>Overdue SLA: {{ array_sum(array_column($monitor->unitTable, 'overdue')) }}</span>
+                    <span>Lewat Investigasi: {{ $monitor->investigasiLewatTotal }}</span>
+                    <span>Selesai tepat: {{ $monitor->selesaiTepatTotal }}</span>
+                    <span>Selesai terlambat: {{ $monitor->selesaiTerlambatTotal }}</span>
                     <span>Total selesai: {{ array_sum(array_column($monitor->unitTable, 'total_selesai')) }}</span>
                 </div>
             </div>

@@ -4,10 +4,10 @@ namespace App\Support;
 
 use App\Enums\StatusInvestigasi;
 use App\Enums\StatusPengaduan;
+use App\Enums\ZonaSla;
 use App\Models\MasterUnit;
 use App\Models\Pengaduan;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 
 /**
  * Data tampilan untuk halaman Monitor Disposisi & SLA Unit.
@@ -21,8 +21,11 @@ use Illuminate\Support\Collection;
  */
 final class MonitorDisposisi
 {
-    private const BATAS_OVERDUE = 0; // hari sisa ≤ 0
-    private const BATAS_AT_RISK = 2; // hari sisa 1-2 (config: peringatan_hari_kerja)
+    private const BATAS_OVERDUE = 0;       // hari sisa ≤ 0 (SLA penuh: 12/20 hari kerja)
+
+    private const BATAS_AT_RISK = 2;       // hari sisa 1-2 (config: peringatan_hari_kerja)
+
+    private const BATAS_INVESTIGASI = 5;   // batas investigasi unit (hari kerja) — dipakai StatistikDashboard
 
     /**
      * @param  array<int, array<string, mixed>>  $unitTable  Ringkasan per unit
@@ -32,6 +35,9 @@ final class MonitorDisposisi
      * @param  int  $priorityTotal  Total tiket di antrian prioritas (all pages)
      * @param  int  $priorityPerPage  Jumlah per halaman
      * @param  int  $priorityCurrentPage  Halaman saat ini
+     * @param  int  $selesaiTepatTotal  Total tiket selesai tepat waktu (SLA penuh)
+     * @param  int  $selesaiTerlambatTotal  Total tiket selesai terlambat (SLA penuh)
+     * @param  int  $investigasiLewatTotal  Total tiket aktif lewat batas investigasi (5 hari kerja)
      */
     public function __construct(
         public readonly array $unitTable,
@@ -41,6 +47,9 @@ final class MonitorDisposisi
         public readonly int $priorityTotal,
         public readonly int $priorityPerPage,
         public readonly int $priorityCurrentPage,
+        public readonly int $selesaiTepatTotal,
+        public readonly int $selesaiTerlambatTotal,
+        public readonly int $investigasiLewatTotal,
     ) {}
 
     /**
@@ -58,6 +67,17 @@ final class MonitorDisposisi
 
         $priorityData = self::priorityQueue($dasar(), $page, $perPage);
 
+        // Agregat SLA tiket selesai & investigasi lewat (semua unit)
+        $selesaiTepatTotal = 0;
+        $selesaiTerlambatTotal = 0;
+        $investigasiLewatTotal = 0;
+
+        foreach (self::unitTable($dasar()) as $row) {
+            $selesaiTepatTotal += $row['selesai_tepat'];
+            $selesaiTerlambatTotal += $row['selesai_terlambat'];
+            $investigasiLewatTotal += $row['investigasi_lewat'];
+        }
+
         return new self(
             unitTable: self::unitTable($dasar()),
             priorityQueue: $priorityData['data'],
@@ -66,6 +86,9 @@ final class MonitorDisposisi
             priorityTotal: $priorityData['total'],
             priorityPerPage: $perPage,
             priorityCurrentPage: $page,
+            selesaiTepatTotal: $selesaiTepatTotal,
+            selesaiTerlambatTotal: $selesaiTerlambatTotal,
+            investigasiLewatTotal: $investigasiLewatTotal,
         );
     }
 
@@ -104,25 +127,42 @@ final class MonitorDisposisi
                 ->where('status', 'selesai')
                 ->count();
 
-            // Breakdown by SLA zone (semua tiket: aktif + selesai)
-            $breakdown = $queryUnit(false)->get()
+            // Breakdown SLA penuh (12/20 hari) — untuk tiket AKTIF
+            $breakdownAktif = $queryUnit(true)->get()
                 ->groupBy(function (Pengaduan $p): string {
-                    if ($p->status->selesai()) {
-                        return 'selesai';
-                    }
                     $zona = Sla::zona($p->created_at, null, $p->kasus_berat);
+
                     return match ($zona) {
-                        \App\Enums\ZonaSla::Terlambat => 'overdue',
-                        \App\Enums\ZonaSla::Mendek => 'at_risk',
-                        \App\Enums\ZonaSla::TepatWaktu => 'on_track',
+                        ZonaSla::Terlambat => 'overdue',
+                        ZonaSla::Mendek => 'at_risk',
+                        ZonaSla::TepatWaktu => 'on_track',
                         default => 'on_track',
                     };
                 });
 
-            $overdue = $breakdown->get('overdue', collect())->count();
-            $atRisk = $breakdown->get('at_risk', collect())->count();
-            $onTrack = $breakdown->get('on_track', collect())->count();
-            $selesai = $breakdown->get('selesai', collect())->count();
+            $overdueAktif = $breakdownAktif->get('overdue', collect())->count();
+            $atRiskAktif = $breakdownAktif->get('at_risk', collect())->count();
+            $onTrackAktif = $breakdownAktif->get('on_track', collect())->count();
+
+            // Breakdown SLA penuh untuk tiket SELESAI (pakai selesai_at)
+            $selesaiTiket = $queryUnit(false)->where('status', 'selesai')->get();
+            $selesaiTepat = 0;
+            $selesaiTerlambat = 0;
+
+            foreach ($selesaiTiket as $p) {
+                $zona = Sla::zona($p->created_at, $p->selesai_at, $p->kasus_berat);
+                if ($zona === ZonaSla::TepatWaktu) {
+                    $selesaiTepat++;
+                } else {
+                    $selesaiTerlambat++;
+                }
+            }
+
+            // Investigasi unit: tiket yang lewat batas 5 hari kerja
+            $investigasiLewat = $queryUnit(true)
+                ->get()
+                ->filter(fn (Pengaduan $p) => Sla::lewatInvestigasi($p->created_at))
+                ->count();
 
             // Rata-rata hari kerja tiket aktif
             $avgHari = $totalAktif > 0
@@ -130,7 +170,7 @@ final class MonitorDisposisi
                 : 0;
 
             // Urgency score unit (untuk sorting): overdue*10 + at_risk*3
-            $urgencyScore = $overdue * 10 + $atRisk * 3;
+            $urgencyScore = $overdueAktif * 10 + $atRiskAktif * 3;
 
             $rows[] = [
                 'unit_id' => $unit->id,
@@ -139,10 +179,13 @@ final class MonitorDisposisi
                 'pic' => $unit->pic,
                 'wa' => $unit->kontak_wa,
                 'total_aktif' => $totalAktif,
-                'total_selesai' => $selesai,
-                'overdue' => $overdue,
-                'at_risk' => $atRisk,
-                'on_track' => $onTrack,
+                'total_selesai' => $totalSelesai,
+                'selesai_tepat' => $selesaiTepat,
+                'selesai_terlambat' => $selesaiTerlambat,
+                'overdue' => $overdueAktif,
+                'at_risk' => $atRiskAktif,
+                'on_track' => $onTrackAktif,
+                'investigasi_lewat' => $investigasiLewat,
                 'avg_hari' => round($avgHari, 1),
                 'urgency_score' => $urgencyScore,
                 'bisa_ditugaskan' => $unit->bisaDitugaskan(),
@@ -191,11 +234,11 @@ final class MonitorDisposisi
 
                 if ($isTelat && $isBerat) {
                     $priorityGroup = 1;
-                } elseif (!$isTelat && $isBerat) {
+                } elseif (! $isTelat && $isBerat) {
                     $priorityGroup = 2;
                 } elseif ($isTelat && $isSedang) {
                     $priorityGroup = 3;
-                } elseif (!$isTelat && $isSedang) {
+                } elseif (! $isTelat && $isSedang) {
                     $priorityGroup = 4;
                 } elseif ($isTelat && $isRingan) {
                     $priorityGroup = 5;
