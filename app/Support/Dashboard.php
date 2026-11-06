@@ -286,7 +286,7 @@ final class Dashboard
         }
 
         return [
-            'label' => 'Belum Dibuka ('.$pengaduan->created_at->diffInHours(now()).' jam)',
+            'label' => 'Belum Dibuka ('.round($pengaduan->created_at->diffInHours(now()), 1).' jam)',
             'ikon' => 'visibility_off',
             'nada' => 'bg-error text-on-error',
         ];
