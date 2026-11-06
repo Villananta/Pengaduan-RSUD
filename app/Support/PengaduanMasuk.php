@@ -104,7 +104,7 @@ final class PengaduanMasuk
         $pengaduan = Pengaduan::buat(
             (new Collection($data))
                 ->except(['persetujuan', 'lampiran'])
-                ->put('master_unit_id', self::unitMasterAdmin($data['unit'] ?? null))
+                ->put('master_unit_id', self::unitMaster($data['unit'] ?? null))
                 ->put('kanal', $kanal)
                 ->all(),
             self::kodeTiketBaru(),

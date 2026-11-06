@@ -148,7 +148,7 @@ class TingkatKeparahanPengaduanTest extends TestCase
             ->assertDontSee('ADUAN-BERAT-01');
     }
 
-    public function test_filter_keparahan_diabaikan_di_halaman_unit(): void
+    public function test_filter_keparahan_berfungsi_di_halaman_unit(): void
     {
         $unit = MasterUnit::where('kode', 'IFP-01')->firstOrFail();
 
@@ -164,12 +164,27 @@ class TingkatKeparahanPengaduanTest extends TestCase
 
         $this->masukSebagaiPicUntuk($unit);
 
-        // Halaman unit tidak menawarkan filter keparahan, jadi parameter
-        // yang diselipkan ke URL tidak boleh menyembunyikan tiket apa pun.
+        // Filter keparahan kini tersedia di halaman unit, jadi parameter
+        // URL memang menyaring tiket.
         $this->get(route('unit.disposisi.index', $unit).'?keparahan='.TingkatKeparahan::Berat->value)
             ->assertOk()
-            ->assertSee('ADUAN-UNIT-RINGAN')
+            ->assertDontSee('ADUAN-UNIT-RINGAN')
             ->assertSee('ADUAN-UNIT-BERAT');
+
+        $this->get(route('unit.disposisi.index', $unit).'?keparahan='.TingkatKeparahan::Ringan->value)
+            ->assertOk()
+            ->assertSee('ADUAN-UNIT-RINGAN')
+            ->assertDontSee('ADUAN-UNIT-BERAT');
+
+        // Sentinel 'belum' menampilkan tiket yang keparahannya belum diisi.
+        Pengaduan::factory()->status(StatusPengaduan::Diproses)
+            ->create(['kode_tiket' => 'ADUAN-UNIT-BELUM', 'master_unit_id' => $unit->id]);
+
+        $this->get(route('unit.disposisi.index', $unit).'?keparahan=belum')
+            ->assertOk()
+            ->assertSee('ADUAN-UNIT-BELUM')
+            ->assertDontSee('ADUAN-UNIT-RINGAN')
+            ->assertDontSee('ADUAN-UNIT-BERAT');
     }
 
     private function tiket(string $kode): Pengaduan
