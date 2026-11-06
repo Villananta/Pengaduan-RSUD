@@ -112,7 +112,7 @@
         </div>
         <!-- End of Ringkasan Arsip -->
 
-        <!-- Pencarian & Saringan Kategori -->
+        <!-- Pencarian, Kategori, Urutkan -->
         <form method="GET" action="{{ route('unit.disposisi.arsip', $unit) }}" class="grid grid-cols-1 md:grid-cols-12 gap-space-sm">
             @foreach ($filterAktif as $nama => $nilai)
 
@@ -120,7 +120,7 @@
 
             @endforeach
 
-            <div class="md:col-span-6 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
+            <div class="md:col-span-5 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                 <x-symbol nama="search" class="text-[18px] text-outline" />
                 <input
                     type="search"
@@ -131,7 +131,7 @@
                 >
             </div>
 
-            <div class="md:col-span-4 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
+            <div class="md:col-span-3 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                 <x-symbol nama="category" class="text-[18px] text-outline" />
                 <select name="kategori" class="w-full bg-transparent py-2.5 font-body-md text-body-md text-on-surface outline-none">
                     <option value="">Semua Kategori</option>
@@ -145,6 +145,19 @@
                 </select>
             </div>
 
+            <div class="md:col-span-2 relative flex items-center">
+                <x-symbol nama="sort" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                <select
+                    name="urut"
+                    onchange="this.form.submit()"
+                    class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                >
+                    <option value="desc" @selected($daftar->urut === 'desc')>Terbaru (Desc)</option>
+                    <option value="asc" @selected($daftar->urut === 'asc')>Terlama (Asc)</option>
+                </select>
+                <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
+            </div>
+
             <div class="md:col-span-2 flex items-center gap-space-xs">
                 <button
                     type="submit"
@@ -152,7 +165,7 @@
                 >Terapkan</button>
             </div>
         </form>
-        <!-- End of Pencarian & Saringan Kategori -->
+        <!-- End of Pencarian, Kategori, Urutkan -->
 
         <!-- Tabel Arsip -->
         <div class="w-full rounded-lg bg-surface-container-lowest p-space-md shadow-sm flex flex-col gap-space-sm">

@@ -210,9 +210,9 @@
                 </div>
             </div>
 
-            {{-- Baris 3: Pencarian & Kategori --}}
+            {{-- Baris 3: Pencarian, Kategori, Urutkan --}}
             <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
-                <div class="md:col-span-6 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
+                <div class="md:col-span-5 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                     <x-symbol nama="search" class="text-[18px] text-outline" />
                     <input
                         type="search"
@@ -223,7 +223,7 @@
                     >
                 </div>
 
-                <div class="md:col-span-4 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
+                <div class="md:col-span-3 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                     <x-symbol nama="category" class="text-[18px] text-outline" />
                     <select
                         name="kategori"
@@ -241,8 +241,21 @@
                     </select>
                 </div>
 
+                <div class="md:col-span-2 relative flex items-center">
+                    <x-symbol nama="sort" class="absolute left-3 text-outline text-[18px] pointer-events-none" />
+                    <select
+                        name="urut"
+                        onchange="this.form.submit()"
+                        class="w-full pl-9 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:ring-2 focus:ring-secondary/40"
+                    >
+                        <option value="desc" @selected($daftar->urut === 'desc')>Terbaru (Desc)</option>
+                        <option value="asc" @selected($daftar->urut === 'asc')>Terlama (Asc)</option>
+                    </select>
+                    <x-symbol nama="expand_more" class="absolute right-3 text-outline text-[18px] pointer-events-none" />
+                </div>
+
                 <div class="md:col-span-2 flex items-center gap-space-xs">
-                    @if ($daftar->investigasi !== null || $daftar->kategori !== null || $daftar->cari !== '' || $daftar->keparahan !== null || $daftar->keparahanBelum || $daftar->tanggalMulai !== null || $daftar->tanggalAkhir !== null)
+                    @if ($daftar->investigasi !== null || $daftar->kategori !== null || $daftar->cari !== '' || $daftar->keparahan !== null || $daftar->keparahanBelum || $daftar->tanggalMulai !== null || $daftar->tanggalAkhir !== null || $daftar->urut !== 'desc')
                         <a
                             href="{{ route('unit.disposisi.index', $unit) }}"
                             class="w-full px-space-md py-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold text-center transition-colors"
