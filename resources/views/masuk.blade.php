@@ -9,7 +9,7 @@
 @section('content')
 
 <!-- Halaman Masuk -->
-<section class="flex min-h-[720px] items-center bg-brand-light px-8 py-14">
+<section class="flex min-h-[720px] items-center bg-brand-light px-8 py-14 bg-[url('{{ asset('images/login/Screenshot-2025-08-17-at-144319-copy-1029917264.jpg') }}')] bg-cover bg-center bg-no-repeat">
     <div class="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-2">
         
         <!-- Kolom Pengantar: menjelaskan siapa yang boleh masuk dan bagaimana
