@@ -169,7 +169,6 @@
                             @endforeach
                             <option value="belum" @selected($daftar->keparahanBelum)>Belum Ditetapkan ({{ number_format($daftar->jumlahKeparahan['belum'], 0, ',', '.') }})</option>
                         </select>
-                        <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
                     </div>
                 </div>
 
@@ -187,7 +186,6 @@
                             onchange="this.form.submit()"
                             class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40"
                         >
-                        <x-symbol nama="calendar_month" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
                     </div>
                 </div>
 
@@ -205,7 +203,6 @@
                             onchange="this.form.submit()"
                             class="w-full pl-3 pr-8 py-2.5 rounded-sm bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary/40"
                         >
-                        <x-symbol nama="calendar_month" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
                     </div>
                 </div>
             </div>

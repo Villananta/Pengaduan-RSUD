@@ -267,26 +267,11 @@
                         Total {{ $monitor->priorityTotal }} tiket prioritas. Urutan: 1) Berat & Terlambat → 2) Berat & Tepat waktu → 3) Sedang & Terlambat → 4) Sedang & Tepat waktu → 5) Ringan & Terlambat → 6) Ringan & Tepat waktu.
                     </p>
                     <div class="flex items-center gap-2">
-                        <label for="prioritas-status-filter" class="font-label-sm text-label-sm text-on-surface-variant">Filter:</label>
-                        <select
-                            id="prioritas-status-filter"
-                            name="status"
-                            class="px-2 py-1.5 text-sm border border-outline-variant rounded bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary"
-                            hx-get="{{ route('admin.monitor.index') }}"
-                            hx-trigger="change"
-                            hx-target="#panel-priority-queue"
-                            hx-swap="outerHTML"
-                            hx-indicator="#prioritas-loading"
-                        >
-                            <option value="semua_aktif" {{ $monitor->prioritasStatusFilter === 'semua_aktif' ? 'selected' : '' }}>Semua Aktif</option>
-                            <option value="{{ \App\Enums\StatusPengaduan::Diterima->value }}" {{ $monitor->prioritasStatusFilter === \App\Enums\StatusPengaduan::Diterima->value ? 'selected' : '' }}>Diterima</option>
-                            <option value="{{ \App\Enums\StatusPengaduan::Diproses->value }}" {{ $monitor->prioritasStatusFilter === \App\Enums\StatusPengaduan::Diproses->value ? 'selected' : '' }}>Diproses</option>
-                            <option value="{{ \App\Enums\StatusPengaduan::Revisi->value }}" {{ $monitor->prioritasStatusFilter === \App\Enums\StatusPengaduan::Revisi->value ? 'selected' : '' }}>Perlu Revisi</option>
-                        </select>
-                        <span id="prioritas-loading" class="htmx-indicator font-label-sm text-label-sm px-2 py-1 rounded-full bg-primary-container text-on-primary">Memuat...</span>
                         <span class="font-label-sm text-label-sm px-2 py-1 rounded-full bg-surface-container text-on-surface-variant">Auto-refresh: 60s</span>
                     </div>
                 </div>
+
+                <br>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm" role="grid">
