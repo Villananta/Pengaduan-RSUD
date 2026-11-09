@@ -28,10 +28,11 @@
                 Satu akun untuk admin humas dan PIC unit. Masuk memakai email dan kata sandi yang terdaftar di sistem pengaduan RSUD Dr. Soetomo.
             </p>
 
-            <div class="mt-6 text-sm leading-6 lg:mt-12" style="color: rgba(255, 255, 255, 0.85);">
-                Akun PIC belum ada?
-                <span class="font-semibold text-white">Humas mengundangnya lewat Master Data Unit</span>, lalu kata sandi dibuat lewat tautan aktivasi yang dikirim ke email PIC.
-            </div>
+            <div class="mt-8 rounded-2xl border p-5 text-sm leading-6 lg:mt-10"
+                     style="background-color: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.25); color: rgba(255, 255, 255, 0.9);">
+                    <div class="mb-1 font-semibold text-white">Akun PIC belum ada?</div>
+                    Humas mengundangnya lewat Master Data Unit, lalu kata sandi dibuat lewat tautan aktivasi yang dikirim ke email PIC.
+                </div>
         </div>
         <!-- End of Kolom Pengantar -->
 
