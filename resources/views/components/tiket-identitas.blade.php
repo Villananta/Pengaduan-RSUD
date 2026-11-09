@@ -4,6 +4,7 @@
     'unit',
     'judulUnit' => 'Status Lapis 2 &bull; Unit Terkait',
     'showKategori' => false,
+    'showKeparahan' => false,
     'showNoWa' => true,
 ])
 
@@ -28,8 +29,24 @@
             @endif
 
             @if ($showKategori)
-                <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm font-bold">
+                <span class="px-space-sm py-0.5 rounded-full {{ $tiket->kategori ? $tiket->kategori->badge() : 'bg-surface-container text-on-surface-variant' }} font-label-sm text-label-sm font-bold flex items-center gap-1">
+                    @if ($tiket->kategori)
+                        <span class="w-2 h-2 rounded-full {{ $tiket->kategori->ikon() }}" aria-hidden="true"></span>
+                    @else
+                        <x-symbol nama="category" class="text-[13px]" />
+                    @endif
                     {{ $tiket->labelKategori() }}
+                </span>
+            @endif
+
+            @if ($showKeparahan)
+                <span class="px-space-sm py-0.5 rounded-full {{ $tiket->tingkat_keparahan ? $tiket->tingkat_keparahan->badge() : 'bg-surface-container-highest text-on-surface-variant' }} font-label-sm text-label-sm font-bold flex items-center gap-1">
+                    @if ($tiket->tingkat_keparahan)
+                        <span class="w-2 h-2 rounded-full {{ $tiket->tingkat_keparahan->ikon() }}" aria-hidden="true"></span>
+                    @else
+                        <x-symbol nama="flag" class="text-[13px]" />
+                    @endif
+                    {{ $tiket->tingkat_keparahan ? $tiket->tingkat_keparahan->label() : 'Belum Ditetapkan' }}
                 </span>
             @endif
 

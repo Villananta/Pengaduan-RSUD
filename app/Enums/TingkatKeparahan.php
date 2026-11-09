@@ -41,6 +41,7 @@ enum TingkatKeparahan: string
             self::Ringan => 'bg-secondary',
             self::Sedang => 'bg-tertiary',
             self::Berat => 'bg-error',
+
         };
     }
 

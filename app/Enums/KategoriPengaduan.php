@@ -32,4 +32,21 @@ enum KategoriPengaduan: string
             self::Medis => 'Tindakan dokter/perawat, komunikasi DPJP, keterlambatan visitasi, dispensing obat farmasi, edukasi terapi medis.',
         };
     }
+
+    /** Warna badge pada daftar dan detail tiket. */
+    public function badge(): string
+    {
+        return match ($this) {
+            self::Fasilitas => 'bg-secondary-container text-on-secondary-container',
+            self::Medis => 'bg-secondary-container text-on-secondary-container',
+        };
+    }
+
+    public function ikon(): string
+    {
+        return match ($this) {
+            self::Fasilitas => 'domain',
+            self::Medis => 'local_hospital',
+        };
+    }
 }

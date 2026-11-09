@@ -78,6 +78,7 @@
             :unit="$unitTiket"
             :judul-unit="'Status Investigasi Unit'"
             :show-kategori="true"
+            :show-keparahan="true"
             :show-no-wa="false"
         />
 

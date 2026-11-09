@@ -76,8 +76,11 @@
 
         <div class="w-full rounded-lg shadow-sm bg-surface-container-lowest px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md">
             <div class="flex items-start gap-space-sm">
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-surface-container-highest text-on-surface-variant">
-                    <x-symbol nama="category" class="text-[20px]" />
+                <span @class([
+                    'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                    $tiket->kategori?->badge() ?? 'bg-surface-container-highest text-on-surface-variant',
+                ])>
+                    <x-symbol :nama="$tiket->kategori?->ikon() ?? 'category'" class="text-[20px]" />
                 </span>
 
                 <div>
@@ -106,11 +109,12 @@
                             type="submit"
                             aria-pressed="{{ $tiket->kategori === $pilihan ? 'true' : 'false' }}"
                             @class([
-                                'px-space-md py-2 rounded-full font-label-md text-label-md font-bold transition-colors',
-                                'bg-brand-100 text-brand-800 hover:opacity-90' => $tiket->kategori === $pilihan,
+                                'px-space-md py-2 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 transition-colors',
+                                $pilihan->badge().' hover:opacity-90' => $tiket->kategori === $pilihan,
                                 'bg-surface-container text-on-surface-variant hover:bg-surface-container-highest' => $tiket->kategori !== $pilihan,
                             ])
                         >
+                            <span class="w-2 h-2 rounded-full {{ $pilihan->ikon() }}" aria-hidden="true"></span>
                             {{ $pilihan->label() }}
                         </button>
                     </form>
