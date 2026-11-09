@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\Honeypot;
 use App\Http\Middleware\ProxyTepercaya;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -29,6 +30,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Daftarnya baru dibaca saat request masuk lewat ProxyTepercaya
         // karena config() belum tersedia ketika closure ini dijalankan.
         $middleware->replace(TrustProxies::class, ProxyTepercaya::class);
+
+        // Honeypot protection untuk form publik (anti-spam bot).
+        // Daftarkan ke grup 'web' supaya jalan di semua route web.
+        $middleware->web(append: [Honeypot::class]);
 
         // Halaman masuk memakai nama rute sendiri, jadi tamu yang belum
         // autentikasi diarahkan ke sana, bukan ke rute 'login' bawaan.

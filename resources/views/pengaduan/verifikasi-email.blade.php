@@ -49,6 +49,15 @@
         <form method="POST" action="{{ route('pengaduan.verifikasi-email.post', ['kode' => $kode]) }}" class="mt-6 w-full flex flex-col gap-4">
             @csrf
 
+            {{-- Honeypot: field tersembunyi untuk mendeteksi bot --}}
+            <input type="text"
+                   name="website"
+                   tabindex="-1"
+                   autocomplete="off"
+                   style="display: none;"
+                   aria-hidden="true"
+                   value="">
+
             <div class="text-left">
                 <label for="otp" class="block text-sm font-medium text-ink">Kode OTP (6 digit)</label>
                 <input type="text"
@@ -106,6 +115,7 @@
                 'Accept': 'application/json',
             },
             credentials: 'same-origin',
+            body: JSON.stringify({ website: '' }), // honeypot field
         })
         .then(response => response.json())
         .then(data => {

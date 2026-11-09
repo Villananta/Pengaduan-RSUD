@@ -119,7 +119,7 @@
         <div class="w-full rounded-lg bg-surface-container-low p-space-md shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-xs mb-space-sm pb-space-xs">
                 <div class="flex items-center gap-space-xs">
-                    <x-symbol nama="hub" class="text-secondary text-[20px]" />
+                    <x-symbol nama="list" class="text-secondary text-[20px]" />
                     <h2 class="font-title-lg text-title-lg font-bold text-on-surface">Status Tiket di Unit Layanan</h2>
                 </div>
 

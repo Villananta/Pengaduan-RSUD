@@ -184,8 +184,8 @@
 
                 <div class="md:col-span-3 flex flex-col gap-space-sm">
                     <label for="keparahan" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
-                        <span class="px-2 py-0.5 rounded-xs bg-error-container text-on-error-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Keparahan</span>
-                        Tingkat Keparahan
+                        <span class="px-2 py-0.5 rounded-xs bg-error-container text-on-error-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Klasifikasi</span>
+                        Klasifikasi Masalah
                     </label>
                     <div class="relative">
                         <select

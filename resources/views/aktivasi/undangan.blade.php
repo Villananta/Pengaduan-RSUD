@@ -104,6 +104,15 @@
             <form method="POST" action="{{ route('aktivasi.undangan.simpan', ['token' => $unit->undangan_token]) }}" class="mt-6 w-full flex flex-col gap-4 text-left">
                 @csrf
 
+                {{-- Honeypot: field tersembunyi untuk mendeteksi bot --}}
+                <input type="text"
+                       name="website"
+                       tabindex="-1"
+                       autocomplete="off"
+                       style="display: none;"
+                       aria-hidden="true"
+                       value="">
+
                 <div>
                     <label for="nama" class="block text-sm font-medium text-ink">Nama Lengkap</label>
                     <input type="text"

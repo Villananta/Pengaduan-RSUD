@@ -119,11 +119,6 @@
         </div>
         <!-- End of Panel Kategori -->
 
-        <!-- Panel Tingkat Keparahan: penanda warna yang ditetapkan humas. -->
-        {{-- Keparahan hanya penanda warna dan filter di konsol. Target SLA
-             tetap dihitung dari App\Support\Sla supaya keputusan admin tidak
-             menggeser tenggat yang sudah dijanjikan ke pelapor. --}}
-
         <div class="w-full rounded-lg shadow-sm bg-surface-container-lowest px-space-md py-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md">
             <div class="flex items-start gap-space-sm">
                 <span @class([
@@ -135,7 +130,7 @@
 
                 <div>
                     <h2 class="font-title-md text-title-md text-on-surface font-bold">
-                        Tingkat Keparahan
+                        Klasifikasi Masalah
                     </h2>
 
                     <p class="font-body-sm text-body-sm text-on-surface-variant">

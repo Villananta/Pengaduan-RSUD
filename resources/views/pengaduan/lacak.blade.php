@@ -58,6 +58,15 @@
             {{-- Verifikasi dikirim lewat POST agar kode tiket tidak pernah muncul di URL --}}
             <form method="POST" action="{{ route('pengaduan.verifikasi') }}" class="mt-5 flex flex-col gap-3 sm:flex-row">
                 @csrf
+
+                {{-- Honeypot: field tersembunyi untuk mendeteksi bot --}}
+                <input type="text"
+                       name="website"
+                       tabindex="-1"
+                       autocomplete="off"
+                       style="display: none;"
+                       aria-hidden="true"
+                       value="">
                 <div class="flex-1">
                     <label for="kode" class="sr-only">Kode Tiket</label>
                     <input
@@ -433,6 +442,15 @@
                         <!-- Form Balasan Pelapor -->
                         <form method="POST" action="{{ route('pengaduan.pesan', ['kode' => $tiket->kode_tiket]) }}" enctype="multipart/form-data" class="flex flex-col gap-4 rounded-xl bg-brand-section p-4">
                             @csrf
+
+                            {{-- Honeypot: field tersembunyi untuk mendeteksi bot --}}
+                            <input type="text"
+                                   name="website"
+                                   tabindex="-1"
+                                   autocomplete="off"
+                                   style="display: none;"
+                                   aria-hidden="true"
+                                   value="">
 
                             <div class="flex flex-wrap items-center justify-between gap-2">
                                 <div class="flex items-center gap-2">
