@@ -221,8 +221,6 @@ final class StatistikUnit
      * Query dasar untuk pengaduan terbaru, tanpa limit.
      *
      * Dipakai oleh versi paginated supaya logika query tidak duplikat.
-     *
-     * @return Builder
      */
     public static function terbaruQuery(MasterUnit $unit): Builder
     {
@@ -239,7 +237,6 @@ final class StatistikUnit
      * Pengaduan terbaru milik unit dengan pagination dan sort.
      *
      * @param  string  $urut  'asc' atau 'desc' (default: desc)
-     * @return LengthAwarePaginator
      */
     public static function terbaruPaginated(
         MasterUnit $unit,

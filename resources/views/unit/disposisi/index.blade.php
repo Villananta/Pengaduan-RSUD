@@ -127,13 +127,15 @@
 
         <!-- Saringan Disposisi: Status Investigasi, Pencarian, Kategori -->
         <form method="GET" action="{{ route('unit.disposisi.index', $unit) }}" class="flex flex-col gap-space-sm bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
-            {{-- Baris 1: Status Investigasi --}}
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
-                <label for="investigasi" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded-xs bg-secondary-container text-on-secondary-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Status Investigasi</span>
-                    Saring Status
-                </label>
-                <div class="relative w-full md:w-64 flex-1">
+
+            {{-- Baris 1: Status Investigasi, Keparahan & Rentang Waktu --}}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm">
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
+                    <label for="investigasi" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-xs bg-secondary-container text-on-secondary-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Status Investigasi</span>
+                        Saring Status
+                    </label>
+                    <div class="relative">
                     <select
                         id="investigasi"
                         name="investigasi"
@@ -146,12 +148,9 @@
                         @endforeach
                     </select>
                     <x-symbol nama="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none" />
+                    </div>
                 </div>
-            </div>
-
-            {{-- Baris 2: Keparahan & Rentang Waktu --}}
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
-                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
                     <label for="keparahan" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-error-container text-on-error-container font-label-sm text-label-sm uppercase font-bold tracking-wide">Keparahan</span>
                         Tingkat Keparahan
@@ -172,7 +171,7 @@
                     </div>
                 </div>
 
-                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
                     <label for="tanggal_mulai" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-info-light text-info font-label-sm text-label-sm uppercase font-bold tracking-wide">Waktu</span>
                         Tanggal Mulai
@@ -189,7 +188,7 @@
                     </div>
                 </div>
 
-                <div class="md:col-span-4 flex flex-col gap-space-sm">
+                <div class="md:col-span-3 flex flex-col gap-space-sm">
                     <label for="tanggal_akhir" class="font-label-sm text-label-sm font-bold text-on-surface flex items-center gap-2">
                         <span class="px-2 py-0.5 rounded-xs bg-info-light text-info font-label-sm text-label-sm uppercase font-bold tracking-wide">Waktu</span>
                         Tanggal Akhir
@@ -207,7 +206,7 @@
                 </div>
             </div>
 
-            {{-- Baris 3: Pencarian, Kategori, Urutkan --}}
+            {{-- Baris 2: Pencarian, Kategori, Urutkan --}}
             <div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm pt-space-sm">
                 <div class="md:col-span-5 flex items-center gap-space-xs bg-surface-container-lowest rounded-lg border border-outline-variant/40 px-space-md">
                     <x-symbol nama="search" class="text-[18px] text-outline" />

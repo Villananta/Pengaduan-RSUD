@@ -287,8 +287,8 @@ final class Dashboard
 
         $jamLalu = $pengaduan->created_at->diffInHours(now(), true);
         $labelWaktu = $jamLalu >= 24
-            ? floor($jamLalu / 24) . ' hari ' . round($jamLalu % 24) . ' jam'
-            : round($jamLalu, 1) . ' jam';
+            ? floor($jamLalu / 24).' hari '.round($jamLalu % 24).' jam'
+            : round($jamLalu, 1).' jam';
 
         return [
             'label' => "Belum Dibuka ({$labelWaktu})",

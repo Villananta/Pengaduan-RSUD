@@ -90,7 +90,7 @@ class PengaduanDummySeeder extends Seeder
 
             $kode = $this->kodeTiket($dibuat, $kodeTerpakai);
             [$terverifikasi, $otp, $otpKedaluwarsa] = $this->statusEmail($nomor, $dibuat);
-            [$token, $tokenKedaluwarsa] = $this->tokenAkses($nomor, $dibuat);
+            [$token, $tokenKedaluwarsa] = $this->tokenAkses($kode, $dibuat);
             [$subjek, $deskripsi] = $this->cerita($baris['kategori']);
 
             $pengaduan = Pengaduan::updateOrCreate(
@@ -530,15 +530,20 @@ class PengaduanDummySeeder extends Seeder
      * Tiga dari sepuluh tiket punya token lacak. Token yang sudah lewat masa
      * berlakunya tetap disimpan supaya jalur penolakan ikut terwakili.
      *
+     * Token dibuat deterministik dari kode_tiket supaya re-run seeder tidak
+     * menabrak unique constraint (shuffle mengubah urutan loop index).
+     *
      * @return array{0: ?string, 1: ?Carbon}
      */
-    private function tokenAkses(int $nomor, Carbon $dibuat): array
+    private function tokenAkses(string $kodeTiket, Carbon $dibuat): array
     {
-        if ($nomor % 10 > 2) {
+        // Hanya ~30% tiket punya token akses (berdasarkan hash kode_tiket)
+        $hash = hash('sha256', $kodeTiket);
+        if (hexdec(substr($hash, 0, 2)) > 51) { // ~30%
             return [null, null];
         }
 
-        return [hash('sha256', 'akses-'.$nomor), $dibuat->copy()->addDays(30)];
+        return [hash('sha256', 'akses-'.$kodeTiket), $dibuat->copy()->addDays(30)];
     }
 
     /** Draf jawaban hanya masuk akal pada tiket yang masih berjalan. */

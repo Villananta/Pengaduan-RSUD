@@ -3,6 +3,7 @@
 @section('title', 'Detail Tiket '.$detail->kode())
 
 @use('App\Enums\KategoriPengaduan')
+@use('App\Enums\KlasifikasiMasalah')
 @use('App\Enums\TingkatKeparahan')
 
 @section('content')
@@ -30,7 +31,6 @@
             </div>
         @endif
 
-        <!-- Remah Roti: kembali ke daftar, kode tiket, dan posisi SLA singkat. -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
             <div class="flex flex-wrap items-center gap-space-sm text-label-md text-label-md text-on-surface-variant">
                 <a
