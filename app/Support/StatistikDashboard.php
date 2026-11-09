@@ -20,7 +20,7 @@ final class StatistikDashboard
 {
     public const KUNCI = 'statistik-dashboard';
 
-    private const TTL = 60;
+    private const TTL = 300;
 
     /**
      * Hitungan pengaduan per tahap untuk kartu bento.
